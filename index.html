@@ -881,9 +881,6 @@
       duration,
       price,
       vehicleId,
-      isRealJan2026: !!isJan2026Real,
-      source: isJan2026Real ? 'realJan2026' : 'real2025'
-    };
   }
 
   /* ========= PROIEZIONI BOOKING ========= */
@@ -902,7 +899,6 @@
         year: 2024,
         month: d2024.getMonth() + 1,
         price: b.price * 0.95,
-        isRealJan2026: false,
         sourceYear: 2024,
         source: 'proj2024'
       });
