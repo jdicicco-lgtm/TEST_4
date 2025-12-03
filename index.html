@@ -12,9 +12,7 @@
     />
 
     <!-- Chart.js (CDN) - senza integrity per evitare blocco SRI -->
-    <script
-        src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js">
-    </script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 
     <style>
         body {
@@ -455,9 +453,7 @@
 </div>
 
 <!-- Bootstrap JS bundle - senza integrity -->
-<script
-    src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js">
-</script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 
 <script>
 /**
@@ -472,7 +468,6 @@ const MONTH_LABELS_IT = [
     'Luglio', 'Agosto', 'Settembre', 'Ottobre', 'Novembre', 'Dicembre'
 ];
 
-// Lista fissa gruppi veicolo (UI label) e chiave normalizzata
 const VEHICLE_GROUPS = [
     'Commercial Van',
     'Large',
@@ -490,7 +485,6 @@ function groupLabelToKey(label) {
     return label.toUpperCase().replace(/\s+/g, '_').trim();
 }
 
-// Global data containers
 let fleetRaw = [];
 let fleetStationsRaw = [];
 let bookings2025Raw = [];
@@ -510,19 +504,15 @@ let stationsSet = new Set();
 let acquisitionsSet = new Set();
 
 let currentProjectionFactor = 0.10;
-
 let mainChart = null;
 
-// For CSV export
 let lastFilteredFleetCurrent = [];
 let lastFilteredBookingsCurrent = [];
 let lastFiltersUsed = null;
 let lastCurrentRange = null;
 
 /**
- * ==============================
- *  UTILS
- * ==============================
+ * UTILS
  */
 
 function parseNumber(val) {
@@ -537,21 +527,15 @@ function parseNumber(val) {
 
 function parseDateFlexible(val) {
     if (val instanceof Date) return val;
-
-    if (typeof val === 'number') {
-        // timestamp ms
-        return new Date(val);
-    }
+    if (typeof val === 'number') return new Date(val);
 
     if (typeof val === 'string') {
         const trimmed = val.trim();
         if (!trimmed) return null;
 
-        // Try ISO / YYYY-MM-DD etc.
         const d = new Date(trimmed);
         if (!isNaN(d.getTime())) return d;
 
-        // Try DD/MM/YYYY etc.
         const m = trimmed.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/);
         if (m) {
             const day = parseInt(m[1], 10);
@@ -609,9 +593,8 @@ function formatDelta(current, previous) {
     }
     const diff = current - previous;
     const pct = (diff / Math.abs(previous)) * 100;
-    if (!isFinite(pct)) {
-        return { text: '–', cssClass: 'kpi-delta-neutral' };
-    }
+    if (!isFinite(pct)) return { text: '–', cssClass: 'kpi-delta-neutral' };
+
     const sign = pct > 0 ? '+' : (pct < 0 ? '−' : '±');
     const absPct = Math.abs(pct).toFixed(1).replace('.', ',') + '%';
 
@@ -625,23 +608,18 @@ function formatDelta(current, previous) {
 function getMultiSelectValues(selectId) {
     const el = document.getElementById(selectId);
     if (!el) return [];
-    const vals = Array.from(el.selectedOptions).map(o => o.value);
-    return vals;
+    return Array.from(el.selectedOptions).map(o => o.value);
 }
 
 /**
- * ==============================
- *  COLUMN MAPPING / NORMALIZATION
- * ==============================
+ * COLUMN MAPPING / NORMALIZATION
  */
 
 function findColumnName(row, candidates) {
     if (!row) return null;
     const keys = Object.keys(row);
     const lowerMap = {};
-    keys.forEach(k => {
-        lowerMap[k.toLowerCase()] = k;
-    });
+    keys.forEach(k => lowerMap[k.toLowerCase()] = k);
     for (const c of candidates) {
         const found = lowerMap[c.toLowerCase()];
         if (found) return found;
@@ -651,7 +629,6 @@ function findColumnName(row, candidates) {
 
 function inferFleetColumns(fleetArray) {
     if (!fleetArray || fleetArray.length === 0) return;
-
     const sample = fleetArray[0];
     fleetColumnMap = {
         refDate: findColumnName(sample, ['refDate', 'data', 'date', 'referenceDate', 'dataRif', 'ref_date']),
@@ -662,15 +639,11 @@ function inferFleetColumns(fleetArray) {
         assicurazione: findColumnName(sample, ['assicurazione', 'insurance', 'canoneAssicurazione', 'canone_assicurazione']),
         tipologia: findColumnName(sample, ['tipologia', 'tipo', 'type', 'categoria'])
     };
-
-    if (fleetColumnMap.tipologia) {
-        tipologiaColumnName = fleetColumnMap.tipologia;
-    }
+    if (fleetColumnMap.tipologia) tipologiaColumnName = fleetColumnMap.tipologia;
 }
 
 function inferBookingColumns(bookingsArray) {
     if (!bookingsArray || bookingsArray.length === 0) return;
-
     const sample = bookingsArray[0];
     bookingColumnMap = {
         startDate: findColumnName(sample, ['startDate', 'from', 'DATA_INIZIO', 'dataInizio', 'data_inizio', 'date']),
@@ -686,31 +659,24 @@ function inferBookingColumns(bookingsArray) {
 function normalizeGroup(raw) {
     if (!raw && raw !== 0) return null;
     let s = String(raw).trim().toLowerCase();
-
-    // Synonyms / cleaning
     if (s === 'furgone' || s === 'furgoni') s = 'commercial van';
     if (s === 'van') s = 'people mover';
 
-    // direct match with our list
     for (const label of VEHICLE_GROUPS) {
-        if (s === label.toLowerCase()) {
-            return { label, key: groupLabelToKey(label) };
-        }
+        if (s === label.toLowerCase()) return { label, key: groupLabelToKey(label) };
     }
 
-    // simple mappings / contains
     if (s.includes('commercial')) return { label: 'Commercial Van', key: groupLabelToKey('Commercial Van') };
-    if (s.includes('people')) return { label: 'People Mover', key: groupLabelToKey('People Mover') };
-    if (s.includes('station')) return { label: 'Station Wagon', key: groupLabelToKey('Station Wagon') };
-    if (s.includes('cabrio')) return { label: 'Cabriolet', key: groupLabelToKey('Cabriolet') };
-    if (s.includes('suv')) return { label: 'Suv', key: groupLabelToKey('Suv') };
-    if (s.includes('premium')) return { label: 'Premium', key: groupLabelToKey('Premium') };
-    if (s.includes('mini')) return { label: 'Mini', key: groupLabelToKey('Mini') };
-    if (s.includes('small')) return { label: 'Small', key: groupLabelToKey('Small') };
-    if (s.includes('economy')) return { label: 'Economy', key: groupLabelToKey('Economy') };
-    if (s.includes('large')) return { label: 'Large', key: groupLabelToKey('Large') };
+    if (s.includes('people'))    return { label: 'People Mover',   key: groupLabelToKey('People Mover') };
+    if (s.includes('station'))   return { label: 'Station Wagon',  key: groupLabelToKey('Station Wagon') };
+    if (s.includes('cabrio'))    return { label: 'Cabriolet',      key: groupLabelToKey('Cabriolet') };
+    if (s.includes('suv'))       return { label: 'Suv',            key: groupLabelToKey('Suv') };
+    if (s.includes('premium'))   return { label: 'Premium',        key: groupLabelToKey('Premium') };
+    if (s.includes('mini'))      return { label: 'Mini',           key: groupLabelToKey('Mini') };
+    if (s.includes('small'))     return { label: 'Small',          key: groupLabelToKey('Small') };
+    if (s.includes('economy'))   return { label: 'Economy',        key: groupLabelToKey('Economy') };
+    if (s.includes('large'))     return { label: 'Large',          key: groupLabelToKey('Large') };
 
-    // Unknown -> null (verrà escluso dai filtri gruppo)
     return null;
 }
 
@@ -733,7 +699,6 @@ function normalizeFleetRow(row) {
         if (!tipologia) tipologia = null;
     }
 
-    // Track uniques for filters
     if (acquisition) acquisitionsSet.add(acquisition);
     if (station) stationsSet.add(station);
     if (tipologia) tipologiaValues.push(tipologia);
@@ -789,22 +754,18 @@ function normalizeBookingRow(row, isJan2026Real) {
 }
 
 /**
- * Generate all bookings for 2024–2026 using projection rules.
- * 2024: from 2025 with -5% price
- * 2025: real 2025
- * 2026: from 2025 with +projectionFactor for Feb–Dec, and real bookingsJan2026 for Jan.
+ * PROIEZIONI BOOKING 2024–2026
  */
+
 function generateAllBookings(projectionFactor) {
     const result = [];
 
-    // Real 2025 as-is
     for (const b of bookings2025Normalized) {
         result.push({ ...b, sourceYear: 2025, source: 'real2025' });
 
-        // 2024 projection (price -5%)
         const d2024 = new Date(b.date);
         d2024.setFullYear(2024);
-        const b2024 = {
+        result.push({
             ...b,
             date: d2024,
             year: 2024,
@@ -813,14 +774,12 @@ function generateAllBookings(projectionFactor) {
             isRealJan2026: false,
             sourceYear: 2024,
             source: 'proj2024'
-        };
-        result.push(b2024);
+        });
 
-        // 2026 projection for non-January months
         if (b.month !== 1) {
             const d2026 = new Date(b.date);
             d2026.setFullYear(2026);
-            const b2026 = {
+            result.push({
                 ...b,
                 date: d2026,
                 year: 2026,
@@ -829,30 +788,26 @@ function generateAllBookings(projectionFactor) {
                 isRealJan2026: false,
                 sourceYear: 2026,
                 source: 'proj2026'
-            };
-            result.push(b2026);
+            });
         }
     }
 
-    // Real January 2026 (no projection)
     for (const b of bookingsJan2026Normalized) {
-        const bClone = { ...b, sourceYear: 2026, source: 'realJan2026' };
-        result.push(bClone);
+        const clone = { ...b, sourceYear: 2026, source: 'realJan2026' };
+        result.push(clone);
     }
 
     allBookingsWithProjections = result;
 }
 
 /**
- * ==============================
- *  FILTERS & RANGE LOGIC
- * ==============================
+ * FILTRI & RANGE
  */
 
 function readFilters() {
     const years = getMultiSelectValues('filterYear').map(y => parseInt(y, 10)).filter(y => !isNaN(y));
     const months = getMultiSelectValues('filterMonth').map(m => parseInt(m, 10)).filter(m => !isNaN(m));
-    const groups = getMultiSelectValues('filterGroup'); // groupKey
+    const groups = getMultiSelectValues('filterGroup');
     const acquisitions = getMultiSelectValues('filterAcquisition');
     const stations = getMultiSelectValues('filterStation');
     const tipologie = tipologiaColumnName ? getMultiSelectValues('filterTipologia') : [];
@@ -860,11 +815,6 @@ function readFilters() {
     return { years, months, groups, acquisitions, stations, tipologie };
 }
 
-/**
- * Determine current and previous ranges based on selected years & months.
- * currentRange: { startDate, endDate, monthsCount }
- * previousRange: shifted backwards by same number of months.
- */
 function getCurrentAndPreviousRanges(filters) {
     const years = filters.years.length ? filters.years : YEARS_AVAILABLE.slice();
     const months = filters.months.length ? filters.months : Array.from({ length: 12 }, (_, i) => i + 1);
@@ -875,84 +825,65 @@ function getCurrentAndPreviousRanges(filters) {
     const maxMonth = Math.max(...months);
 
     const startCurrent = { year: minYear, month: minMonth };
-    const endCurrent = { year: maxYear, month: maxMonth };
+    const endCurrent   = { year: maxYear, month: maxMonth };
 
     const monthsCount = monthsDiff(startCurrent.year, startCurrent.month, endCurrent.year, endCurrent.month) + 1;
 
-    const prevEnd = shiftMonth(startCurrent.year, startCurrent.month, -1);
-    const prevStart = shiftMonth(prevEnd.year, prevEnd.month, -(monthsCount - 1));
+    const prevEnd   = shiftMonth(startCurrent.year, startCurrent.month, -1);
+    const prevStart = shiftMonth(prevEnd.year,   prevEnd.month,   -(monthsCount - 1));
 
     const currentRange = {
         startDate: new Date(startCurrent.year, startCurrent.month - 1, 1),
-        endDate: new Date(endCurrent.year, endCurrent.month, 0),
+        endDate:   new Date(endCurrent.year,   endCurrent.month,   0),
         monthsCount,
         startYM: startCurrent,
-        endYM: endCurrent
+        endYM:   endCurrent
     };
 
     const previousRange = {
         startDate: new Date(prevStart.year, prevStart.month - 1, 1),
-        endDate: new Date(prevEnd.year, prevEnd.month, 0),
+        endDate:   new Date(prevEnd.year,   prevEnd.month,       0),
         monthsCount,
         startYM: prevStart,
-        endYM: prevEnd
+        endYM:   prevEnd
     };
 
     return { current: currentRange, previous: previousRange };
 }
 
-/**
- * Apply filters to a fleet row
- */
 function fleetRowMatchesFilters(row, filters, isPreviousRange) {
-    // Year & month: only for current range; previous range uses date boundaries only.
     if (!isPreviousRange) {
-        if (filters.years.length && !filters.years.includes(row.year)) return false;
+        if (filters.years.length  && !filters.years.includes(row.year))   return false;
         if (filters.months.length && !filters.months.includes(row.month)) return false;
     }
-
     if (filters.groups.length && row.groupKey && !filters.groups.includes(row.groupKey)) return false;
-
     if (filters.acquisitions.length) {
         if (!row.acquisition || !filters.acquisitions.includes(row.acquisition)) return false;
     }
-
     if (filters.stations.length) {
         if (!row.station || !filters.stations.includes(row.station)) return false;
     }
-
     if (tipologiaColumnName && filters.tipologie.length) {
         if (!row.tipologia || !filters.tipologie.includes(row.tipologia)) return false;
     }
-
     return true;
 }
 
-/**
- * Apply filters to a booking row
- */
 function bookingRowMatchesFilters(row, filters, isPreviousRange) {
     if (!isPreviousRange) {
-        if (filters.years.length && !filters.years.includes(row.year)) return false;
+        if (filters.years.length  && !filters.years.includes(row.year))   return false;
         if (filters.months.length && !filters.months.includes(row.month)) return false;
     }
-
     if (filters.groups.length && row.groupKey && !filters.groups.includes(row.groupKey)) return false;
-
     if (filters.acquisitions.length) {
         if (!row.acquisition || !filters.acquisitions.includes(row.acquisition)) return false;
     }
-
     if (filters.stations.length) {
         if (!row.station || !filters.stations.includes(row.station)) return false;
     }
-
     return true;
 }
 
-/**
- * Filter data for current/previous ranges
- */
 function filterFleetForRange(range, filters, isPreviousRange) {
     return fleetNormalized.filter(row => {
         if (row.date < range.startDate || row.date > range.endDate) return false;
@@ -968,12 +899,12 @@ function filterBookingsForRange(range, filters, isPreviousRange) {
 }
 
 /**
- * Aggregates per month for KPI & chart
+ * AGGREGAZIONI/MESI
  */
+
 function buildMonthlyAggregates(range, fleetRows, bookingRows) {
-    // Initialize aggregator map for all months in range
     const agg = {};
-    let curYear = range.startYM.year;
+    let curYear  = range.startYM.year;
     let curMonth = range.startYM.month;
 
     for (let i = 0; i < range.monthsCount; i++) {
@@ -990,27 +921,25 @@ function buildMonthlyAggregates(range, fleetRows, bookingRows) {
             vehicleIds: new Set()
         };
         const next = shiftMonth(curYear, curMonth, 1);
-        curYear = next.year;
+        curYear  = next.year;
         curMonth = next.month;
     }
 
-    // Fleet
     for (const row of fleetRows) {
         const key = ymToKey(row.year, row.month);
         const slot = agg[key];
         if (!slot) continue;
-        slot.fleetCount += 1;
+        slot.fleetCount       += 1;
         slot.canoneImponibile += row.canoneImponibile;
-        slot.assicurazione += row.assicurazione;
-        slot.totalCost += row.canoneImponibile + row.assicurazione;
+        slot.assicurazione    += row.assicurazione;
+        slot.totalCost        += row.canoneImponibile + row.assicurazione;
     }
 
-    // Bookings
     for (const row of bookingRows) {
         const key = ymToKey(row.year, row.month);
         const slot = agg[key];
         if (!slot) continue;
-        slot.revenue += row.price;
+        slot.revenue       += row.price;
         slot.totalDuration += row.duration;
         const id = row.vehicleId || `booking_${row.source}_${row.year}_${row.month}_${Math.random().toString(36).slice(2)}`;
         slot.vehicleIds.add(id);
@@ -1019,42 +948,35 @@ function buildMonthlyAggregates(range, fleetRows, bookingRows) {
     return agg;
 }
 
-/**
- * Compute KPI from aggregates
- */
 function computeKpisFromAggregates(aggregates, bookingsRows) {
     const entries = Object.values(aggregates);
 
     let fleetCountSum = 0;
     let fleetMonthsWithData = 0;
     let sumCanoneImponibile = 0;
-    let sumAssicurazione = 0;
-    let sumCost = 0;
-    let sumRevenue = 0;
-    let sumDuration = 0;
-    const vehicleSet = new Set();
+    let sumAssicurazione   = 0;
+    let sumCost            = 0;
+    let sumRevenue         = 0;
+    let sumDuration        = 0;
+    const vehicleSet       = new Set();
 
     for (const slot of entries) {
         if (slot.fleetCount > 0) {
-            fleetCountSum += slot.fleetCount;
+            fleetCountSum      += slot.fleetCount;
             fleetMonthsWithData += 1;
         }
         sumCanoneImponibile += slot.canoneImponibile;
-        sumAssicurazione += slot.assicurazione;
-        sumCost += slot.totalCost;
-        sumRevenue += slot.revenue;
-        sumDuration += slot.totalDuration;
-
-        for (const id of slot.vehicleIds) {
-            vehicleSet.add(id);
-        }
+        sumAssicurazione    += slot.assicurazione;
+        sumCost             += slot.totalCost;
+        sumRevenue          += slot.revenue;
+        sumDuration         += slot.totalDuration;
+        for (const id of slot.vehicleIds) vehicleSet.add(id);
     }
 
-    const avgFleetSize = fleetMonthsWithData > 0 ? fleetCountSum / fleetMonthsWithData : 0;
-    const revenuePerDay = sumDuration > 0 ? sumRevenue / sumDuration : 0;
-
-    const numBookings = bookingsRows.length;
-    const numVehiclesRented = vehicleSet.size;
+    const avgFleetSize   = fleetMonthsWithData > 0 ? fleetCountSum / fleetMonthsWithData : 0;
+    const revenuePerDay  = sumDuration > 0 ? sumRevenue / sumDuration : 0;
+    const numBookings    = bookingsRows.length;
+    const numVehiclesRent= vehicleSet.size;
 
     return {
         avgFleetSize,
@@ -1064,37 +986,28 @@ function computeKpisFromAggregates(aggregates, bookingsRows) {
         sumRevenue,
         revenuePerDay,
         numBookings,
-        numVehiclesRented
+        numVehiclesRented: numVehiclesRent
     };
 }
 
-/**
- * KPI: Prenotazioni effettive Gennaio 2026 (solo bookingsJan2026, non proiettate)
- * Usa filtri gruppo/acquisizione/stazione ma non anno/mese.
- */
 function computePrenotazioniEffettiveGen2026(filters) {
     let count = 0;
     for (const b of bookingsJan2026Normalized) {
-        // Gennaio 2026 è implicito nella normalizzazione
         if (!bookingRowMatchesFilters(b, {
-            years: [], // ignorati
+            years: [],
             months: [],
             groups: filters.groups,
             acquisitions: filters.acquisitions,
             stations: filters.stations,
             tipologie: []
-        }, false)) {
-            continue;
-        }
+        }, false)) continue;
         count += 1;
     }
     return count;
 }
 
 /**
- * ==============================
- *  CHART
- * ==============================
+ * CHART
  */
 
 function updateChart(range, fleetRows, bookingRows) {
@@ -1108,19 +1021,19 @@ function updateChart(range, fleetRows, bookingRows) {
         return `${mLabel} ${slot.year}`;
     });
 
-    const fleetData = slots.map(slot => slot.fleetCount);
-    const costData = slots.map(slot => slot.totalCost);
-    const revenueData = slots.map(slot => slot.revenue);
+    const fleetData          = slots.map(slot => slot.fleetCount);
+    const costData           = slots.map(slot => slot.totalCost);
+    const revenueData        = slots.map(slot => slot.revenue);
     const vehiclesRentedData = slots.map(slot => slot.vehicleIds.size);
 
     const ctx = document.getElementById('mainChart').getContext('2d');
 
     if (mainChart) {
-        mainChart.data.labels = labels;
-        mainChart.data.datasets[0].data = fleetData;
-        mainChart.data.datasets[1].data = costData;
-        mainChart.data.datasets[2].data = revenueData;
-        mainChart.data.datasets[3].data = vehiclesRentedData;
+        mainChart.data.labels              = labels;
+        mainChart.data.datasets[0].data    = fleetData;
+        mainChart.data.datasets[1].data    = costData;
+        mainChart.data.datasets[2].data    = revenueData;
+        mainChart.data.datasets[3].data    = vehiclesRentedData;
         mainChart.update();
         return;
     }
@@ -1174,26 +1087,16 @@ function updateChart(range, fleetRows, bookingRows) {
             },
             stacked: false,
             plugins: {
-                legend: {
-                    position: 'top'
-                },
+                legend: { position: 'top' },
                 tooltip: {
                     callbacks: {
                         label: function (context) {
                             const label = context.dataset.label || '';
                             const value = context.parsed.y;
-                            if (label.includes('Flotta')) {
-                                return `${label}: ${formatNumberInt(value)} veicoli`;
-                            }
-                            if (label.includes('Costo totale')) {
-                                return `${label}: ${formatMoney(value)}`;
-                            }
-                            if (label.includes('Revenue')) {
-                                return `${label}: ${formatMoney(value)}`;
-                            }
-                            if (label.includes('Veicoli noleggiati')) {
-                                return `${label}: ${formatNumberInt(value)}`;
-                            }
+                            if (label.includes('Flotta')) return `${label}: ${formatNumberInt(value)} veicoli`;
+                            if (label.includes('Costo totale')) return `${label}: ${formatMoney(value)}`;
+                            if (label.includes('Revenue')) return `${label}: ${formatMoney(value)}`;
+                            if (label.includes('Veicoli noleggiati')) return `${label}: ${formatNumberInt(value)}`;
                             return `${label}: ${value}`;
                         }
                     }
@@ -1203,21 +1106,13 @@ function updateChart(range, fleetRows, bookingRows) {
                 yFleet: {
                     type: 'linear',
                     position: 'left',
-                    title: {
-                        display: true,
-                        text: 'Veicoli'
-                    }
+                    title: { display: true, text: 'Veicoli' }
                 },
                 yMoney: {
                     type: 'linear',
                     position: 'right',
-                    title: {
-                        display: true,
-                        text: 'Euro'
-                    },
-                    grid: {
-                        drawOnChartArea: false
-                    }
+                    title: { display: true, text: 'Euro' },
+                    grid: { drawOnChartArea: false }
                 }
             }
         }
@@ -1225,17 +1120,15 @@ function updateChart(range, fleetRows, bookingRows) {
 }
 
 /**
- * ==============================
- *  KPI CARD UPDATE
- * ==============================
+ * KPI
  */
 
 function updateKpiCard(current, previous, currentFormatter, prevFormatter, kpiCurrentId, kpiPrevId, kpiDeltaId) {
     const currentVal = current ?? 0;
-    const prevVal = previous ?? 0;
+    const prevVal    = previous ?? 0;
 
     document.getElementById(kpiCurrentId).textContent = currentFormatter(currentVal);
-    document.getElementById(kpiPrevId).textContent = 'Prec.: ' + prevFormatter(prevVal);
+    document.getElementById(kpiPrevId).textContent    = 'Prec.: ' + prevFormatter(prevVal);
 
     const deltaInfo = formatDelta(currentVal, prevVal);
     const deltaEl = document.getElementById(kpiDeltaId);
@@ -1245,13 +1138,12 @@ function updateKpiCard(current, previous, currentFormatter, prevFormatter, kpiCu
 }
 
 function updateAllKpis(rangeCurrent, rangePrevious, fleetCurrent, fleetPrevious, bookingsCurrent, bookingsPrevious, filters) {
-    const aggCurrent = buildMonthlyAggregates(rangeCurrent, fleetCurrent, bookingsCurrent);
+    const aggCurrent  = buildMonthlyAggregates(rangeCurrent,  fleetCurrent,  bookingsCurrent);
     const aggPrevious = buildMonthlyAggregates(rangePrevious, fleetPrevious, bookingsPrevious);
 
-    const kpiCurrent = computeKpisFromAggregates(aggCurrent, bookingsCurrent);
+    const kpiCurrent  = computeKpisFromAggregates(aggCurrent,  bookingsCurrent);
     const kpiPrevious = computeKpisFromAggregates(aggPrevious, bookingsPrevious);
 
-    // 1. Dimensione flotta (media)
     updateKpiCard(
         kpiCurrent.avgFleetSize,
         kpiPrevious.avgFleetSize,
@@ -1262,7 +1154,6 @@ function updateAllKpis(rangeCurrent, rangePrevious, fleetCurrent, fleetPrevious,
         'kpiFleetSizeDelta'
     );
 
-    // 2. Canone imponibile
     updateKpiCard(
         kpiCurrent.sumCanoneImponibile,
         kpiPrevious.sumCanoneImponibile,
@@ -1273,11 +1164,9 @@ function updateAllKpis(rangeCurrent, rangePrevious, fleetCurrent, fleetPrevious,
         'kpiCanoneImponibileDelta'
     );
 
-    // 3. Canone totale IVATO (solo valore corrente, niente confronto)
     const canoneIvatoCurrent = kpiCurrent.sumCanoneImponibile * 1.22;
     document.getElementById('kpiCanoneIvatoCurrent').textContent = formatMoney(canoneIvatoCurrent);
 
-    // 4. Assicurazione
     updateKpiCard(
         kpiCurrent.sumAssicurazione,
         kpiPrevious.sumAssicurazione,
@@ -1288,7 +1177,6 @@ function updateAllKpis(rangeCurrent, rangePrevious, fleetCurrent, fleetPrevious,
         'kpiAssicurazioneDelta'
     );
 
-    // 5. Costo totale
     updateKpiCard(
         kpiCurrent.sumCost,
         kpiPrevious.sumCost,
@@ -1299,7 +1187,6 @@ function updateAllKpis(rangeCurrent, rangePrevious, fleetCurrent, fleetPrevious,
         'kpiCostoTotaleDelta'
     );
 
-    // 6. Revenue
     updateKpiCard(
         kpiCurrent.sumRevenue,
         kpiPrevious.sumRevenue,
@@ -1310,7 +1197,6 @@ function updateAllKpis(rangeCurrent, rangePrevious, fleetCurrent, fleetPrevious,
         'kpiRevenueDelta'
     );
 
-    // 7. Revenue per day
     updateKpiCard(
         kpiCurrent.revenuePerDay,
         kpiPrevious.revenuePerDay,
@@ -1321,7 +1207,6 @@ function updateAllKpis(rangeCurrent, rangePrevious, fleetCurrent, fleetPrevious,
         'kpiRevPerDayDelta'
     );
 
-    // 8. Numero prenotazioni
     updateKpiCard(
         kpiCurrent.numBookings,
         kpiPrevious.numBookings,
@@ -1332,7 +1217,6 @@ function updateAllKpis(rangeCurrent, rangePrevious, fleetCurrent, fleetPrevious,
         'kpiNumPrenotazioniDelta'
     );
 
-    // 9. Veicoli effettivamente noleggiati
     updateKpiCard(
         kpiCurrent.numVehiclesRented,
         kpiPrevious.numVehiclesRented,
@@ -1343,21 +1227,17 @@ function updateAllKpis(rangeCurrent, rangePrevious, fleetCurrent, fleetPrevious,
         'kpiVeicoliNoleggiatiDelta'
     );
 
-    // 10. Prenotazioni effettive Gennaio 2026 (solo valore corrente)
     const prenGen2026 = computePrenotazioniEffettiveGen2026(filters);
     document.getElementById('kpiPrenotazioniGen2026Current').textContent = formatNumberInt(prenGen2026);
 }
 
 /**
- * ==============================
- *  CSV EXPORT
- * ==============================
+ * CSV EXPORT
  */
 
 function downloadCsvFilteredData() {
     const rows = lastFilteredBookingsCurrent || [];
     const header = ['Data', 'Anno', 'Mese', 'Gruppo', 'Stazione', 'Acquisizione', 'Duration', 'Price'];
-
     const lines = [header.join(';')];
 
     for (const b of rows) {
@@ -1389,26 +1269,22 @@ function downloadCsvFilteredData() {
 }
 
 /**
- * ==============================
- *  MAIN UPDATE FLOW
- * ==============================
+ * MAIN UPDATE
  */
 
 function updateDashboard() {
     const filters = readFilters();
-    const ranges = getCurrentAndPreviousRanges(filters);
+    const ranges  = getCurrentAndPreviousRanges(filters);
 
-    const fleetCurrent = filterFleetForRange(ranges.current, filters, false);
-    const fleetPrevious = filterFleetForRange(ranges.previous, filters, true);
+    const fleetCurrent    = filterFleetForRange(ranges.current,  filters, false);
+    const fleetPrevious   = filterFleetForRange(ranges.previous, filters, true);
+    const bookingsCurrent = filterBookingsForRange(ranges.current,  filters, false);
+    const bookingsPrevious= filterBookingsForRange(ranges.previous, filters, true);
 
-    const bookingsCurrent = filterBookingsForRange(ranges.current, filters, false);
-    const bookingsPrevious = filterBookingsForRange(ranges.previous, filters, true);
-
-    // Store for CSV
-    lastFilteredFleetCurrent = fleetCurrent;
-    lastFilteredBookingsCurrent = bookingsCurrent;
-    lastFiltersUsed = filters;
-    lastCurrentRange = ranges.current;
+    lastFilteredFleetCurrent   = fleetCurrent;
+    lastFilteredBookingsCurrent= bookingsCurrent;
+    lastFiltersUsed            = filters;
+    lastCurrentRange           = ranges.current;
 
     updateAllKpis(
         ranges.current,
@@ -1419,18 +1295,14 @@ function updateDashboard() {
         bookingsPrevious,
         filters
     );
-
     updateChart(ranges.current, fleetCurrent, bookingsCurrent);
 }
 
 /**
- * ==============================
- *  FILTER UI INITIALIZATION
- * ==============================
+ * FILTRI UI
  */
 
 function populateFilterOptions() {
-    // Years
     const yearSelect = document.getElementById('filterYear');
     YEARS_AVAILABLE.forEach(y => {
         const opt = document.createElement('option');
@@ -1439,7 +1311,6 @@ function populateFilterOptions() {
         yearSelect.appendChild(opt);
     });
 
-    // Months
     const monthSelect = document.getElementById('filterMonth');
     for (let i = 0; i < 12; i++) {
         const opt = document.createElement('option');
@@ -1448,7 +1319,6 @@ function populateFilterOptions() {
         monthSelect.appendChild(opt);
     }
 
-    // Groups (fixed list)
     const groupSelect = document.getElementById('filterGroup');
     for (const label of VEHICLE_GROUPS) {
         const opt = document.createElement('option');
@@ -1457,7 +1327,6 @@ function populateFilterOptions() {
         groupSelect.appendChild(opt);
     }
 
-    // Acquisitions
     const acqSelect = document.getElementById('filterAcquisition');
     const acqList = Array.from(acquisitionsSet).filter(x => x).sort((a, b) => a.localeCompare(b));
     for (const a of acqList) {
@@ -1467,7 +1336,6 @@ function populateFilterOptions() {
         acqSelect.appendChild(opt);
     }
 
-    // Stations
     const stationSelect = document.getElementById('filterStation');
     const stationList = Array.from(stationsSet).filter(x => x).sort((a, b) => a.localeCompare(b));
     for (const s of stationList) {
@@ -1477,7 +1345,6 @@ function populateFilterOptions() {
         stationSelect.appendChild(opt);
     }
 
-    // Tipologia (if available)
     if (tipologiaColumnName && tipologiaValues.length) {
         const tipContainer = document.getElementById('filterTipologiaContainer');
         const tipSelect = document.getElementById('filterTipologia');
@@ -1491,7 +1358,6 @@ function populateFilterOptions() {
         tipContainer.style.display = 'block';
     }
 
-    // Select all values by default
     function selectAllOptions(selectEl) {
         Array.from(selectEl.options).forEach(o => { o.selected = true; });
     }
@@ -1511,11 +1377,7 @@ function attachFilterListeners() {
     const ids = ['filterYear', 'filterMonth', 'filterGroup', 'filterAcquisition', 'filterStation', 'filterTipologia'];
     ids.forEach(id => {
         const el = document.getElementById(id);
-        if (el) {
-            el.addEventListener('change', () => {
-                updateDashboard();
-            });
-        }
+        if (el) el.addEventListener('change', () => updateDashboard());
     });
 
     const projSelect = document.getElementById('filterProjection');
@@ -1529,36 +1391,26 @@ function attachFilterListeners() {
     });
 
     document.getElementById('btnReset').addEventListener('click', () => {
-        // Reset projection
         currentProjectionFactor = 0.10;
         document.getElementById('filterProjection').value = '0.10';
         generateAllBookings(currentProjectionFactor);
 
-        // Re-select all options for multi-selects
         const ids2 = ['filterYear', 'filterMonth', 'filterGroup', 'filterAcquisition', 'filterStation', 'filterTipologia'];
         ids2.forEach(id => {
             const el = document.getElementById(id);
-            if (el) {
-                Array.from(el.options).forEach(o => { o.selected = true; });
-            }
+            if (el) Array.from(el.options).forEach(o => { o.selected = true; });
         });
 
         updateDashboard();
     });
 
-    document.getElementById('btnCsv').addEventListener('click', () => {
-        downloadCsvFilteredData();
-    });
-
-    document.getElementById('btnPrint').addEventListener('click', () => {
-        window.print();
-    });
+    document.getElementById('btnCsv').addEventListener('click', downloadCsvFilteredData);
+    document.getElementById('btnPrint').addEventListener('click', () => window.print());
 }
 
 /**
- * ==============================
- *  DATA LOADING
- * ==============================
+ * DATA LOADING
+ * (QUI C'È LA NUOVA FUNZIONE loadJson CHE TI INDICA IL FILE PROBLEMATICO)
  */
 
 async function loadJson(path) {
@@ -1566,12 +1418,23 @@ async function loadJson(path) {
     if (!response.ok) {
         throw new Error(`Errore nel caricamento di ${path}: ${response.status}`);
     }
-    return await response.json();
+
+    const text = await response.text();
+
+    if (!text.trim()) {
+        throw new Error(`Il file ${path} è vuoto o non contiene JSON.`);
+    }
+
+    try {
+        return JSON.parse(text);
+    } catch (e) {
+        console.error(`Errore nel parsing di ${path}`, e, 'Primi caratteri:', text.slice(0, 200));
+        throw new Error(`Impossibile leggere ${path}. Controlla che sia un JSON valido (parantesi aperte/chiuse correttamente, nessuna virgola finale, ecc.).`);
+    }
 }
 
 async function initDashboard() {
     try {
-        // Fetch all JSON in parallel
         const [
             fleetData,
             fleetStations,
@@ -1584,27 +1447,24 @@ async function initDashboard() {
             loadJson('bookingsJan2026.json')
         ]);
 
-        fleetRaw = Array.isArray(fleetData) ? fleetData : [];
-        fleetStationsRaw = Array.isArray(fleetStations) ? fleetStations : [];
-        bookings2025Raw = Array.isArray(bookings2025) ? bookings2025 : [];
-        bookingsJan2026Raw = Array.isArray(bookingsJan2026) ? bookingsJan2026 : [];
+        fleetRaw            = Array.isArray(fleetData)        ? fleetData        : [];
+        fleetStationsRaw    = Array.isArray(fleetStations)    ? fleetStations    : [];
+        bookings2025Raw     = Array.isArray(bookings2025)     ? bookings2025     : [];
+        bookingsJan2026Raw  = Array.isArray(bookingsJan2026)  ? bookingsJan2026  : [];
 
-        // Infer columns
         inferFleetColumns(fleetRaw);
         inferBookingColumns(bookings2025Raw.length ? bookings2025Raw : bookingsJan2026Raw);
 
-        // Normalize fleet
         fleetNormalized = [];
         tipologiaValues = [];
         acquisitionsSet = new Set();
-        stationsSet = new Set();
+        stationsSet     = new Set();
 
         for (const row of fleetRaw) {
             const norm = normalizeFleetRow(row);
             if (norm) fleetNormalized.push(norm);
         }
 
-        // Fleet stations: only for station list (UI)
         if (fleetStationsRaw.length) {
             const sampleStation = fleetStationsRaw[0];
             const stationKeyName = findColumnName(sampleStation, ['stazione', 'station', 'filiale', 'location']);
@@ -1616,7 +1476,6 @@ async function initDashboard() {
             }
         }
 
-        // Normalize bookings
         bookings2025Normalized = [];
         for (const row of bookings2025Raw) {
             const norm = normalizeBookingRow(row, false);
@@ -1627,9 +1486,8 @@ async function initDashboard() {
         for (const row of bookingsJan2026Raw) {
             const norm = normalizeBookingRow(row, true);
             if (norm) {
-                // For sicurezza, forza anno/mese
                 norm.date.setFullYear(2026);
-                norm.date.setMonth(0); // January
+                norm.date.setMonth(0);
                 norm.year = 2026;
                 norm.month = 1;
                 norm.isRealJan2026 = true;
@@ -1637,24 +1495,18 @@ async function initDashboard() {
             }
         }
 
-        // Generate all bookings with default projection 10%
         generateAllBookings(currentProjectionFactor);
 
-        // Populate filter options and attach listeners
         populateFilterOptions();
         attachFilterListeners();
-
-        // Initial dashboard
         updateDashboard();
     } catch (err) {
         console.error(err);
-        alert('Errore nel caricamento dei dati. Controlla che i file JSON siano nella root del repo: fleetData_clean.json, fleetStations2025.json, bookings2025.json, bookingsJan2026.json');
+        alert(err.message);
     }
 }
 
-document.addEventListener('DOMContentLoaded', () => {
-    initDashboard();
-});
+document.addEventListener('DOMContentLoaded', initDashboard);
 </script>
 </body>
 </html>
