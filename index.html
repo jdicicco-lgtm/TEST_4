@@ -5,10 +5,10 @@
   <title>Dashboard Flotta & Prenotazioni 2024–2026</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
 
-  <!-- Bootstrap 5 (CDN, senza integrity) -->
+  <!-- Bootstrap 5 -->
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
 
-  <!-- Chart.js (CDN, senza integrity) -->
+  <!-- Chart.js -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 
   <style>
@@ -146,7 +146,7 @@
     <div>
       <h1 class="h4 mb-1">Dashboard Flotta &amp; Prenotazioni 2024–2026</h1>
       <div class="small" style="color: var(--text-muted);">
-        Analisi integrata <strong>flotta</strong> (fleetData_clean) &amp; <strong>prenotazioni</strong> (bookings2025 / bookingsJan2026) con proiezioni 2024–2026.
+        Analisi integrata <strong>flotta</strong> &amp; <strong>prenotazioni</strong> con proiezioni 2024–2026.
       </div>
     </div>
     <div class="btn-group no-print" role="group">
@@ -241,6 +241,9 @@
                 <span id="kpiCanoneImponibilePrev">Prec.: --</span>
                 <span id="kpiCanoneImponibileDelta" class="kpi-delta kpi-delta-neutral">--</span>
               </div>
+              <div class="kpi-sub">
+                <span id="kpiCanoneIvatoInline">IVATO: --</span>
+              </div>
             </div>
           </div>
         </div>
@@ -251,7 +254,7 @@
               <div class="kpi-title">💶 Canone totale IVATO</div>
               <div class="kpi-value" id="kpiCanoneIvatoCurrent">--</div>
               <div class="kpi-sub">
-                Calcolato come canone imponibile × 1,22.
+                Somma del campo <code>CANONE IVATO</code> per tutti i mesi di attivazione flotta.
               </div>
             </div>
           </div>
@@ -450,35 +453,30 @@
       let d = new Date(t);
       if (!isNaN(d.getTime())) return d;
 
-      // DD/MM/YYYY
       let m = t.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/);
       if (m) {
         d = new Date(parseInt(m[3], 10), parseInt(m[2], 10) - 1, parseInt(m[1], 10));
         if (!isNaN(d.getTime())) return d;
       }
 
-      // YYYY-MM-DD
       m = t.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
       if (m) {
         d = new Date(parseInt(m[1], 10), parseInt(m[2], 10) - 1, parseInt(m[3], 10));
         if (!isNaN(d.getTime())) return d;
       }
 
-      // YYYY-MM
-      m = t.match(/^(\d{4})-(\d{1,2})$/);
+      m = t.match(/^(\d{4})-(\d{2})$/);
       if (m) {
         d = new Date(parseInt(m[1], 10), parseInt(m[2], 10) - 1, 1);
         if (!isNaN(d.getTime())) return d;
       }
 
-      // YYYYMMDD
       m = t.match(/^(\d{4})(\d{2})(\d{2})$/);
       if (m) {
         d = new Date(parseInt(m[1], 10), parseInt(m[2], 10) - 1, parseInt(m[3], 10));
         if (!isNaN(d.getTime())) return d;
       }
 
-      // YYYYMM
       m = t.match(/^(\d{4})(\d{2})$/);
       if (m) {
         d = new Date(parseInt(m[1], 10), parseInt(m[2], 10) - 1, 1);
@@ -544,98 +542,113 @@
 
   /* ========= NORMALIZZAZIONE ========= */
 
+  // confronto robusto: minuscolo + rimozione spazi, underscore, punti
   function findColumnName(row, candidates) {
-  if (!row) return null;
+    if (!row) return null;
 
-  // normalizza: minuscolo + rimozione spazi, underscore, punti
-  const normalize = s =>
-    String(s)
-      .toLowerCase()
-      .replace(/[\s_.]/g, '');
+    const normalize = s =>
+      String(s)
+        .toLowerCase()
+        .replace(/[\s_.]/g, '');
 
-  const map = {};
-  Object.keys(row).forEach(k => {
-    map[normalize(k)] = k;
-  });
+    const map = {};
+    Object.keys(row).forEach(k => {
+      map[normalize(k)] = k;
+    });
 
-  for (const c of candidates) {
-    const found = map[normalize(c)];
-    if (found) return found;
+    for (const c of candidates) {
+      const found = map[normalize(c)];
+      if (found) return found;
+    }
+    return null;
   }
-  return null;
-}
 
- function inferFleetColumns(fleetArray) {
-  if (!fleetArray || fleetArray.length === 0) return;
-  const sample = fleetArray[0];
+  function inferFleetColumns(fleetArray) {
+    if (!fleetArray || fleetArray.length === 0) return;
+    const sample = fleetArray[0];
 
-  fleetColumnMap = {
-    // aggiungo anche "DATA INIZIO" / "data inizio"
-    refDate: findColumnName(sample, [
-      'refDate',
-      'data',
-      'date',
-      'referenceDate',
-      'dataRif',
-      'ref_date',
-      'data inizio',
-      'dataInizio'
-    ]),
-    yearCol: findColumnName(sample, ['anno', 'year']),
-    monthCol: findColumnName(sample, ['mese', 'month', 'mese_rif']),
+    fleetColumnMap = {
+      refDate: findColumnName(sample, [
+        'refDate',
+        'data',
+        'date',
+        'referenceDate',
+        'dataRif',
+        'ref_date',
+        'data inizio',
+        'dataInizio'
+      ]),
+      yearCol: findColumnName(sample, ['anno', 'year']),
+      monthCol: findColumnName(sample, ['mese', 'month', 'mese_rif']),
 
-    group: findColumnName(sample, [
-      'gruppo',
-      'group',
-      'vehicleGroup',
-      'carGroup',
-      'gruppo_veicolo'
-    ]),
+      group: findColumnName(sample, [
+        'gruppo',
+        'group',
+        'vehicleGroup',
+        'carGroup',
+        'gruppo_veicolo'
+      ]),
 
-    acquisition: findColumnName(sample, [
-      'acquisizione',
-      'acquisition',
-      'tipo_acquisizione',
-      'source'
-    ]),
+      acquisition: findColumnName(sample, [
+        'acquisizione',
+        'acquisition',
+        'tipo_acquisizione',
+        'source'
+      ]),
 
-    station: findColumnName(sample, [
-      'stazione',
-      'station',
-      'filiale',
-      'location'
-    ]),
+      station: findColumnName(sample, [
+        'stazione',
+        'station',
+        'filiale',
+        'location'
+      ]),
 
-    // aggiungo "CANONE IMPONIBILE"
-    canoneImponibile: findColumnName(sample, [
-      'canoneImponibile',
-      'canone_imponibile',
-      'canone imponibile',
-      'canone',
-      'canoneNetto'
-    ]),
+      canoneImponibile: findColumnName(sample, [
+        'canoneImponibile',
+        'canone_imponibile',
+        'canone imponibile',
+        'canone',
+        'canoneNetto'
+      ]),
 
-    // aggiungo "COPERTURA ASS."
-    assicurazione: findColumnName(sample, [
-      'assicurazione',
-      'insurance',
-      'canoneAssicurazione',
-      'canone_assicurazione',
-      'copertura ass.',
-      'copertura ass'
-    ]),
+      canoneIvato: findColumnName(sample, [
+        'canone ivato',
+        'canoneIvato',
+        'canone_ivato',
+        'canone lordo'
+      ]),
 
-    tipologia: findColumnName(sample, [
-      'tipologia',
-      'tipo',
-      'type',
-      'categoria'
-    ])
-  };
+      assicurazione: findColumnName(sample, [
+        'assicurazione',
+        'insurance',
+        'canoneAssicurazione',
+        'canone_assicurazione',
+        'copertura ass.',
+        'copertura ass'
+      ]),
 
-  if (fleetColumnMap.tipologia) tipologiaColumnName = fleetColumnMap.tipologia;
-}
+      // date di fine
+      endDateEff: findColumnName(sample, [
+        'riconsegna effettiva',
+        'data effettiva',
+        'data riconsegna effettiva'
+      ]),
+      endDateFine: findColumnName(sample, [
+        'data fine',
+        'fine contratto',
+        'data_fine'
+      ]),
 
+      tipologia: findColumnName(sample, [
+        'tipologia',
+        'tipo',
+        'type',
+        'categoria'
+      ])
+    };
+
+    if (fleetColumnMap.tipologia) tipologiaColumnName = fleetColumnMap.tipologia;
+  }
 
   function inferBookingColumns(bookingsArray) {
     if (!bookingsArray || bookingsArray.length === 0) return;
@@ -670,7 +683,7 @@
     }
     const s = String(raw).trim();
     if (!s) return '';
-    if (/^nan$/i.test(s)) return '';  // elimina "NaN"
+    if (/^nan$/i.test(s)) return '';
     return s;
   }
 
@@ -699,31 +712,46 @@
   }
 
   function normalizeFleetRow(row) {
-    let d = null;
+    // DATA INIZIO
+    let startDate = null;
 
     if (fleetColumnMap.refDate) {
-      d = parseDateFlexible(row[fleetColumnMap.refDate]);
+      startDate = parseDateFlexible(row[fleetColumnMap.refDate]);
     }
 
-    // fallback anno + mese se refDate manca o non si parsea
-    if (!d && fleetColumnMap.yearCol && fleetColumnMap.monthCol) {
+    if (!startDate && fleetColumnMap.yearCol && fleetColumnMap.monthCol) {
       const y = parseInt(row[fleetColumnMap.yearCol], 10);
       const m = parseInt(row[fleetColumnMap.monthCol], 10);
       if (!isNaN(y) && !isNaN(m) && m >= 1 && m <= 12) {
-        d = new Date(y, m - 1, 1);
+        startDate = new Date(y, m - 1, 1);
       }
     }
 
-    if (!d) return null;
+    if (!startDate) return null;
 
-    const year = d.getFullYear();
-    const month = d.getMonth() + 1;
+    // DATA FINE: prima RICONSEGNA EFFETTIVA / DATA EFFETTIVA, poi DATA FINE
+    let endEff = null;
+    let endFine = null;
+
+    if (fleetColumnMap.endDateEff) {
+      endEff = parseDateFlexible(row[fleetColumnMap.endDateEff]);
+    }
+    if (fleetColumnMap.endDateFine) {
+      endFine = parseDateFlexible(row[fleetColumnMap.endDateFine]);
+    }
+
+    let endDate = endEff || endFine || startDate;
+
+    // se per errore endDate < startDate, forziamo almeno lo stesso mese
+    if (endDate < startDate) endDate = startDate;
 
     const groupInfo = normalizeGroup(row[fleetColumnMap.group]);
     const acquisition = normalizeAcquisition(fleetColumnMap.acquisition ? row[fleetColumnMap.acquisition] : '');
     const stationRaw = fleetColumnMap.station ? row[fleetColumnMap.station] : '';
     const stationInfo = normalizeStation(stationRaw);
+
     const canoneImponibile = fleetColumnMap.canoneImponibile ? parseNumber(row[fleetColumnMap.canoneImponibile]) : 0;
+    const canoneIvato = fleetColumnMap.canoneIvato ? parseNumber(row[fleetColumnMap.canoneIvato]) : 0;
     const assicurazione = fleetColumnMap.assicurazione ? parseNumber(row[fleetColumnMap.assicurazione]) : 0;
 
     let tipologia = null;
@@ -736,15 +764,15 @@
 
     return {
       raw: row,
-      date: d,
-      year,
-      month,
+      startDate,
+      endDate,
       groupLabel: groupInfo ? groupInfo.label : null,
       groupKey: groupInfo ? groupInfo.key : null,
       acquisition,
       stationLabel: stationInfo.label,
       stationKey: stationInfo.key,
       canoneImponibile,
+      canoneIvato,
       assicurazione,
       tipologia
     };
@@ -891,11 +919,7 @@
     return { current: currentRange, previous: previousRange };
   }
 
-  function fleetRowMatchesFilters(row, filters, isPreviousRange) {
-    if (!isPreviousRange) {
-      if (filters.years.length && !filters.years.includes(row.year)) return false;
-      if (filters.months.length && !filters.months.includes(row.month)) return false;
-    }
+  function fleetRowMatchesFilters(row, filters) {
     if (filters.groups.length && row.groupKey && !filters.groups.includes(row.groupKey)) return false;
     if (filters.acquisitions.length) {
       if (!row.acquisition || !filters.acquisitions.includes(row.acquisition)) return false;
@@ -924,10 +948,11 @@
     return true;
   }
 
-  function filterFleetForRange(range, filters, isPreviousRange) {
+  function filterFleetForRange(range, filters) {
     return fleetNormalized.filter(row => {
-      if (row.date < range.startDate || row.date > range.endDate) return false;
-      return fleetRowMatchesFilters(row, filters, isPreviousRange);
+      // intervallo attivo che interseca il range
+      if (row.endDate < range.startDate || row.startDate > range.endDate) return false;
+      return fleetRowMatchesFilters(row, filters);
     });
   }
 
@@ -945,6 +970,7 @@
     let curYear = range.startYM.year;
     let curMonth = range.startYM.month;
 
+    // inizializza tutti i mesi del range
     for (let i = 0; i < range.monthsCount; i++) {
       const key = ymToKey(curYear, curMonth);
       agg[key] = {
@@ -952,6 +978,7 @@
         month: curMonth,
         fleetCount: 0,
         canoneImponibile: 0,
+        canoneIvato: 0,
         assicurazione: 0,
         totalCost: 0,
         revenue: 0,
@@ -963,16 +990,35 @@
       curMonth = next.month;
     }
 
+    // flotta: veicolo attivo per TUTTI i mesi tra startDate e endDate
     for (const row of fleetRows) {
-      const key = ymToKey(row.year, row.month);
-      const slot = agg[key];
-      if (!slot) continue;
-      slot.fleetCount += 1;
-      slot.canoneImponibile += row.canoneImponibile;
-      slot.assicurazione += row.assicurazione;
-      slot.totalCost += row.canoneImponibile + row.assicurazione;
+      const activeStart = row.startDate > range.startDate ? row.startDate : range.startDate;
+      const activeEnd = row.endDate < range.endDate ? row.endDate : range.endDate;
+      if (activeStart > activeEnd) continue;
+
+      let y = activeStart.getFullYear();
+      let m = activeStart.getMonth() + 1;
+      const endY = activeEnd.getFullYear();
+      const endM = activeEnd.getMonth() + 1;
+
+      while (y < endY || (y === endY && m <= endM)) {
+        const key = ymToKey(y, m);
+        const slot = agg[key];
+        if (slot) {
+          slot.fleetCount += 1;
+          slot.canoneImponibile += row.canoneImponibile;
+          slot.canoneIvato += row.canoneIvato;
+          slot.assicurazione += row.assicurazione;
+          slot.totalCost += row.canoneImponibile + row.assicurazione;
+        }
+        if (y === endY && m === endM) break;
+        const next = shiftMonth(y, m, 1);
+        y = next.year;
+        m = next.month;
+      }
     }
 
+    // booking
     for (const row of bookingRows) {
       const key = ymToKey(row.year, row.month);
       const slot = agg[key];
@@ -992,6 +1038,7 @@
     let fleetCountSum = 0;
     let fleetMonthsWithData = 0;
     let sumCanoneImponibile = 0;
+    let sumCanoneIvato = 0;
     let sumAssicurazione = 0;
     let sumCost = 0;
     let sumRevenue = 0;
@@ -1004,6 +1051,7 @@
         fleetMonthsWithData += 1;
       }
       sumCanoneImponibile += slot.canoneImponibile;
+      sumCanoneIvato += slot.canoneIvato;
       sumAssicurazione += slot.assicurazione;
       sumCost += slot.totalCost;
       sumRevenue += slot.revenue;
@@ -1019,6 +1067,7 @@
     return {
       avgFleetSize,
       sumCanoneImponibile,
+      sumCanoneIvato,
       sumAssicurazione,
       sumCost,
       sumRevenue,
@@ -1191,8 +1240,9 @@
       'kpiCanoneImponibileDelta'
     );
 
-    const canoneIvatoCurrent = kpiCurrent.sumCanoneImponibile * 1.22;
-    document.getElementById('kpiCanoneIvatoCurrent').textContent = formatMoney(canoneIvatoCurrent);
+    // canone IVATO: usiamo il valore reale e lo mostriamo inline sotto il canone imponibile
+    document.getElementById('kpiCanoneIvatoCurrent').textContent = formatMoney(kpiCurrent.sumCanoneIvato);
+    document.getElementById('kpiCanoneIvatoInline').textContent = 'IVATO: ' + formatMoney(kpiCurrent.sumCanoneIvato);
 
     updateKpiCard(
       kpiCurrent.sumAssicurazione,
@@ -1299,8 +1349,8 @@
     const filters = readFilters();
     const ranges = getCurrentAndPreviousRanges(filters);
 
-    const fleetCurrent = filterFleetForRange(ranges.current, filters, false);
-    const fleetPrevious = filterFleetForRange(ranges.previous, filters, true);
+    const fleetCurrent = filterFleetForRange(ranges.current, filters);
+    const fleetPrevious = filterFleetForRange(ranges.previous, filters);
 
     const bookingsCurrent = filterBookingsForRange(ranges.current, filters, false);
     const bookingsPrevious = filterBookingsForRange(ranges.previous, filters, true);
@@ -1392,7 +1442,7 @@
       acqSelect.appendChild(opt);
     }
 
-    // STAZIONE (normalizzata)
+    // STAZIONE
     const stationSelect = document.getElementById('filterStation');
     stationSelect.innerHTML = '';
     addPlaceholderOption(stationSelect, 'Tutte');
