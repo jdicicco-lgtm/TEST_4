@@ -1,0 +1,1666 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8" />
+    <title>Dashboard Flotta & Prenotazioni 2024–2026</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <!-- Bootstrap 5 (CDN) -->
+    <link
+        href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
+        rel="stylesheet"
+        integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH"
+        crossorigin="anonymous"
+    />
+
+    <!-- Chart.js (CDN) -->
+    <script
+        src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"
+        integrity="sha384-cG/mCWO+H3P6hHOgBos3C8Nh3DzrTnYvO8a2HeBRfg0cM1T3hDQHkON49Ce8hq1G"
+        crossorigin="anonymous">
+    </script>
+
+    <style>
+        body {
+            background-color: #f5f5f5;
+        }
+
+        .kpi-card {
+            border-radius: 1rem;
+            border: none;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06);
+            height: 100%;
+        }
+
+        .kpi-title {
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: #6c757d;
+            text-transform: uppercase;
+            letter-spacing: 0.03em;
+        }
+
+        .kpi-value {
+            font-size: 1.4rem;
+            font-weight: 700;
+        }
+
+        .kpi-sub {
+            font-size: 0.8rem;
+            color: #6c757d;
+        }
+
+        .kpi-delta {
+            font-weight: 600;
+            margin-left: 0.25rem;
+        }
+
+        .kpi-delta-positive {
+            color: #198754;
+        }
+
+        .kpi-delta-negative {
+            color: #dc3545;
+        }
+
+        .kpi-delta-neutral {
+            color: #6c757d;
+        }
+
+        .chart-card {
+            border-radius: 1rem;
+            border: none;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06);
+        }
+
+        .filter-badge {
+            font-size: 0.75rem;
+        }
+
+        .accordion-button:focus {
+            box-shadow: none;
+        }
+
+        .btn-icon {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.25rem;
+        }
+
+        .btn-icon svg {
+            width: 16px;
+            height: 16px;
+        }
+
+        .multi-select-label {
+            font-size: 0.8rem;
+            color: #6c757d;
+        }
+
+        @media print {
+            body {
+                background-color: #ffffff !important;
+            }
+
+            .no-print {
+                display: none !important;
+            }
+
+            .container-fluid {
+                padding: 0 !important;
+                margin: 0 !important;
+            }
+
+            .card,
+            .kpi-card,
+            .chart-card {
+                box-shadow: none !important;
+            }
+
+            #mainChart {
+                max-height: 400px;
+            }
+        }
+    </style>
+</head>
+<body>
+<div class="container-fluid py-3">
+    <!-- Header -->
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-3 gap-2">
+        <div>
+            <h1 class="h4 mb-1">Dashboard Flotta &amp; Prenotazioni 2024–2026</h1>
+            <div class="text-muted small">
+                Analisi integrata flotta <strong>fleetData_clean.json</strong> &amp; prenotazioni
+                <strong>bookings2025.json</strong> / <strong>bookingsJan2026.json</strong> con proiezioni 2026.
+            </div>
+        </div>
+        <div class="btn-group no-print" role="group" aria-label="Azioni esportazione">
+            <button id="btnCsv" type="button" class="btn btn-outline-secondary btn-sm btn-icon">
+                📥 <span>Scarica CSV dati filtrati</span>
+            </button>
+            <button id="btnPrint" type="button" class="btn btn-outline-secondary btn-sm btn-icon">
+                🖨️ <span>Stampa / Esporta PDF</span>
+            </button>
+            <button id="btnReset" type="button" class="btn btn-outline-danger btn-sm btn-icon">
+                ♻️ <span>Pulisci filtri</span>
+            </button>
+        </div>
+    </div>
+
+    <div class="row g-3">
+        <!-- Filters -->
+        <div class="col-12 col-lg-3 no-print">
+            <div class="card mb-3">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <span>Filtri</span>
+                    <span class="badge text-bg-light filter-badge">Multi-selezione</span>
+                </div>
+                <div class="card-body p-2">
+                    <div class="accordion" id="filterAccordion">
+                        <!-- Anno & Mese -->
+                        <div class="accordion-item">
+                            <h2 class="accordion-header" id="headingDate">
+                                <button class="accordion-button py-2" type="button" data-bs-toggle="collapse"
+                                        data-bs-target="#collapseDate" aria-expanded="true" aria-controls="collapseDate">
+                                    📅 Anno &amp; Mese
+                                </button>
+                            </h2>
+                            <div id="collapseDate" class="accordion-collapse collapse show"
+                                 aria-labelledby="headingDate" data-bs-parent="#filterAccordion">
+                                <div class="accordion-body">
+                                    <label for="filterYear" class="form-label mb-1">Anno</label>
+                                    <select id="filterYear" class="form-select form-select-sm" multiple>
+                                        <!-- popolato da JS -->
+                                    </select>
+                                    <div class="multi-select-label mb-2">
+                                        Seleziona uno o più anni (default: tutti).
+                                    </div>
+
+                                    <label for="filterMonth" class="form-label mb-1">Mese</label>
+                                    <select id="filterMonth" class="form-select form-select-sm" multiple>
+                                        <!-- popolato da JS -->
+                                    </select>
+                                    <div class="multi-select-label">
+                                        Seleziona uno o più mesi (default: tutti).
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Gruppo & Tipologia -->
+                        <div class="accordion-item">
+                            <h2 class="accordion-header" id="headingGroup">
+                                <button class="accordion-button collapsed py-2" type="button" data-bs-toggle="collapse"
+                                        data-bs-target="#collapseGroup" aria-expanded="false" aria-controls="collapseGroup">
+                                    🚘 Gruppo veicolo &amp; Tipologia
+                                </button>
+                            </h2>
+                            <div id="collapseGroup" class="accordion-collapse collapse"
+                                 aria-labelledby="headingGroup" data-bs-parent="#filterAccordion">
+                                <div class="accordion-body">
+                                    <label for="filterGroup" class="form-label mb-1">Gruppo veicolo</label>
+                                    <select id="filterGroup" class="form-select form-select-sm" multiple>
+                                        <!-- popolato da JS -->
+                                    </select>
+                                    <div class="multi-select-label mb-2">
+                                        Lista fissa di 10 gruppi, non derivata dai dati.
+                                    </div>
+
+                                    <div id="filterTipologiaContainer" style="display:none;">
+                                        <label for="filterTipologia" class="form-label mb-1">Tipologia</label>
+                                        <select id="filterTipologia" class="form-select form-select-sm" multiple>
+                                            <!-- popolato da JS se la colonna esiste -->
+                                        </select>
+                                        <div class="multi-select-label">
+                                            Se presente nei dati, filtra per tipologia/tipo.
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Acquisizione & Stazione -->
+                        <div class="accordion-item">
+                            <h2 class="accordion-header" id="headingAcq">
+                                <button class="accordion-button collapsed py-2" type="button" data-bs-toggle="collapse"
+                                        data-bs-target="#collapseAcq" aria-expanded="false" aria-controls="collapseAcq">
+                                    🏷️ Acquisizione &amp; Stazione
+                                </button>
+                            </h2>
+                            <div id="collapseAcq" class="accordion-collapse collapse"
+                                 aria-labelledby="headingAcq" data-bs-parent="#filterAccordion">
+                                <div class="accordion-body">
+                                    <label for="filterAcquisition" class="form-label mb-1">Acquisizione</label>
+                                    <select id="filterAcquisition" class="form-select form-select-sm" multiple>
+                                        <!-- popolato da JS -->
+                                    </select>
+                                    <div class="multi-select-label mb-2">
+                                        Basato su <code>acquisizione</code> di <strong>fleetData_clean</strong>.
+                                    </div>
+
+                                    <label for="filterStation" class="form-label mb-1">Stazione</label>
+                                    <select id="filterStation" class="form-select form-select-sm" multiple>
+                                        <!-- popolato da JS -->
+                                    </select>
+                                    <div class="multi-select-label">
+                                        Fonte principale: <strong>fleetStations2025.json</strong>.
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Proiezione 2026 -->
+                        <div class="accordion-item">
+                            <h2 class="accordion-header" id="headingProjection">
+                                <button class="accordion-button collapsed py-2" type="button" data-bs-toggle="collapse"
+                                        data-bs-target="#collapseProjection" aria-expanded="false" aria-controls="collapseProjection">
+                                    🔮 Proiezione 2026
+                                </button>
+                            </h2>
+                            <div id="collapseProjection" class="accordion-collapse collapse"
+                                 aria-labelledby="headingProjection" data-bs-parent="#filterAccordion">
+                                <div class="accordion-body">
+                                    <label for="filterProjection" class="form-label mb-1">Proiezione 2026 🔮</label>
+                                    <select id="filterProjection" class="form-select form-select-sm">
+                                        <option value="0.05">5%</option>
+                                        <option value="0.10" selected>10%</option>
+                                        <option value="0.15">15%</option>
+                                        <option value="0.20">20%</option>
+                                    </select>
+                                    <div class="multi-select-label">
+                                        Applica la percentuale alle proiezioni 2026 (Feb–Dic).
+                                        Gennaio 2026 rimane sempre reale.
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div> <!-- /accordion -->
+                </div>
+            </div>
+        </div>
+
+        <!-- KPI + Chart -->
+        <div class="col-12 col-lg-9">
+            <!-- KPIs -->
+            <div class="row g-3 mb-2">
+                <!-- Row 1 -->
+                <div class="col-12 col-md-6 col-xl-3">
+                    <div class="card kpi-card">
+                        <div class="card-body">
+                            <div class="kpi-title">🚗 Dimensione flotta (media)</div>
+                            <div class="kpi-value" id="kpiFleetSizeCurrent">--</div>
+                            <div class="kpi-sub">
+                                <span id="kpiFleetSizePrev">Prec.: --</span>
+                                <span id="kpiFleetSizeDelta" class="kpi-delta kpi-delta-neutral">--</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-12 col-md-6 col-xl-3">
+                    <div class="card kpi-card">
+                        <div class="card-body">
+                            <div class="kpi-title">💶 Canone imponibile</div>
+                            <div class="kpi-value" id="kpiCanoneImponibileCurrent">--</div>
+                            <div class="kpi-sub">
+                                <span id="kpiCanoneImponibilePrev">Prec.: --</span>
+                                <span id="kpiCanoneImponibileDelta" class="kpi-delta kpi-delta-neutral">--</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-12 col-md-6 col-xl-3">
+                    <div class="card kpi-card">
+                        <div class="card-body">
+                            <div class="kpi-title">💶 Canone totale IVATO</div>
+                            <div class="kpi-value" id="kpiCanoneIvatoCurrent">--</div>
+                            <div class="kpi-sub">
+                                <span>Calcolato come canone imponibile × 1,22.</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-12 col-md-6 col-xl-3">
+                    <div class="card kpi-card">
+                        <div class="card-body">
+                            <div class="kpi-title">🛡️ Assicurazione</div>
+                            <div class="kpi-value" id="kpiAssicurazioneCurrent">--</div>
+                            <div class="kpi-sub">
+                                <span id="kpiAssicurazionePrev">Prec.: --</span>
+                                <span id="kpiAssicurazioneDelta" class="kpi-delta kpi-delta-neutral">--</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row g-3 mb-2">
+                <!-- Row 2 -->
+                <div class="col-12 col-md-6 col-xl-3">
+                    <div class="card kpi-card">
+                        <div class="card-body">
+                            <div class="kpi-title">💰 Costo totale (canone + ass.)</div>
+                            <div class="kpi-value" id="kpiCostoTotaleCurrent">--</div>
+                            <div class="kpi-sub">
+                                <span id="kpiCostoTotalePrev">Prec.: --</span>
+                                <span id="kpiCostoTotaleDelta" class="kpi-delta kpi-delta-neutral">--</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-12 col-md-6 col-xl-3">
+                    <div class="card kpi-card">
+                        <div class="card-body">
+                            <div class="kpi-title">💸 Revenue</div>
+                            <div class="kpi-value" id="kpiRevenueCurrent">--</div>
+                            <div class="kpi-sub">
+                                <span id="kpiRevenuePrev">Prec.: --</span>
+                                <span id="kpiRevenueDelta" class="kpi-delta kpi-delta-neutral">--</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-12 col-md-6 col-xl-3">
+                    <div class="card kpi-card">
+                        <div class="card-body">
+                            <div class="kpi-title">☀️ Revenue per day</div>
+                            <div class="kpi-value" id="kpiRevPerDayCurrent">--</div>
+                            <div class="kpi-sub">
+                                <span id="kpiRevPerDayPrev">Prec.: --</span>
+                                <span id="kpiRevPerDayDelta" class="kpi-delta kpi-delta-neutral">--</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-12 col-md-6 col-xl-3">
+                    <div class="card kpi-card">
+                        <div class="card-body">
+                            <div class="kpi-title">📝 Numero prenotazioni</div>
+                            <div class="kpi-value" id="kpiNumPrenotazioniCurrent">--</div>
+                            <div class="kpi-sub">
+                                <span id="kpiNumPrenotazioniPrev">Prec.: --</span>
+                                <span id="kpiNumPrenotazioniDelta" class="kpi-delta kpi-delta-neutral">--</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row g-3 mb-3">
+                <!-- Row 3 -->
+                <div class="col-12 col-md-6 col-xl-4">
+                    <div class="card kpi-card">
+                        <div class="card-body">
+                            <div class="kpi-title">🚙 Veicoli effettivamente noleggiati</div>
+                            <div class="kpi-value" id="kpiVeicoliNoleggiatiCurrent">--</div>
+                            <div class="kpi-sub">
+                                <span id="kpiVeicoliNoleggiatiPrev">Prec.: --</span>
+                                <span id="kpiVeicoliNoleggiatiDelta" class="kpi-delta kpi-delta-neutral">--</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-12 col-md-6 col-xl-4">
+                    <div class="card kpi-card">
+                        <div class="card-body">
+                            <div class="kpi-title">✅ Prenotazioni effettive (Gennaio 2026)</div>
+                            <div class="kpi-value" id="kpiPrenotazioniGen2026Current">--</div>
+                            <div class="kpi-sub">
+                                <span>Conteggio prenotazioni <strong>bookingsJan2026</strong>,
+                                      filtrate per gruppo/acquisizione/stazione, non soggette a proiezione.</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Spacer / info card -->
+                <div class="col-12 col-md-6 col-xl-4">
+                    <div class="card kpi-card">
+                        <div class="card-body">
+                            <div class="kpi-title">ℹ️ Note su periodi</div>
+                            <div class="kpi-sub">
+                                <p class="mb-1">
+                                    I confronti storici usano un periodo precedente con
+                                    <strong>stessa ampiezza temporale</strong> (in mesi) spostato indietro.
+                                </p>
+                                <p class="mb-0">
+                                    Esempio: filtro <em>Gen–Mar 2025</em> → confronto con
+                                    <em>Ott–Dic 2024</em>.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Chart -->
+            <div class="card chart-card">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <div>
+                            <h2 class="h6 mb-0">Andamento mensile</h2>
+                            <div class="text-muted small">
+                                Flotta, costi totali, revenue e veicoli effettivamente noleggiati
+                                (filtrati) su asse temporale <strong>Anno–Mese</strong>.
+                            </div>
+                        </div>
+                    </div>
+                    <canvas id="mainChart" height="120"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Bootstrap JS bundle -->
+<script
+    src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"
+    integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz"
+    crossorigin="anonymous">
+</script>
+
+<script>
+/**
+ * ==============================
+ *  CONFIG & GLOBAL STATE
+ * ==============================
+ */
+
+const YEARS_AVAILABLE = [2024, 2025, 2026];
+const MONTH_LABELS_IT = [
+    'Gennaio', 'Febbraio', 'Marzo', 'Aprile', 'Maggio', 'Giugno',
+    'Luglio', 'Agosto', 'Settembre', 'Ottobre', 'Novembre', 'Dicembre'
+];
+
+// Lista fissa gruppi veicolo (UI label) e chiave normalizzata
+const VEHICLE_GROUPS = [
+    'Commercial Van',
+    'Large',
+    'Economy',
+    'Small',
+    'Mini',
+    'Premium',
+    'Suv',
+    'People Mover',
+    'Station Wagon',
+    'Cabriolet'
+];
+
+function groupLabelToKey(label) {
+    return label.toUpperCase().replace(/\s+/g, '_').trim();
+}
+
+// Global data containers
+let fleetRaw = [];
+let fleetStationsRaw = [];
+let bookings2025Raw = [];
+let bookingsJan2026Raw = [];
+
+let fleetNormalized = [];
+let bookings2025Normalized = [];
+let bookingsJan2026Normalized = [];
+let allBookingsWithProjections = [];
+
+let fleetColumnMap = {};
+let bookingColumnMap = {};
+let tipologiaColumnName = null;
+let tipologiaValues = [];
+
+let stationsSet = new Set();
+let acquisitionsSet = new Set();
+
+let currentProjectionFactor = 0.10;
+
+let mainChart = null;
+
+// For CSV export
+let lastFilteredFleetCurrent = [];
+let lastFilteredBookingsCurrent = [];
+let lastFiltersUsed = null;
+let lastCurrentRange = null;
+
+/**
+ * ==============================
+ *  UTILS
+ * ==============================
+ */
+
+function parseNumber(val) {
+    if (typeof val === 'number') return val;
+    if (typeof val === 'string') {
+        const cleaned = val.replace(/\./g, '').replace(',', '.').replace(/[^\d.-]/g, '');
+        const n = parseFloat(cleaned);
+        return isNaN(n) ? 0 : n;
+    }
+    return 0;
+}
+
+function parseDateFlexible(val) {
+    if (val instanceof Date) return val;
+
+    if (typeof val === 'number') {
+        // timestamp ms
+        return new Date(val);
+    }
+
+    if (typeof val === 'string') {
+        const trimmed = val.trim();
+        if (!trimmed) return null;
+
+        // Try ISO / YYYY-MM-DD etc.
+        const d = new Date(trimmed);
+        if (!isNaN(d.getTime())) return d;
+
+        // Try DD/MM/YYYY etc.
+        const m = trimmed.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/);
+        if (m) {
+            const day = parseInt(m[1], 10);
+            const month = parseInt(m[2], 10) - 1;
+            const year = parseInt(m[3], 10);
+            const d2 = new Date(year, month, day);
+            if (!isNaN(d2.getTime())) return d2;
+        }
+    }
+    return null;
+}
+
+function ymToKey(year, month) {
+    return `${year}-${String(month).padStart(2, '0')}`;
+}
+
+function shiftMonth(year, month, delta) {
+    const d = new Date(year, month - 1 + delta, 1);
+    return { year: d.getFullYear(), month: d.getMonth() + 1 };
+}
+
+function monthsDiff(startYear, startMonth, endYear, endMonth) {
+    return (endYear - startYear) * 12 + (endMonth - startMonth);
+}
+
+function formatMoney(eur) {
+    if (!isFinite(eur)) return '--';
+    return eur.toLocaleString('it-IT', {
+        style: 'currency',
+        currency: 'EUR',
+        maximumFractionDigits: 0
+    });
+}
+
+function formatMoney2(eur) {
+    if (!isFinite(eur)) return '--';
+    return eur.toLocaleString('it-IT', {
+        style: 'currency',
+        currency: 'EUR',
+        maximumFractionDigits: 2
+    });
+}
+
+function formatNumberInt(n) {
+    if (!isFinite(n)) return '--';
+    return Math.round(n).toLocaleString('it-IT');
+}
+
+function formatDelta(current, previous) {
+    if (!isFinite(previous) || previous === 0) {
+        return { text: '–', cssClass: 'kpi-delta-neutral' };
+    }
+    if (!isFinite(current)) {
+        return { text: '–', cssClass: 'kpi-delta-neutral' };
+    }
+    const diff = current - previous;
+    const pct = (diff / Math.abs(previous)) * 100;
+    if (!isFinite(pct)) {
+        return { text: '–', cssClass: 'kpi-delta-neutral' };
+    }
+    const sign = pct > 0 ? '+' : (pct < 0 ? '−' : '±');
+    const absPct = Math.abs(pct).toFixed(1).replace('.', ',') + '%';
+
+    let cssClass = 'kpi-delta-neutral';
+    if (pct > 0.0001) cssClass = 'kpi-delta-positive';
+    else if (pct < -0.0001) cssClass = 'kpi-delta-negative';
+
+    return { text: `${sign}${absPct}`, cssClass };
+}
+
+function getMultiSelectValues(selectId) {
+    const el = document.getElementById(selectId);
+    if (!el) return [];
+    const vals = Array.from(el.selectedOptions).map(o => o.value);
+    return vals;
+}
+
+/**
+ * ==============================
+ *  COLUMN MAPPING / NORMALIZATION
+ * ==============================
+ */
+
+function findColumnName(row, candidates) {
+    if (!row) return null;
+    const keys = Object.keys(row);
+    const lowerMap = {};
+    keys.forEach(k => {
+        lowerMap[k.toLowerCase()] = k;
+    });
+    for (const c of candidates) {
+        const found = lowerMap[c.toLowerCase()];
+        if (found) return found;
+    }
+    return null;
+}
+
+function inferFleetColumns(fleetArray) {
+    if (!fleetArray || fleetArray.length === 0) return;
+
+    const sample = fleetArray[0];
+    fleetColumnMap = {
+        refDate: findColumnName(sample, ['refDate', 'data', 'date', 'referenceDate', 'dataRif', 'ref_date']),
+        group: findColumnName(sample, ['gruppo', 'group', 'vehicleGroup', 'carGroup', 'gruppo_veicolo']),
+        acquisition: findColumnName(sample, ['acquisizione', 'acquisition', 'tipo_acquisizione', 'source']),
+        station: findColumnName(sample, ['stazione', 'station', 'filiale', 'location']),
+        canoneImponibile: findColumnName(sample, ['canoneImponibile', 'canone_imponibile', 'canone', 'canoneNetto']),
+        assicurazione: findColumnName(sample, ['assicurazione', 'insurance', 'canoneAssicurazione', 'canone_assicurazione']),
+        tipologia: findColumnName(sample, ['tipologia', 'tipo', 'type', 'categoria'])
+    };
+
+    if (fleetColumnMap.tipologia) {
+        tipologiaColumnName = fleetColumnMap.tipologia;
+    }
+}
+
+function inferBookingColumns(bookingsArray) {
+    if (!bookingsArray || bookingsArray.length === 0) return;
+
+    const sample = bookingsArray[0];
+    bookingColumnMap = {
+        startDate: findColumnName(sample, ['startDate', 'from', 'DATA_INIZIO', 'dataInizio', 'data_inizio', 'date']),
+        group: findColumnName(sample, ['gruppo', 'group', 'vehicleGroup', 'carType', 'car_group']),
+        station: findColumnName(sample, ['stazione', 'station', 'filiale', 'location']),
+        acquisition: findColumnName(sample, ['acquisizione', 'acquisition', 'tipo_acquisizione', 'source']),
+        duration: findColumnName(sample, ['duration', 'giorni', 'days', 'n_giorni', 'durata']),
+        price: findColumnName(sample, ['price', 'revenue', 'ricavo', 'importo', 'totale']),
+        vehicleId: findColumnName(sample, ['targa', 'plate', 'vehicleId', 'idVeicolo', 'id_veicolo', 'veicolo'])
+    };
+}
+
+function normalizeGroup(raw) {
+    if (!raw && raw !== 0) return null;
+    let s = String(raw).trim().toLowerCase();
+
+    // Synonyms / cleaning
+    if (s === 'furgone' || s === 'furgoni') s = 'commercial van';
+    if (s === 'van') s = 'people mover';
+
+    // direct match with our list
+    for (const label of VEHICLE_GROUPS) {
+        if (s === label.toLowerCase()) {
+            return { label, key: groupLabelToKey(label) };
+        }
+    }
+
+    // simple mappings / contains
+    if (s.includes('commercial')) return { label: 'Commercial Van', key: groupLabelToKey('Commercial Van') };
+    if (s.includes('people')) return { label: 'People Mover', key: groupLabelToKey('People Mover') };
+    if (s.includes('station')) return { label: 'Station Wagon', key: groupLabelToKey('Station Wagon') };
+    if (s.includes('cabrio')) return { label: 'Cabriolet', key: groupLabelToKey('Cabriolet') };
+    if (s.includes('suv')) return { label: 'Suv', key: groupLabelToKey('Suv') };
+    if (s.includes('premium')) return { label: 'Premium', key: groupLabelToKey('Premium') };
+    if (s.includes('mini')) return { label: 'Mini', key: groupLabelToKey('Mini') };
+    if (s.includes('small')) return { label: 'Small', key: groupLabelToKey('Small') };
+    if (s.includes('economy')) return { label: 'Economy', key: groupLabelToKey('Economy') };
+    if (s.includes('large')) return { label: 'Large', key: groupLabelToKey('Large') };
+
+    // Unknown -> null (verrà escluso dai filtri gruppo)
+    return null;
+}
+
+function normalizeFleetRow(row) {
+    const dateVal = row[fleetColumnMap.refDate];
+    const d = parseDateFlexible(dateVal);
+    if (!d) return null;
+    const year = d.getFullYear();
+    const month = d.getMonth() + 1;
+
+    const groupInfo = normalizeGroup(row[fleetColumnMap.group]);
+    const acquisition = fleetColumnMap.acquisition ? String(row[fleetColumnMap.acquisition] ?? '').trim() : '';
+    const station = fleetColumnMap.station ? String(row[fleetColumnMap.station] ?? '').trim() : '';
+    const canoneImponibile = fleetColumnMap.canoneImponibile ? parseNumber(row[fleetColumnMap.canoneImponibile]) : 0;
+    const assicurazione = fleetColumnMap.assicurazione ? parseNumber(row[fleetColumnMap.assicurazione]) : 0;
+
+    let tipologia = null;
+    if (tipologiaColumnName) {
+        tipologia = String(row[tipologiaColumnName] ?? '').trim();
+        if (!tipologia) tipologia = null;
+    }
+
+    // Track uniques for filters
+    if (acquisition) acquisitionsSet.add(acquisition);
+    if (station) stationsSet.add(station);
+    if (tipologia) tipologiaValues.push(tipologia);
+
+    return {
+        raw: row,
+        date: d,
+        year,
+        month,
+        groupLabel: groupInfo ? groupInfo.label : null,
+        groupKey: groupInfo ? groupInfo.key : null,
+        acquisition,
+        station,
+        canoneImponibile,
+        assicurazione,
+        tipologia
+    };
+}
+
+function normalizeBookingRow(row, isJan2026Real) {
+    const dateVal = row[bookingColumnMap.startDate];
+    const d = parseDateFlexible(dateVal);
+    if (!d) return null;
+
+    const year = d.getFullYear();
+    const month = d.getMonth() + 1;
+
+    const groupInfo = normalizeGroup(row[bookingColumnMap.group]);
+    const station = bookingColumnMap.station ? String(row[bookingColumnMap.station] ?? '').trim() : '';
+    const acquisition = bookingColumnMap.acquisition ? String(row[bookingColumnMap.acquisition] ?? '').trim() : '';
+    const duration = bookingColumnMap.duration ? parseNumber(row[bookingColumnMap.duration]) : 0;
+    const price = bookingColumnMap.price ? parseNumber(row[bookingColumnMap.price]) : 0;
+    const vehicleId = bookingColumnMap.vehicleId ? String(row[bookingColumnMap.vehicleId] ?? '').trim() : null;
+
+    if (acquisition) acquisitionsSet.add(acquisition);
+    if (station) stationsSet.add(station);
+
+    return {
+        raw: row,
+        date: d,
+        year,
+        month,
+        groupLabel: groupInfo ? groupInfo.label : null,
+        groupKey: groupInfo ? groupInfo.key : null,
+        station,
+        acquisition,
+        duration,
+        price,
+        vehicleId,
+        isRealJan2026: !!isJan2026Real,
+        source: isJan2026Real ? 'realJan2026' : 'real2025'
+    };
+}
+
+/**
+ * Generate all bookings for 2024–2026 using projection rules.
+ * 2024: from 2025 with -5% price
+ * 2025: real 2025
+ * 2026: from 2025 with +projectionFactor for Feb–Dec, and real bookingsJan2026 for Jan.
+ */
+function generateAllBookings(projectionFactor) {
+    const result = [];
+
+    // Real 2025 as-is
+    for (const b of bookings2025Normalized) {
+        result.push({ ...b, sourceYear: 2025, source: 'real2025' });
+
+        // 2024 projection (price -5%)
+        const d2024 = new Date(b.date);
+        d2024.setFullYear(2024);
+        const b2024 = {
+            ...b,
+            date: d2024,
+            year: 2024,
+            month: d2024.getMonth() + 1,
+            price: b.price * 0.95,
+            isRealJan2026: false,
+            sourceYear: 2024,
+            source: 'proj2024'
+        };
+        result.push(b2024);
+
+        // 2026 projection for non-January months
+        if (b.month !== 1) {
+            const d2026 = new Date(b.date);
+            d2026.setFullYear(2026);
+            const b2026 = {
+                ...b,
+                date: d2026,
+                year: 2026,
+                month: d2026.getMonth() + 1,
+                price: b.price * (1 + projectionFactor),
+                isRealJan2026: false,
+                sourceYear: 2026,
+                source: 'proj2026'
+            };
+            result.push(b2026);
+        }
+    }
+
+    // Real January 2026 (no projection)
+    for (const b of bookingsJan2026Normalized) {
+        const bClone = { ...b, sourceYear: 2026, source: 'realJan2026' };
+        result.push(bClone);
+    }
+
+    allBookingsWithProjections = result;
+}
+
+/**
+ * ==============================
+ *  FILTERS & RANGE LOGIC
+ * ==============================
+ */
+
+function readFilters() {
+    const years = getMultiSelectValues('filterYear').map(y => parseInt(y, 10)).filter(y => !isNaN(y));
+    const months = getMultiSelectValues('filterMonth').map(m => parseInt(m, 10)).filter(m => !isNaN(m));
+    const groups = getMultiSelectValues('filterGroup'); // groupKey
+    const acquisitions = getMultiSelectValues('filterAcquisition');
+    const stations = getMultiSelectValues('filterStation');
+    const tipologie = tipologiaColumnName ? getMultiSelectValues('filterTipologia') : [];
+
+    return { years, months, groups, acquisitions, stations, tipologie };
+}
+
+/**
+ * Determine current and previous ranges based on selected years & months.
+ * currentRange: { startDate, endDate, monthsCount }
+ * previousRange: shifted backwards by same number of months.
+ */
+function getCurrentAndPreviousRanges(filters) {
+    const years = filters.years.length ? filters.years : YEARS_AVAILABLE.slice();
+    const months = filters.months.length ? filters.months : Array.from({ length: 12 }, (_, i) => i + 1);
+
+    const minYear = Math.min(...years);
+    const maxYear = Math.max(...years);
+    const minMonth = Math.min(...months);
+    const maxMonth = Math.max(...months);
+
+    const startCurrent = { year: minYear, month: minMonth };
+    const endCurrent = { year: maxYear, month: maxMonth };
+
+    const monthsCount = monthsDiff(startCurrent.year, startCurrent.month, endCurrent.year, endCurrent.month) + 1;
+
+    const prevEnd = shiftMonth(startCurrent.year, startCurrent.month, -1);
+    const prevStart = shiftMonth(prevEnd.year, prevEnd.month, -(monthsCount - 1));
+
+    const currentRange = {
+        startDate: new Date(startCurrent.year, startCurrent.month - 1, 1),
+        endDate: new Date(endCurrent.year, endCurrent.month, 0),
+        monthsCount,
+        startYM: startCurrent,
+        endYM: endCurrent
+    };
+
+    const previousRange = {
+        startDate: new Date(prevStart.year, prevStart.month - 1, 1),
+        endDate: new Date(prevEnd.year, prevEnd.month, 0),
+        monthsCount,
+        startYM: prevStart,
+        endYM: prevEnd
+    };
+
+    return { current: currentRange, previous: previousRange };
+}
+
+/**
+ * Apply filters to a fleet row
+ */
+function fleetRowMatchesFilters(row, filters, isPreviousRange) {
+    // Year & month: only for current range; previous range uses date boundaries only.
+    if (!isPreviousRange) {
+        if (filters.years.length && !filters.years.includes(row.year)) return false;
+        if (filters.months.length && !filters.months.includes(row.month)) return false;
+    }
+
+    if (filters.groups.length && row.groupKey && !filters.groups.includes(row.groupKey)) return false;
+
+    if (filters.acquisitions.length) {
+        if (!row.acquisition || !filters.acquisitions.includes(row.acquisition)) return false;
+    }
+
+    if (filters.stations.length) {
+        if (!row.station || !filters.stations.includes(row.station)) return false;
+    }
+
+    if (tipologiaColumnName && filters.tipologie.length) {
+        if (!row.tipologia || !filters.tipologie.includes(row.tipologia)) return false;
+    }
+
+    return true;
+}
+
+/**
+ * Apply filters to a booking row
+ */
+function bookingRowMatchesFilters(row, filters, isPreviousRange) {
+    if (!isPreviousRange) {
+        if (filters.years.length && !filters.years.includes(row.year)) return false;
+        if (filters.months.length && !filters.months.includes(row.month)) return false;
+    }
+
+    if (filters.groups.length && row.groupKey && !filters.groups.includes(row.groupKey)) return false;
+
+    if (filters.acquisitions.length) {
+        if (!row.acquisition || !filters.acquisitions.includes(row.acquisition)) return false;
+    }
+
+    if (filters.stations.length) {
+        if (!row.station || !filters.stations.includes(row.station)) return false;
+    }
+
+    return true;
+}
+
+/**
+ * Filter data for current/previous ranges
+ */
+function filterFleetForRange(range, filters, isPreviousRange) {
+    return fleetNormalized.filter(row => {
+        if (row.date < range.startDate || row.date > range.endDate) return false;
+        return fleetRowMatchesFilters(row, filters, isPreviousRange);
+    });
+}
+
+function filterBookingsForRange(range, filters, isPreviousRange) {
+    return allBookingsWithProjections.filter(row => {
+        if (row.date < range.startDate || row.date > range.endDate) return false;
+        return bookingRowMatchesFilters(row, filters, isPreviousRange);
+    });
+}
+
+/**
+ * Aggregates per month for KPI & chart
+ */
+function buildMonthlyAggregates(range, fleetRows, bookingRows) {
+    // Initialize aggregator map for all months in range
+    const agg = {};
+    let curYear = range.startYM.year;
+    let curMonth = range.startYM.month;
+
+    for (let i = 0; i < range.monthsCount; i++) {
+        const key = ymToKey(curYear, curMonth);
+        agg[key] = {
+            year: curYear,
+            month: curMonth,
+            fleetCount: 0,
+            canoneImponibile: 0,
+            assicurazione: 0,
+            totalCost: 0,
+            revenue: 0,
+            totalDuration: 0,
+            vehicleIds: new Set()
+        };
+        const next = shiftMonth(curYear, curMonth, 1);
+        curYear = next.year;
+        curMonth = next.month;
+    }
+
+    // Fleet
+    for (const row of fleetRows) {
+        const key = ymToKey(row.year, row.month);
+        const slot = agg[key];
+        if (!slot) continue;
+        slot.fleetCount += 1;
+        slot.canoneImponibile += row.canoneImponibile;
+        slot.assicurazione += row.assicurazione;
+        slot.totalCost += row.canoneImponibile + row.assicurazione;
+    }
+
+    // Bookings
+    for (const row of bookingRows) {
+        const key = ymToKey(row.year, row.month);
+        const slot = agg[key];
+        if (!slot) continue;
+        slot.revenue += row.price;
+        slot.totalDuration += row.duration;
+        const id = row.vehicleId || `booking_${row.source}_${row.year}_${row.month}_${Math.random().toString(36).slice(2)}`;
+        slot.vehicleIds.add(id);
+    }
+
+    return agg;
+}
+
+/**
+ * Compute KPI from aggregates
+ */
+function computeKpisFromAggregates(aggregates, bookingsRows) {
+    const entries = Object.values(aggregates);
+
+    let fleetCountSum = 0;
+    let fleetMonthsWithData = 0;
+    let sumCanoneImponibile = 0;
+    let sumAssicurazione = 0;
+    let sumCost = 0;
+    let sumRevenue = 0;
+    let sumDuration = 0;
+    const vehicleSet = new Set();
+
+    for (const slot of entries) {
+        if (slot.fleetCount > 0) {
+            fleetCountSum += slot.fleetCount;
+            fleetMonthsWithData += 1;
+        }
+        sumCanoneImponibile += slot.canoneImponibile;
+        sumAssicurazione += slot.assicurazione;
+        sumCost += slot.totalCost;
+        sumRevenue += slot.revenue;
+        sumDuration += slot.totalDuration;
+
+        for (const id of slot.vehicleIds) {
+            vehicleSet.add(id);
+        }
+    }
+
+    const avgFleetSize = fleetMonthsWithData > 0 ? fleetCountSum / fleetMonthsWithData : 0;
+    const revenuePerDay = sumDuration > 0 ? sumRevenue / sumDuration : 0;
+
+    const numBookings = bookingsRows.length;
+    const numVehiclesRented = vehicleSet.size;
+
+    return {
+        avgFleetSize,
+        sumCanoneImponibile,
+        sumAssicurazione,
+        sumCost,
+        sumRevenue,
+        revenuePerDay,
+        numBookings,
+        numVehiclesRented
+    };
+}
+
+/**
+ * KPI: Prenotazioni effettive Gennaio 2026 (solo bookingsJan2026, non proiettate)
+ * Usa filtri gruppo/acquisizione/stazione ma non anno/mese.
+ */
+function computePrenotazioniEffettiveGen2026(filters) {
+    let count = 0;
+    for (const b of bookingsJan2026Normalized) {
+        // Gennaio 2026 è implicito nella normalizzazione
+        if (!bookingRowMatchesFilters(b, {
+            years: [], // ignorati
+            months: [],
+            groups: filters.groups,
+            acquisitions: filters.acquisitions,
+            stations: filters.stations,
+            tipologie: []
+        }, false)) {
+            continue;
+        }
+        count += 1;
+    }
+    return count;
+}
+
+/**
+ * ==============================
+ *  CHART
+ * ==============================
+ */
+
+function updateChart(range, fleetRows, bookingRows) {
+    const aggregates = buildMonthlyAggregates(range, fleetRows, bookingRows);
+    const slots = Object.values(aggregates).sort((a, b) =>
+        a.year === b.year ? a.month - b.month : a.year - b.year
+    );
+
+    const labels = slots.map(slot => {
+        const mLabel = MONTH_LABELS_IT[slot.month - 1].slice(0, 3);
+        return `${mLabel} ${slot.year}`;
+    });
+
+    const fleetData = slots.map(slot => slot.fleetCount);
+    const costData = slots.map(slot => slot.totalCost);
+    const revenueData = slots.map(slot => slot.revenue);
+    const vehiclesRentedData = slots.map(slot => slot.vehicleIds.size);
+
+    const ctx = document.getElementById('mainChart').getContext('2d');
+
+    if (mainChart) {
+        mainChart.data.labels = labels;
+        mainChart.data.datasets[0].data = fleetData;
+        mainChart.data.datasets[1].data = costData;
+        mainChart.data.datasets[2].data = revenueData;
+        mainChart.data.datasets[3].data = vehiclesRentedData;
+        mainChart.update();
+        return;
+    }
+
+    mainChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels,
+            datasets: [
+                {
+                    label: 'Flotta (veicoli)',
+                    data: fleetData,
+                    yAxisID: 'yFleet',
+                    tension: 0.3,
+                    borderWidth: 2,
+                    pointRadius: 2
+                },
+                {
+                    label: 'Costo totale (€)',
+                    data: costData,
+                    yAxisID: 'yMoney',
+                    tension: 0.3,
+                    borderWidth: 1.8,
+                    borderDash: [4, 3],
+                    pointRadius: 2
+                },
+                {
+                    label: 'Revenue (€)',
+                    data: revenueData,
+                    yAxisID: 'yMoney',
+                    tension: 0.3,
+                    borderWidth: 2,
+                    pointRadius: 2
+                },
+                {
+                    label: 'Veicoli noleggiati',
+                    data: vehiclesRentedData,
+                    yAxisID: 'yFleet',
+                    tension: 0.3,
+                    borderWidth: 1.5,
+                    borderDash: [2, 2],
+                    pointRadius: 2
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            interaction: {
+                mode: 'index',
+                intersect: false
+            },
+            stacked: false,
+            plugins: {
+                legend: {
+                    position: 'top'
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function (context) {
+                            const label = context.dataset.label || '';
+                            const value = context.parsed.y;
+                            if (label.includes('Flotta')) {
+                                return `${label}: ${formatNumberInt(value)} veicoli`;
+                            }
+                            if (label.includes('Costo totale')) {
+                                return `${label}: ${formatMoney(value)}`;
+                            }
+                            if (label.includes('Revenue')) {
+                                return `${label}: ${formatMoney(value)}`;
+                            }
+                            if (label.includes('Veicoli noleggiati')) {
+                                return `${label}: ${formatNumberInt(value)}`;
+                            }
+                            return `${label}: ${value}`;
+                        }
+                    }
+                }
+            },
+            scales: {
+                yFleet: {
+                    type: 'linear',
+                    position: 'left',
+                    title: {
+                        display: true,
+                        text: 'Veicoli'
+                    }
+                },
+                yMoney: {
+                    type: 'linear',
+                    position: 'right',
+                    title: {
+                        display: true,
+                        text: 'Euro'
+                    },
+                    grid: {
+                        drawOnChartArea: false
+                    }
+                }
+            }
+        }
+    });
+}
+
+/**
+ * ==============================
+ *  KPI CARD UPDATE
+ * ==============================
+ */
+
+function updateKpiCard(current, previous, currentFormatter, prevFormatter, kpiCurrentId, kpiPrevId, kpiDeltaId) {
+    const currentVal = current ?? 0;
+    const prevVal = previous ?? 0;
+
+    document.getElementById(kpiCurrentId).textContent = currentFormatter(currentVal);
+    document.getElementById(kpiPrevId).textContent = 'Prec.: ' + prevFormatter(prevVal);
+
+    const deltaInfo = formatDelta(currentVal, prevVal);
+    const deltaEl = document.getElementById(kpiDeltaId);
+    deltaEl.textContent = deltaInfo.text;
+    deltaEl.classList.remove('kpi-delta-positive', 'kpi-delta-negative', 'kpi-delta-neutral');
+    deltaEl.classList.add(deltaInfo.cssClass);
+}
+
+function updateAllKpis(rangeCurrent, rangePrevious, fleetCurrent, fleetPrevious, bookingsCurrent, bookingsPrevious, filters) {
+    const aggCurrent = buildMonthlyAggregates(rangeCurrent, fleetCurrent, bookingsCurrent);
+    const aggPrevious = buildMonthlyAggregates(rangePrevious, fleetPrevious, bookingsPrevious);
+
+    const kpiCurrent = computeKpisFromAggregates(aggCurrent, bookingsCurrent);
+    const kpiPrevious = computeKpisFromAggregates(aggPrevious, bookingsPrevious);
+
+    // 1. Dimensione flotta (media)
+    updateKpiCard(
+        kpiCurrent.avgFleetSize,
+        kpiPrevious.avgFleetSize,
+        v => formatNumberInt(v),
+        v => formatNumberInt(v),
+        'kpiFleetSizeCurrent',
+        'kpiFleetSizePrev',
+        'kpiFleetSizeDelta'
+    );
+
+    // 2. Canone imponibile
+    updateKpiCard(
+        kpiCurrent.sumCanoneImponibile,
+        kpiPrevious.sumCanoneImponibile,
+        v => formatMoney(v),
+        v => formatMoney(v),
+        'kpiCanoneImponibileCurrent',
+        'kpiCanoneImponibilePrev',
+        'kpiCanoneImponibileDelta'
+    );
+
+    // 3. Canone totale IVATO (solo valore corrente, niente confronto)
+    const canoneIvatoCurrent = kpiCurrent.sumCanoneImponibile * 1.22;
+    document.getElementById('kpiCanoneIvatoCurrent').textContent = formatMoney(canoneIvatoCurrent);
+
+    // 4. Assicurazione
+    updateKpiCard(
+        kpiCurrent.sumAssicurazione,
+        kpiPrevious.sumAssicurazione,
+        v => formatMoney(v),
+        v => formatMoney(v),
+        'kpiAssicurazioneCurrent',
+        'kpiAssicurazionePrev',
+        'kpiAssicurazioneDelta'
+    );
+
+    // 5. Costo totale
+    updateKpiCard(
+        kpiCurrent.sumCost,
+        kpiPrevious.sumCost,
+        v => formatMoney(v),
+        v => formatMoney(v),
+        'kpiCostoTotaleCurrent',
+        'kpiCostoTotalePrev',
+        'kpiCostoTotaleDelta'
+    );
+
+    // 6. Revenue
+    updateKpiCard(
+        kpiCurrent.sumRevenue,
+        kpiPrevious.sumRevenue,
+        v => formatMoney(v),
+        v => formatMoney(v),
+        'kpiRevenueCurrent',
+        'kpiRevenuePrev',
+        'kpiRevenueDelta'
+    );
+
+    // 7. Revenue per day
+    updateKpiCard(
+        kpiCurrent.revenuePerDay,
+        kpiPrevious.revenuePerDay,
+        v => formatMoney2(v),
+        v => formatMoney2(v),
+        'kpiRevPerDayCurrent',
+        'kpiRevPerDayPrev',
+        'kpiRevPerDayDelta'
+    );
+
+    // 8. Numero prenotazioni
+    updateKpiCard(
+        kpiCurrent.numBookings,
+        kpiPrevious.numBookings,
+        v => formatNumberInt(v),
+        v => formatNumberInt(v),
+        'kpiNumPrenotazioniCurrent',
+        'kpiNumPrenotazioniPrev',
+        'kpiNumPrenotazioniDelta'
+    );
+
+    // 9. Veicoli effettivamente noleggiati
+    updateKpiCard(
+        kpiCurrent.numVehiclesRented,
+        kpiPrevious.numVehiclesRented,
+        v => formatNumberInt(v),
+        v => formatNumberInt(v),
+        'kpiVeicoliNoleggiatiCurrent',
+        'kpiVeicoliNoleggiatiPrev',
+        'kpiVeicoliNoleggiatiDelta'
+    );
+
+    // 10. Prenotazioni effettive Gennaio 2026 (solo valore corrente)
+    const prenGen2026 = computePrenotazioniEffettiveGen2026(filters);
+    document.getElementById('kpiPrenotazioniGen2026Current').textContent = formatNumberInt(prenGen2026);
+}
+
+/**
+ * ==============================
+ *  CSV EXPORT
+ * ==============================
+ */
+
+function downloadCsvFilteredData() {
+    const rows = lastFilteredBookingsCurrent || [];
+    const header = ['Data', 'Anno', 'Mese', 'Gruppo', 'Stazione', 'Acquisizione', 'Duration', 'Price'];
+
+    const lines = [header.join(';')];
+
+    for (const b of rows) {
+        const d = b.date;
+        const dateStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+        const line = [
+            dateStr,
+            b.year,
+            b.month,
+            b.groupLabel || '',
+            (b.station || '').replace(/;/g, ','),
+            (b.acquisition || '').replace(/;/g, ','),
+            b.duration,
+            b.price.toString().replace('.', ',')
+        ].join(';');
+        lines.push(line);
+    }
+
+    const csvStr = lines.join('\n');
+    const blob = new Blob([csvStr], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'dashboard_dati_filtrati.csv';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+}
+
+/**
+ * ==============================
+ *  MAIN UPDATE FLOW
+ * ==============================
+ */
+
+function updateDashboard() {
+    const filters = readFilters();
+    const ranges = getCurrentAndPreviousRanges(filters);
+
+    const fleetCurrent = filterFleetForRange(ranges.current, filters, false);
+    const fleetPrevious = filterFleetForRange(ranges.previous, filters, true);
+
+    const bookingsCurrent = filterBookingsForRange(ranges.current, filters, false);
+    const bookingsPrevious = filterBookingsForRange(ranges.previous, filters, true);
+
+    // Store for CSV
+    lastFilteredFleetCurrent = fleetCurrent;
+    lastFilteredBookingsCurrent = bookingsCurrent;
+    lastFiltersUsed = filters;
+    lastCurrentRange = ranges.current;
+
+    updateAllKpis(
+        ranges.current,
+        ranges.previous,
+        fleetCurrent,
+        fleetPrevious,
+        bookingsCurrent,
+        bookingsPrevious,
+        filters
+    );
+
+    updateChart(ranges.current, fleetCurrent, bookingsCurrent);
+}
+
+/**
+ * ==============================
+ *  FILTER UI INITIALIZATION
+ * ==============================
+ */
+
+function populateFilterOptions() {
+    // Years
+    const yearSelect = document.getElementById('filterYear');
+    YEARS_AVAILABLE.forEach(y => {
+        const opt = document.createElement('option');
+        opt.value = String(y);
+        opt.textContent = String(y);
+        yearSelect.appendChild(opt);
+    });
+
+    // Months
+    const monthSelect = document.getElementById('filterMonth');
+    for (let i = 0; i < 12; i++) {
+        const opt = document.createElement('option');
+        opt.value = String(i + 1);
+        opt.textContent = MONTH_LABELS_IT[i];
+        monthSelect.appendChild(opt);
+    }
+
+    // Groups (fixed list)
+    const groupSelect = document.getElementById('filterGroup');
+    for (const label of VEHICLE_GROUPS) {
+        const opt = document.createElement('option');
+        opt.value = groupLabelToKey(label);
+        opt.textContent = label;
+        groupSelect.appendChild(opt);
+    }
+
+    // Acquisitions
+    const acqSelect = document.getElementById('filterAcquisition');
+    const acqList = Array.from(acquisitionsSet).filter(x => x).sort((a, b) => a.localeCompare(b));
+    for (const a of acqList) {
+        const opt = document.createElement('option');
+        opt.value = a;
+        opt.textContent = a;
+        acqSelect.appendChild(opt);
+    }
+
+    // Stations
+    const stationSelect = document.getElementById('filterStation');
+    const stationList = Array.from(stationsSet).filter(x => x).sort((a, b) => a.localeCompare(b));
+    for (const s of stationList) {
+        const opt = document.createElement('option');
+        opt.value = s;
+        opt.textContent = s;
+        stationSelect.appendChild(opt);
+    }
+
+    // Tipologia (if available)
+    if (tipologiaColumnName && tipologiaValues.length) {
+        const tipContainer = document.getElementById('filterTipologiaContainer');
+        const tipSelect = document.getElementById('filterTipologia');
+        const uniqueTips = Array.from(new Set(tipologiaValues.filter(x => x))).sort((a, b) => a.localeCompare(b));
+        for (const t of uniqueTips) {
+            const opt = document.createElement('option');
+            opt.value = t;
+            opt.textContent = t;
+            tipSelect.appendChild(opt);
+        }
+        tipContainer.style.display = 'block';
+    }
+
+    // Select all values by default
+    function selectAllOptions(selectEl) {
+        Array.from(selectEl.options).forEach(o => { o.selected = true; });
+    }
+
+    selectAllOptions(yearSelect);
+    selectAllOptions(monthSelect);
+    selectAllOptions(groupSelect);
+    selectAllOptions(acqSelect);
+    selectAllOptions(stationSelect);
+    if (tipologiaColumnName) {
+        const tipSelect = document.getElementById('filterTipologia');
+        if (tipSelect) selectAllOptions(tipSelect);
+    }
+}
+
+function attachFilterListeners() {
+    const ids = ['filterYear', 'filterMonth', 'filterGroup', 'filterAcquisition', 'filterStation', 'filterTipologia'];
+    ids.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) {
+            el.addEventListener('change', () => {
+                updateDashboard();
+            });
+        }
+    });
+
+    const projSelect = document.getElementById('filterProjection');
+    projSelect.addEventListener('change', () => {
+        const val = parseFloat(projSelect.value);
+        if (!isNaN(val)) {
+            currentProjectionFactor = val;
+            generateAllBookings(currentProjectionFactor);
+            updateDashboard();
+        }
+    });
+
+    document.getElementById('btnReset').addEventListener('click', () => {
+        // Reset projection
+        currentProjectionFactor = 0.10;
+        document.getElementById('filterProjection').value = '0.10';
+        generateAllBookings(currentProjectionFactor);
+
+        // Re-select all options for multi-selects
+        const ids2 = ['filterYear', 'filterMonth', 'filterGroup', 'filterAcquisition', 'filterStation', 'filterTipologia'];
+        ids2.forEach(id => {
+            const el = document.getElementById(id);
+            if (el) {
+                Array.from(el.options).forEach(o => { o.selected = true; });
+            }
+        });
+
+        updateDashboard();
+    });
+
+    document.getElementById('btnCsv').addEventListener('click', () => {
+        downloadCsvFilteredData();
+    });
+
+    document.getElementById('btnPrint').addEventListener('click', () => {
+        window.print();
+    });
+}
+
+/**
+ * ==============================
+ *  DATA LOADING
+ * ==============================
+ */
+
+async function loadJson(path) {
+    const response = await fetch(path);
+    if (!response.ok) {
+        throw new Error(`Errore nel caricamento di ${path}: ${response.status}`);
+    }
+    return await response.json();
+}
+
+async function initDashboard() {
+    try {
+        // Fetch all JSON in parallel
+        const [
+            fleetData,
+            fleetStations,
+            bookings2025,
+            bookingsJan2026
+        ] = await Promise.all([
+            loadJson('fleetData_clean.json'),
+            loadJson('fleetStations2025.json'),
+            loadJson('bookings2025.json'),
+            loadJson('bookingsJan2026.json')
+        ]);
+
+        fleetRaw = Array.isArray(fleetData) ? fleetData : [];
+        fleetStationsRaw = Array.isArray(fleetStations) ? fleetStations : [];
+        bookings2025Raw = Array.isArray(bookings2025) ? bookings2025 : [];
+        bookingsJan2026Raw = Array.isArray(bookingsJan2026) ? bookingsJan2026 : [];
+
+        // Infer columns
+        inferFleetColumns(fleetRaw);
+        inferBookingColumns(bookings2025Raw.length ? bookings2025Raw : bookingsJan2026Raw);
+
+        // Normalize fleet
+        fleetNormalized = [];
+        tipologiaValues = [];
+        acquisitionsSet = new Set();
+        stationsSet = new Set();
+
+        for (const row of fleetRaw) {
+            const norm = normalizeFleetRow(row);
+            if (norm) fleetNormalized.push(norm);
+        }
+
+        // Fleet stations: only for station list (UI)
+        if (fleetStationsRaw.length) {
+            const sampleStation = fleetStationsRaw[0];
+            const stationKeyName = findColumnName(sampleStation, ['stazione', 'station', 'filiale', 'location']);
+            if (stationKeyName) {
+                for (const row of fleetStationsRaw) {
+                    const val = row[stationKeyName];
+                    if (val) stationsSet.add(String(val).trim());
+                }
+            }
+        }
+
+        // Normalize bookings
+        bookings2025Normalized = [];
+        for (const row of bookings2025Raw) {
+            const norm = normalizeBookingRow(row, false);
+            if (norm) bookings2025Normalized.push(norm);
+        }
+
+        bookingsJan2026Normalized = [];
+        for (const row of bookingsJan2026Raw) {
+            const norm = normalizeBookingRow(row, true);
+            if (norm) {
+                // For sicurezza, forza anno/mese
+                norm.date.setFullYear(2026);
+                norm.date.setMonth(0); // January
+                norm.year = 2026;
+                norm.month = 1;
+                norm.isRealJan2026 = true;
+                bookingsJan2026Normalized.push(norm);
+            }
+        }
+
+        // Generate all bookings with default projection 10%
+        generateAllBookings(currentProjectionFactor);
+
+        // Populate filter options and attach listeners
+        populateFilterOptions();
+        attachFilterListeners();
+
+        // Initial dashboard
+        updateDashboard();
+    } catch (err) {
+        console.error(err);
+        alert('Errore nel caricamento dei dati. Controlla che i file JSON siano nella root del repo: fleetData_clean.json, fleetStations2025.json, bookings2025.json, bookingsJan2026.json');
+    }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    initDashboard();
+});
+</script>
+</body>
+</html>
