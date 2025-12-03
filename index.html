@@ -545,32 +545,97 @@
   /* ========= NORMALIZZAZIONE ========= */
 
   function findColumnName(row, candidates) {
-    if (!row) return null;
-    const lowerMap = {};
-    Object.keys(row).forEach(k => (lowerMap[k.toLowerCase()] = k));
-    for (const c of candidates) {
-      const found = lowerMap[c.toLowerCase()];
-      if (found) return found;
-    }
-    return null;
-  }
+  if (!row) return null;
 
-  function inferFleetColumns(fleetArray) {
-    if (!fleetArray || fleetArray.length === 0) return;
-    const sample = fleetArray[0];
-    fleetColumnMap = {
-      refDate: findColumnName(sample, ['refDate', 'data', 'date', 'referenceDate', 'dataRif', 'ref_date']),
-      yearCol: findColumnName(sample, ['anno', 'year']),
-      monthCol: findColumnName(sample, ['mese', 'month', 'mese_rif']),
-      group: findColumnName(sample, ['gruppo', 'group', 'vehicleGroup', 'carGroup', 'gruppo_veicolo']),
-      acquisition: findColumnName(sample, ['acquisizione', 'acquisition', 'tipo_acquisizione', 'source']),
-      station: findColumnName(sample, ['stazione', 'station', 'filiale', 'location']),
-      canoneImponibile: findColumnName(sample, ['canoneImponibile', 'canone_imponibile', 'canone', 'canoneNetto']),
-      assicurazione: findColumnName(sample, ['assicurazione', 'insurance', 'canoneAssicurazione', 'canone_assicurazione']),
-      tipologia: findColumnName(sample, ['tipologia', 'tipo', 'type', 'categoria'])
-    };
-    if (fleetColumnMap.tipologia) tipologiaColumnName = fleetColumnMap.tipologia;
+  // normalizza: minuscolo + rimozione spazi, underscore, punti
+  const normalize = s =>
+    String(s)
+      .toLowerCase()
+      .replace(/[\s_.]/g, '');
+
+  const map = {};
+  Object.keys(row).forEach(k => {
+    map[normalize(k)] = k;
+  });
+
+  for (const c of candidates) {
+    const found = map[normalize(c)];
+    if (found) return found;
   }
+  return null;
+}
+
+ function inferFleetColumns(fleetArray) {
+  if (!fleetArray || fleetArray.length === 0) return;
+  const sample = fleetArray[0];
+
+  fleetColumnMap = {
+    // aggiungo anche "DATA INIZIO" / "data inizio"
+    refDate: findColumnName(sample, [
+      'refDate',
+      'data',
+      'date',
+      'referenceDate',
+      'dataRif',
+      'ref_date',
+      'data inizio',
+      'dataInizio'
+    ]),
+    yearCol: findColumnName(sample, ['anno', 'year']),
+    monthCol: findColumnName(sample, ['mese', 'month', 'mese_rif']),
+
+    group: findColumnName(sample, [
+      'gruppo',
+      'group',
+      'vehicleGroup',
+      'carGroup',
+      'gruppo_veicolo'
+    ]),
+
+    acquisition: findColumnName(sample, [
+      'acquisizione',
+      'acquisition',
+      'tipo_acquisizione',
+      'source'
+    ]),
+
+    station: findColumnName(sample, [
+      'stazione',
+      'station',
+      'filiale',
+      'location'
+    ]),
+
+    // aggiungo "CANONE IMPONIBILE"
+    canoneImponibile: findColumnName(sample, [
+      'canoneImponibile',
+      'canone_imponibile',
+      'canone imponibile',
+      'canone',
+      'canoneNetto'
+    ]),
+
+    // aggiungo "COPERTURA ASS."
+    assicurazione: findColumnName(sample, [
+      'assicurazione',
+      'insurance',
+      'canoneAssicurazione',
+      'canone_assicurazione',
+      'copertura ass.',
+      'copertura ass'
+    ]),
+
+    tipologia: findColumnName(sample, [
+      'tipologia',
+      'tipo',
+      'type',
+      'categoria'
+    ])
+  };
+
+  if (fleetColumnMap.tipologia) tipologiaColumnName = fleetColumnMap.tipologia;
+}
+
 
   function inferBookingColumns(bookingsArray) {
     if (!bookingsArray || bookingsArray.length === 0) return;
