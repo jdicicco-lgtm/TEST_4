@@ -205,7 +205,7 @@
             <option value="0.20">20%</option>
           </select>
           <div class="filter-helper mb-0">
-            Applica la percentuale alle proiezioni 2026 (Feb–Dic). Gennaio 2026 resta sempre reale.
+            Applica la percentuale alle proiezioni 2026 (Feb–Dic).
           </div>
         </div>
       </div>
@@ -327,7 +327,7 @@
 
       <!-- KPI ROW 3 -->
       <div class="row g-3 mb-3">
-        <div class="col-12 col-md-6 col-xl-4">
+        <div class="col-12 col-md-6 col-xl-6">
           <div class="card kpi-card">
             <div class="card-body">
               <div class="kpi-title">🚙 Veicoli effettivamente noleggiati</div>
@@ -340,24 +340,12 @@
           </div>
         </div>
 
-        <div class="col-12 col-md-6 col-xl-4">
-          <div class="card kpi-card">
-            <div class="card-body">
-              <div class="kpi-title">✅ Prenotazioni effettive (Gennaio 2026)</div>
-              <div class="kpi-value" id="kpiPrenotazioniGen2026Current">--</div>
-              <div class="kpi-sub">
-                Solo bookingsJan2026, filtrate per gruppo/acquisizione/stazione (senza proiezioni).
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div class="col-12 col-md-6 col-xl-4">
+        <div class="col-12 col-md-6 col-xl-6">
           <div class="card kpi-card">
             <div class="card-body">
               <div class="kpi-title">ℹ️ Info KPI</div>
               <div class="kpi-sub">
-                I confronti storici usano un periodo precedente con stessa ampiezza temporale (in mesi) spostato indietro rispetto al range selezionato.
+                I confronti storici usano un periodo precedente con la stessa ampiezza temporale (in mesi) spostato indietro rispetto al range selezionato.
               </div>
             </div>
           </div>
@@ -508,7 +496,7 @@
 
   function formatNumberInt(n) {
     if (!isFinite(n)) return '--';
-    return Math.round(n).toLocaleString('it-ITALY');
+    return Math.round(n).toLocaleString('it-IT');
   }
 
   function formatDelta(current, previous) {
@@ -539,7 +527,6 @@
 
   /* ========= NORMALIZZAZIONE ========= */
 
-  // confronto robusto: minuscolo + rimozione spazi, underscore, punti
   function findColumnName(row, candidates) {
     if (!row) return null;
 
@@ -586,7 +573,6 @@
         'gruppo_veicolo'
       ]),
 
-      // targa/plate
       plate: findColumnName(sample, [
         'targa',
         'plate',
@@ -699,18 +685,15 @@
     let s = String(raw).trim().toLowerCase();
 
     // normalizzazioni di base
-    // VAN ora è considerato Commercial Van, non People Mover
     if (s === 'furgone' || s === 'furgoni' || s === 'van') s = 'commercial van';
     if (s === 'people mover' || s === 'peoplemover' || s === 'pm') s = 'people mover';
 
-    // match diretto con le label ufficiali
     for (const label of VEHICLE_GROUPS) {
       if (s === label.toLowerCase()) {
         return { label, key: groupLabelToKey(label) };
       }
     }
 
-    // euristiche
     if (
       s.includes('commercial') ||
       s.includes('furgon') ||
@@ -779,7 +762,7 @@
 
     if (!startDate) return null;
 
-    // DATA FINE: prima RICONSEGNA EFFETTIVA / DATA EFFETTIVA, poi DATA FINE
+    // DATA FINE: prima RICONSEGNA EFFETTIVA, poi DATA FINE
     let endEff = null;
     let endFine = null;
 
@@ -838,7 +821,7 @@
     };
   }
 
-  function normalizeBookingRow(row, isJan2026Real) {
+  function normalizeBookingRow(row) {
     let d = null;
 
     if (bookingColumnMap.startDate) {
@@ -880,7 +863,8 @@
       acquisition,
       duration,
       price,
-      vehicleId,
+      vehicleId
+    };
   }
 
   /* ========= PROIEZIONI BOOKING ========= */
@@ -888,35 +872,36 @@
   function generateAllBookings(projectionFactor) {
     const result = [];
 
-    for (const b of bookings2025Normalized) {
-      result.push({ ...b, sourceYear: 2025, source: 'real2025' });
+    for (const b0 of bookings2025Normalized) {
+      // clone base 2025
+      const base = { ...b0, sourceYear: 2025, source: 'real2025' };
+      result.push(base);
 
-      const d2024 = new Date(b.date);
+      // 2024: -5% revenue
+      const d2024 = new Date(b0.date);
       d2024.setFullYear(2024);
       result.push({
-        ...b,
+        ...b0,
         date: d2024,
         year: 2024,
         month: d2024.getMonth() + 1,
-        price: b.price * 0.95,
+        price: b0.price * 0.95,
         sourceYear: 2024,
         source: 'proj2024'
       });
 
-      if (b.month !== 1) {
-        const d2026 = new Date(b.date);
-        d2026.setFullYear(2026);
-        result.push({
-          ...b,
-          date: d2026,
-          year: 2026,
-          month: d2026.getMonth() + 1,
-          price: b.price * (1 + projectionFactor),
-          isRealJan2026: false,
-          sourceYear: 2026,
-          source: 'proj2026'
-        });
-      }
+      // 2026: +X% revenue (tutti i mesi, visto che non usiamo più dati reali Jan 2026)
+      const d2026 = new Date(b0.date);
+      d2026.setFullYear(2026);
+      result.push({
+        ...b0,
+        date: d2026,
+        year: 2026,
+        month: d2026.getMonth() + 1,
+        price: b0.price * (1 + projectionFactor),
+        sourceYear: 2026,
+        source: 'proj2026'
+      });
     }
 
     allBookingsWithProjections = result;
@@ -1074,7 +1059,7 @@
       if (!slot) continue;
       slot.revenue += row.price;
       slot.totalDuration += row.duration;
-      const id = row.vehicleId || `booking_${row.source}_${row.year}_${row.month}_${Math.random().toString(36).slice(2)}`;
+      const id = row.vehicleId || `booking_${row.source || 'generic'}_${row.year}_${row.month}_${Math.random().toString(36).slice(2)}`;
       slot.vehicleIds.add(id);
     }
 
@@ -1125,7 +1110,6 @@
       numVehiclesRented
     };
   }
-
 
   /* ========= CHART ========= */
 
@@ -1250,7 +1234,7 @@
     deltaEl.className = 'kpi-delta ' + deltaInfo.cssClass;
   }
 
-  function updateAllKpis(rangeCurrent, rangePrevious, fleetCurrent, fleetPrevious, bookingsCurrent, bookingsPrevious, filters) {
+  function updateAllKpis(rangeCurrent, rangePrevious, fleetCurrent, fleetPrevious, bookingsCurrent, bookingsPrevious) {
     const aggCurrent = buildMonthlyAggregates(rangeCurrent, fleetCurrent, bookingsCurrent);
     const aggPrevious = buildMonthlyAggregates(rangePrevious, fleetPrevious, bookingsPrevious);
 
@@ -1277,7 +1261,6 @@
       'kpiCanoneImponibileDelta'
     );
 
-    // canone IVATO: valore reale + inline sotto il canone imponibile
     document.getElementById('kpiCanoneIvatoCurrent').textContent = formatMoney(kpiCurrent.sumCanoneIvato);
     document.getElementById('kpiCanoneIvatoInline').textContent = 'IVATO: ' + formatMoney(kpiCurrent.sumCanoneIvato);
 
@@ -1340,9 +1323,6 @@
       'kpiVeicoliNoleggiatiPrev',
       'kpiVeicoliNoleggiatiDelta'
     );
-
-    const prenGen2026 = computePrenotazioniEffettiveGen2026(filters);
-    document.getElementById('kpiPrenotazioniGen2026Current').textContent = formatNumberInt(prenGen2026);
   }
 
   /* ========= CSV EXPORT ========= */
@@ -1359,7 +1339,7 @@
         dateStr,
         b.year,
         b.month,
-        b.groupLabel || '',
+        (b.groupLabel || '').replace(/;/g, ','),
         (b.stationLabel || '').replace(/;/g, ','),
         (b.acquisition || '').replace(/;/g, ','),
         b.duration,
@@ -1400,8 +1380,7 @@
       fleetCurrent,
       fleetPrevious,
       bookingsCurrent,
-      bookingsPrevious,
-      filters
+      bookingsPrevious
     );
     updateChart(ranges.current, fleetCurrent, bookingsCurrent);
   }
@@ -1580,10 +1559,10 @@
 
       fleetRaw = Array.isArray(fleetData) ? fleetData : [];
       fleetStationsRaw = Array.isArray(fleetStations) ? fleetStations : [];
-      bookings2025Raw = Array.isArray(bookings2025) ? bookings2025 : []
+      bookings2025Raw = Array.isArray(bookings2025) ? bookings2025 : [];
 
       inferFleetColumns(fleetRaw);
-      inferBookingColumns(bookings2025Raw.length ? bookings2025Raw);
+      inferBookingColumns(bookings2025Raw);
 
       fleetNormalized = [];
       tipologiaValues = [];
@@ -1615,7 +1594,7 @@
             const stationRaw = row[stationColStations];
             if (!plateRaw || !stationRaw) continue;
             const plateKey = String(plateRaw).trim().toUpperCase();
-            const stInfo = normalizeStation(stationRaw); // popola anche stationMap
+            const stInfo = normalizeStation(stationRaw);
             if (stInfo.key) {
               fleetStationByPlate.set(plateKey, stInfo);
             }
@@ -1627,7 +1606,7 @@
         }
       }
 
-      // Normalizza flotta (usando eventualmente la mappa TARGA -> stazione)
+      // Normalizza flotta
       for (const row of fleetRaw) {
         const norm = normalizeFleetRow(row);
         if (norm) fleetNormalized.push(norm);
@@ -1636,10 +1615,10 @@
       // Booking 2025
       bookings2025Normalized = [];
       for (const row of bookings2025Raw) {
-        const norm = normalizeBookingRow(row, false);
+        const norm = normalizeBookingRow(row);
         if (norm) bookings2025Normalized.push(norm);
       }
-      
+
       generateAllBookings(currentProjectionFactor);
 
       populateFilterOptions();
