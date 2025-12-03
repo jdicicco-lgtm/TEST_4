@@ -41,9 +41,7 @@
       color: var(--text-primary);
     }
 
-    .kpi-card {
-      height: 100%;
-    }
+    .kpi-card { height: 100%; }
 
     .kpi-title {
       font-size: 0.85rem;
@@ -67,21 +65,11 @@
       margin-left: 0.25rem;
     }
 
-    .kpi-delta-positive {
-      color: #22c55e;
-    }
+    .kpi-delta-positive { color: #22c55e; }
+    .kpi-delta-negative { color: #ef4444; }
+    .kpi-delta-neutral  { color: var(--text-muted); }
 
-    .kpi-delta-negative {
-      color: #ef4444;
-    }
-
-    .kpi-delta-neutral {
-      color: var(--text-muted);
-    }
-
-    .chart-card {
-      height: 100%;
-    }
+    .chart-card { height: 100%; }
 
     .filter-title-main {
       font-size: 0.95rem;
@@ -135,9 +123,7 @@
         color: #000000 !important;
       }
 
-      .no-print {
-        display: none !important;
-      }
+      .no-print { display: none !important; }
 
       .container-fluid {
         padding: 0 !important;
@@ -149,9 +135,7 @@
         border-radius: 0 !important;
       }
 
-      #mainChart {
-        max-height: 400px;
-      }
+      #mainChart { max-height: 400px; }
     }
   </style>
 </head>
@@ -187,7 +171,7 @@
         </div>
         <div class="card-body">
 
-          <!-- BLOCCO DATA -->
+          <!-- DATA -->
           <div class="filter-section-title">ANNO</div>
           <select id="filterYear" class="form-select form-select-sm" multiple></select>
           <div class="filter-helper mb-2">Seleziona uno o più anni. Vuoto = tutti.</div>
@@ -196,7 +180,7 @@
           <select id="filterMonth" class="form-select form-select-sm" multiple></select>
           <div class="filter-helper mb-2">Etichette in italiano. Vuoto = tutti.</div>
 
-          <!-- BLOCCO TIPOLOGIA / GRUPPO -->
+          <!-- TIPOLOGIA / GRUPPO -->
           <div class="filter-section-title">TIPOLOGIA</div>
           <select id="filterTipologia" class="form-select form-select-sm" multiple style="display:none;"></select>
           <div id="filterTipologiaHelper" class="filter-helper mb-2" style="display:none;">
@@ -207,7 +191,7 @@
           <select id="filterGroup" class="form-select form-select-sm" multiple></select>
           <div class="filter-helper mb-2">Lista fissa dei 10 gruppi. Vuoto = tutti.</div>
 
-          <!-- BLOCCO ACQUISIZIONE / STAZIONE -->
+          <!-- ACQ / STAZIONE -->
           <div class="filter-section-title">ACQUISIZIONE</div>
           <select id="filterAcquisition" class="form-select form-select-sm" multiple></select>
           <div class="filter-helper mb-2">Basato su campo <code>acquisizione</code> di flotta/prenotazioni.</div>
@@ -216,7 +200,7 @@
           <select id="filterStation" class="form-select form-select-sm" multiple></select>
           <div class="filter-helper mb-2">Stazioni normalizzate (niente duplicati per maiuscole/minuscole).</div>
 
-          <!-- BLOCCO PROIEZIONE -->
+          <!-- PROIEZIONE -->
           <div class="filter-section-title">PROIEZIONE 2026 🔮</div>
           <select id="filterProjection" class="form-select form-select-sm">
             <option value="0.05">5%</option>
@@ -231,9 +215,9 @@
       </div>
     </div>
 
-    <!-- KPI + GRAFICO -->
+    <!-- KPI + CHART -->
     <div class="col-12 col-lg-9">
-      <!-- KPIs RIGA 1 -->
+      <!-- KPI ROW 1 -->
       <div class="row g-3 mb-2">
         <div class="col-12 col-md-6 col-xl-3">
           <div class="card kpi-card">
@@ -287,7 +271,7 @@
         </div>
       </div>
 
-      <!-- KPIs RIGA 2 -->
+      <!-- KPI ROW 2 -->
       <div class="row g-3 mb-2">
         <div class="col-12 col-md-6 col-xl-3">
           <div class="card kpi-card">
@@ -342,7 +326,7 @@
         </div>
       </div>
 
-      <!-- KPIs RIGA 3 -->
+      <!-- KPI ROW 3 -->
       <div class="row g-3 mb-3">
         <div class="col-12 col-md-6 col-xl-4">
           <div class="card kpi-card">
@@ -381,7 +365,7 @@
         </div>
       </div>
 
-      <!-- GRAFICO -->
+      <!-- CHART -->
       <div class="card chart-card">
         <div class="card-body">
           <div class="d-flex justify-content-between align-items-center mb-2">
@@ -403,9 +387,7 @@
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 
 <script>
-  /* ========================
-     CONFIG & STATE
-  ========================= */
+  /* ========= CONFIG & STATE ========= */
 
   const YEARS_AVAILABLE = [2024, 2025, 2026];
   const MONTH_LABELS_IT = [
@@ -414,16 +396,8 @@
   ];
 
   const VEHICLE_GROUPS = [
-    'Commercial Van',
-    'Large',
-    'Economy',
-    'Small',
-    'Mini',
-    'Premium',
-    'Suv',
-    'People Mover',
-    'Station Wagon',
-    'Cabriolet'
+    'Commercial Van', 'Large', 'Economy', 'Small', 'Mini',
+    'Premium', 'Suv', 'People Mover', 'Station Wagon', 'Cabriolet'
   ];
 
   function groupLabelToKey(label) {
@@ -446,21 +420,17 @@
   let tipologiaValues = [];
 
   let acquisitionsSet = new Set();
-
-  // mappa stazioni normalizzate: key (lowercase) -> label canonica
-  let stationMap = new Map();
+  let stationMap = new Map();   // key lowercase -> label
 
   let currentProjectionFactor = 0.10;
   let mainChart = null;
 
   let lastFilteredBookingsCurrent = [];
 
-  /* ========================
-     UTILS
-  ========================= */
+  /* ========= UTILS ========= */
 
   function parseNumber(val) {
-    if (typeof val === 'number') return val;
+    if (typeof val === 'number') return isFinite(val) ? val : 0;
     if (typeof val === 'string') {
       const cleaned = val.replace(/\./g, '').replace(',', '.').replace(/[^\d.-]/g, '');
       const n = parseFloat(cleaned);
@@ -477,17 +447,13 @@
       const t = val.trim();
       if (!t) return null;
 
-      // ISO / standard
       let d = new Date(t);
       if (!isNaN(d.getTime())) return d;
 
       // DD/MM/YYYY
       let m = t.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/);
       if (m) {
-        const day = parseInt(m[1], 10);
-        const month = parseInt(m[2], 10) - 1;
-        const year = parseInt(m[3], 10);
-        d = new Date(year, month, day);
+        d = new Date(parseInt(m[3], 10), parseInt(m[2], 10) - 1, parseInt(m[1], 10));
         if (!isNaN(d.getTime())) return d;
       }
 
@@ -512,7 +478,7 @@
         if (!isNaN(d.getTime())) return d;
       }
 
-      // YYYYMM (interpreta come primo del mese)
+      // YYYYMM
       m = t.match(/^(\d{4})(\d{2})$/);
       if (m) {
         d = new Date(parseInt(m[1], 10), parseInt(m[2], 10) - 1, 1);
@@ -576,9 +542,7 @@
       .filter(v => v !== '');
   }
 
-  /* ========================
-     NORMALIZZAZIONE
-  ========================= */
+  /* ========= NORMALIZZAZIONE ========= */
 
   function findColumnName(row, candidates) {
     if (!row) return null;
@@ -596,6 +560,8 @@
     const sample = fleetArray[0];
     fleetColumnMap = {
       refDate: findColumnName(sample, ['refDate', 'data', 'date', 'referenceDate', 'dataRif', 'ref_date']),
+      yearCol: findColumnName(sample, ['anno', 'year']),
+      monthCol: findColumnName(sample, ['mese', 'month', 'mese_rif']),
       group: findColumnName(sample, ['gruppo', 'group', 'vehicleGroup', 'carGroup', 'gruppo_veicolo']),
       acquisition: findColumnName(sample, ['acquisizione', 'acquisition', 'tipo_acquisizione', 'source']),
       station: findColumnName(sample, ['stazione', 'station', 'filiale', 'location']),
@@ -611,6 +577,8 @@
     const sample = bookingsArray[0];
     bookingColumnMap = {
       startDate: findColumnName(sample, ['startDate', 'from', 'DATA_INIZIO', 'dataInizio', 'data_inizio', 'date']),
+      yearCol: findColumnName(sample, ['anno', 'year']),
+      monthCol: findColumnName(sample, ['mese', 'month', 'mese_rif']),
       group: findColumnName(sample, ['gruppo', 'group', 'vehicleGroup', 'carType', 'car_group']),
       station: findColumnName(sample, ['stazione', 'station', 'filiale', 'location']),
       acquisition: findColumnName(sample, ['acquisizione', 'acquisition', 'tipo_acquisizione', 'source']),
@@ -618,6 +586,27 @@
       price: findColumnName(sample, ['price', 'revenue', 'ricavo', 'importo', 'totale']),
       vehicleId: findColumnName(sample, ['targa', 'plate', 'vehicleId', 'idVeicolo', 'id_veicolo', 'veicolo'])
     };
+  }
+
+  function normalizeStation(raw) {
+    if (!raw && raw !== 0) return { label: null, key: null };
+    const label = String(raw).trim();
+    if (!label) return { label: null, key: null };
+    const key = label.toLowerCase();
+    if (!stationMap.has(key)) stationMap.set(key, label);
+    return { label, key };
+  }
+
+  function normalizeAcquisition(raw) {
+    if (raw === null || raw === undefined) return '';
+    if (typeof raw === 'number') {
+      if (!isFinite(raw)) return '';
+      return String(raw);
+    }
+    const s = String(raw).trim();
+    if (!s) return '';
+    if (/^nan$/i.test(s)) return '';  // elimina "NaN"
+    return s;
   }
 
   function normalizeGroup(raw) {
@@ -631,38 +620,42 @@
     }
 
     if (s.includes('commercial')) return { label: 'Commercial Van', key: groupLabelToKey('Commercial Van') };
-    if (s.includes('people')) return { label: 'People Mover', key: groupLabelToKey('People Mover') };
-    if (s.includes('station')) return { label: 'Station Wagon', key: groupLabelToKey('Station Wagon') };
-    if (s.includes('cabrio')) return { label: 'Cabriolet', key: groupLabelToKey('Cabriolet') };
-    if (s.includes('suv')) return { label: 'Suv', key: groupLabelToKey('Suv') };
-    if (s.includes('premium')) return { label: 'Premium', key: groupLabelToKey('Premium') };
-    if (s.includes('mini')) return { label: 'Mini', key: groupLabelToKey('Mini') };
-    if (s.includes('small')) return { label: 'Small', key: groupLabelToKey('Small') };
-    if (s.includes('economy')) return { label: 'Economy', key: groupLabelToKey('Economy') };
-    if (s.includes('large')) return { label: 'Large', key: groupLabelToKey('Large') };
+    if (s.includes('people'))    return { label: 'People Mover',   key: groupLabelToKey('People Mover') };
+    if (s.includes('station'))   return { label: 'Station Wagon',  key: groupLabelToKey('Station Wagon') };
+    if (s.includes('cabrio'))    return { label: 'Cabriolet',      key: groupLabelToKey('Cabriolet') };
+    if (s.includes('suv'))       return { label: 'Suv',            key: groupLabelToKey('Suv') };
+    if (s.includes('premium'))   return { label: 'Premium',        key: groupLabelToKey('Premium') };
+    if (s.includes('mini'))      return { label: 'Mini',           key: groupLabelToKey('Mini') };
+    if (s.includes('small'))     return { label: 'Small',          key: groupLabelToKey('Small') };
+    if (s.includes('economy'))   return { label: 'Economy',        key: groupLabelToKey('Economy') };
+    if (s.includes('large'))     return { label: 'Large',          key: groupLabelToKey('Large') };
 
     return null;
   }
 
-  function normalizeStation(raw) {
-    if (!raw && raw !== 0) return { label: null, key: null };
-    const label = String(raw).trim();
-    if (!label) return { label: null, key: null };
-    const key = label.toLowerCase();
-    if (!stationMap.has(key)) stationMap.set(key, label);
-    return { label, key };
-  }
-
   function normalizeFleetRow(row) {
-    const dateVal = row[fleetColumnMap.refDate];
-    const d = parseDateFlexible(dateVal);
+    let d = null;
+
+    if (fleetColumnMap.refDate) {
+      d = parseDateFlexible(row[fleetColumnMap.refDate]);
+    }
+
+    // fallback anno + mese se refDate manca o non si parsea
+    if (!d && fleetColumnMap.yearCol && fleetColumnMap.monthCol) {
+      const y = parseInt(row[fleetColumnMap.yearCol], 10);
+      const m = parseInt(row[fleetColumnMap.monthCol], 10);
+      if (!isNaN(y) && !isNaN(m) && m >= 1 && m <= 12) {
+        d = new Date(y, m - 1, 1);
+      }
+    }
+
     if (!d) return null;
 
     const year = d.getFullYear();
     const month = d.getMonth() + 1;
 
     const groupInfo = normalizeGroup(row[fleetColumnMap.group]);
-    const acquisition = fleetColumnMap.acquisition ? String(row[fleetColumnMap.acquisition] ?? '').trim() : '';
+    const acquisition = normalizeAcquisition(fleetColumnMap.acquisition ? row[fleetColumnMap.acquisition] : '');
     const stationRaw = fleetColumnMap.station ? row[fleetColumnMap.station] : '';
     const stationInfo = normalizeStation(stationRaw);
     const canoneImponibile = fleetColumnMap.canoneImponibile ? parseNumber(row[fleetColumnMap.canoneImponibile]) : 0;
@@ -693,8 +686,20 @@
   }
 
   function normalizeBookingRow(row, isJan2026Real) {
-    const dateVal = row[bookingColumnMap.startDate];
-    const d = parseDateFlexible(dateVal);
+    let d = null;
+
+    if (bookingColumnMap.startDate) {
+      d = parseDateFlexible(row[bookingColumnMap.startDate]);
+    }
+
+    if (!d && bookingColumnMap.yearCol && bookingColumnMap.monthCol) {
+      const y = parseInt(row[bookingColumnMap.yearCol], 10);
+      const m = parseInt(row[bookingColumnMap.monthCol], 10);
+      if (!isNaN(y) && !isNaN(m) && m >= 1 && m <= 12) {
+        d = new Date(y, m - 1, 1);
+      }
+    }
+
     if (!d) return null;
 
     const year = d.getFullYear();
@@ -703,7 +708,7 @@
     const groupInfo = normalizeGroup(row[bookingColumnMap.group]);
     const stationRaw = bookingColumnMap.station ? row[bookingColumnMap.station] : '';
     const stationInfo = normalizeStation(stationRaw);
-    const acquisition = bookingColumnMap.acquisition ? String(row[bookingColumnMap.acquisition] ?? '').trim() : '';
+    const acquisition = normalizeAcquisition(bookingColumnMap.acquisition ? row[bookingColumnMap.acquisition] : '');
     const duration = bookingColumnMap.duration ? parseNumber(row[bookingColumnMap.duration]) : 0;
     const price = bookingColumnMap.price ? parseNumber(row[bookingColumnMap.price]) : 0;
     const vehicleId = bookingColumnMap.vehicleId ? String(row[bookingColumnMap.vehicleId] ?? '').trim() : null;
@@ -728,14 +733,11 @@
     };
   }
 
-  /* ========================
-     PROIEZIONI BOOKING
-  ========================= */
+  /* ========= PROIEZIONI BOOKING ========= */
 
   function generateAllBookings(projectionFactor) {
     const result = [];
 
-    // 2025 reali + proiezioni 2024/2026
     for (const b of bookings2025Normalized) {
       result.push({ ...b, sourceYear: 2025, source: 'real2025' });
 
@@ -768,7 +770,6 @@
       }
     }
 
-    // Gennaio 2026 reale
     for (const b of bookingsJan2026Normalized) {
       const clone = { ...b, sourceYear: 2026, source: 'realJan2026' };
       result.push(clone);
@@ -777,18 +778,15 @@
     allBookingsWithProjections = result;
   }
 
-  /* ========================
-     FILTRI & RANGE
-  ========================= */
+  /* ========= FILTRI & RANGE ========= */
 
   function readFilters() {
     const years = getMultiSelectValues('filterYear').map(v => parseInt(v, 10)).filter(v => !isNaN(v));
     const months = getMultiSelectValues('filterMonth').map(v => parseInt(v, 10)).filter(v => !isNaN(v));
-    const groups = getMultiSelectValues('filterGroup');      // groupKey
+    const groups = getMultiSelectValues('filterGroup');
     const acquisitions = getMultiSelectValues('filterAcquisition');
-    const stations = getMultiSelectValues('filterStation');  // stationKey
+    const stations = getMultiSelectValues('filterStation');
     const tipologie = tipologiaColumnName ? getMultiSelectValues('filterTipologia') : [];
-
     return { years, months, groups, acquisitions, stations, tipologie };
   }
 
@@ -834,19 +832,15 @@
       if (filters.months.length && !filters.months.includes(row.month)) return false;
     }
     if (filters.groups.length && row.groupKey && !filters.groups.includes(row.groupKey)) return false;
-
     if (filters.acquisitions.length) {
       if (!row.acquisition || !filters.acquisitions.includes(row.acquisition)) return false;
     }
-
     if (filters.stations.length) {
       if (!row.stationKey || !filters.stations.includes(row.stationKey)) return false;
     }
-
     if (tipologiaColumnName && filters.tipologie.length) {
       if (!row.tipologia || !filters.tipologie.includes(row.tipologia)) return false;
     }
-
     return true;
   }
 
@@ -856,15 +850,12 @@
       if (filters.months.length && !filters.months.includes(row.month)) return false;
     }
     if (filters.groups.length && row.groupKey && !filters.groups.includes(row.groupKey)) return false;
-
     if (filters.acquisitions.length) {
       if (!row.acquisition || !filters.acquisitions.includes(row.acquisition)) return false;
     }
-
     if (filters.stations.length) {
       if (!row.stationKey || !filters.stations.includes(row.stationKey)) return false;
     }
-
     return true;
   }
 
@@ -882,9 +873,7 @@
     });
   }
 
-  /* ========================
-     AGGREGAZIONI
-  ========================= */
+  /* ========= AGGREGAZIONI ========= */
 
   function buildMonthlyAggregates(range, fleetRows, bookingRows) {
     const agg = {};
@@ -977,28 +966,17 @@
   function computePrenotazioniEffettiveGen2026(filters) {
     let count = 0;
     for (const b of bookingsJan2026Normalized) {
-      if (
-        !bookingRowMatchesFilters(
-          b,
-          {
-            years: [],
-            months: [],
-            groups: filters.groups,
-            acquisitions: filters.acquisitions,
-            stations: filters.stations,
-            tipologie: []
-          },
-          false
-        )
-      ) continue;
+      if (!bookingRowMatchesFilters(
+        b,
+        { years: [], months: [], groups: filters.groups, acquisitions: filters.acquisitions, stations: filters.stations, tipologie: [] },
+        false
+      )) continue;
       count += 1;
     }
     return count;
   }
 
-  /* ========================
-     CHART
-  ========================= */
+  /* ========= CHART ========= */
 
   function updateChart(range, fleetRows, bookingRows) {
     const aggregates = buildMonthlyAggregates(range, fleetRows, bookingRows);
@@ -1071,10 +1049,7 @@
       },
       options: {
         responsive: true,
-        interaction: {
-          mode: 'index',
-          intersect: false
-        },
+        interaction: { mode: 'index', intersect: false },
         stacked: false,
         plugins: {
           legend: { position: 'top' },
@@ -1109,9 +1084,7 @@
     });
   }
 
-  /* ========================
-     KPI UPDATE
-  ========================= */
+  /* ========= KPI ========= */
 
   function updateKpiCard(current, previous, currentFormatter, prevFormatter, kpiCurrentId, kpiPrevId, kpiDeltaId) {
     const currentVal = current ?? 0;
@@ -1220,9 +1193,7 @@
     document.getElementById('kpiPrenotazioniGen2026Current').textContent = formatNumberInt(prenGen2026);
   }
 
-  /* ========================
-     CSV EXPORT
-  ========================= */
+  /* ========= CSV EXPORT ========= */
 
   function downloadCsvFilteredData() {
     const rows = lastFilteredBookingsCurrent || [];
@@ -1257,9 +1228,7 @@
     URL.revokeObjectURL(url);
   }
 
-  /* ========================
-     MAIN UPDATE FLOW
-  ========================= */
+  /* ========= MAIN UPDATE ========= */
 
   function updateDashboard() {
     const filters = readFilters();
@@ -1282,13 +1251,10 @@
       bookingsPrevious,
       filters
     );
-
     updateChart(ranges.current, fleetCurrent, bookingsCurrent);
   }
 
-  /* ========================
-     FILTRI UI
-  ========================= */
+  /* ========= FILTRI UI ========= */
 
   function addPlaceholderOption(selectEl, label) {
     const opt = document.createElement('option');
@@ -1316,7 +1282,7 @@
   }
 
   function populateFilterOptions() {
-    // Anno
+    // ANNO
     const yearSelect = document.getElementById('filterYear');
     yearSelect.innerHTML = '';
     addPlaceholderOption(yearSelect, 'Tutti');
@@ -1327,7 +1293,7 @@
       yearSelect.appendChild(opt);
     });
 
-    // Mese
+    // MESE
     const monthSelect = document.getElementById('filterMonth');
     monthSelect.innerHTML = '';
     addPlaceholderOption(monthSelect, 'Tutti');
@@ -1338,7 +1304,7 @@
       monthSelect.appendChild(opt);
     }
 
-    // Gruppo
+    // GRUPPO
     const groupSelect = document.getElementById('filterGroup');
     groupSelect.innerHTML = '';
     addPlaceholderOption(groupSelect, 'Tutti');
@@ -1349,7 +1315,7 @@
       groupSelect.appendChild(opt);
     }
 
-    // Acquisizione
+    // ACQUISIZIONE
     const acqSelect = document.getElementById('filterAcquisition');
     acqSelect.innerHTML = '';
     addPlaceholderOption(acqSelect, 'Tutte');
@@ -1361,12 +1327,11 @@
       acqSelect.appendChild(opt);
     }
 
-    // Stazioni (normalizzate)
+    // STAZIONE (normalizzata)
     const stationSelect = document.getElementById('filterStation');
     stationSelect.innerHTML = '';
     addPlaceholderOption(stationSelect, 'Tutte');
-    const stationEntries = Array.from(stationMap.entries())
-      .sort((a, b) => a[1].localeCompare(b[1])); // ordina per label
+    const stationEntries = Array.from(stationMap.entries()).sort((a, b) => a[1].localeCompare(b[1]));
     for (const [key, label] of stationEntries) {
       const opt = document.createElement('option');
       opt.value = key;
@@ -1374,7 +1339,7 @@
       stationSelect.appendChild(opt);
     }
 
-    // Tipologia (se presente)
+    // TIPOLOGIA se presente
     if (tipologiaColumnName && tipologiaValues.length) {
       const tipSelect = document.getElementById('filterTipologia');
       const tipHelper = document.getElementById('filterTipologiaHelper');
@@ -1395,7 +1360,6 @@
       document.getElementById('filterTipologiaHelper').style.display = 'none';
     }
 
-    // Setup behaviour & listeners
     setupMultiSelectBehaviour('filterYear');
     setupMultiSelectBehaviour('filterMonth');
     setupMultiSelectBehaviour('filterGroup');
@@ -1404,9 +1368,8 @@
   }
 
   function attachExtraListeners() {
-    const projSelect = document.getElementById('filterProjection');
-    projSelect.addEventListener('change', () => {
-      const val = parseFloat(projSelect.value);
+    document.getElementById('filterProjection').addEventListener('change', () => {
+      const val = parseFloat(document.getElementById('filterProjection').value);
       if (!isNaN(val)) {
         currentProjectionFactor = val;
         generateAllBookings(currentProjectionFactor);
@@ -1419,7 +1382,6 @@
       document.getElementById('filterProjection').value = '0.10';
       generateAllBookings(currentProjectionFactor);
 
-      // reset multi-selects: solo "Tutti/Tutte" selezionato
       const selectIds = ['filterYear', 'filterMonth', 'filterGroup', 'filterAcquisition', 'filterStation', 'filterTipologia'];
       selectIds.forEach(id => {
         const el = document.getElementById(id);
@@ -1437,9 +1399,7 @@
     document.getElementById('btnPrint').addEventListener('click', () => window.print());
   }
 
-  /* ========================
-     DATA LOADING
-  ========================= */
+  /* ========= DATA LOADING ========= */
 
   async function loadJson(path) {
     const response = await fetch(path);
@@ -1497,8 +1457,7 @@
         const stationKeyName = findColumnName(sampleStation, ['stazione', 'station', 'filiale', 'location']);
         if (stationKeyName) {
           for (const row of fleetStationsRaw) {
-            const val = row[stationKeyName];
-            normalizeStation(val);
+            normalizeStation(row[stationKeyName]);
           }
         }
       }
