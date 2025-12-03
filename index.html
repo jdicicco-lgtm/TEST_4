@@ -406,11 +406,9 @@
   let fleetRaw = [];
   let fleetStationsRaw = [];
   let bookings2025Raw = [];
-  let bookingsJan2026Raw = [];
 
   let fleetNormalized = [];
   let bookings2025Normalized = [];
-  let bookingsJan2026Normalized = [];
   let allBookingsWithProjections = [];
 
   let fleetColumnMap = {};
@@ -925,11 +923,6 @@
       }
     }
 
-    for (const b of bookingsJan2026Normalized) {
-      const clone = { ...b, sourceYear: 2026, source: 'realJan2026' };
-      result.push(clone);
-    }
-
     allBookingsWithProjections = result;
   }
 
@@ -1137,18 +1130,6 @@
     };
   }
 
-  function computePrenotazioniEffettiveGen2026(filters) {
-    let count = 0;
-    for (const b of bookingsJan2026Normalized) {
-      if (!bookingRowMatchesFilters(
-        b,
-        { years: [], months: [], groups: filters.groups, acquisitions: filters.acquisitions, stations: filters.stations, tipologie: [] },
-        false
-      )) continue;
-      count += 1;
-    }
-    return count;
-  }
 
   /* ========= CHART ========= */
 
@@ -1594,22 +1575,19 @@
       const [
         fleetData,
         fleetStations,
-        bookings2025,
-        bookingsJan2026
+        bookings2025
       ] = await Promise.all([
         loadJson('fleetData_clean.json'),
         loadJson('fleetStations2025.json'),
-        loadJson('bookings2025.json'),
-        loadJson('bookingsJan2026.json')
+        loadJson('bookings2025.json')
       ]);
 
       fleetRaw = Array.isArray(fleetData) ? fleetData : [];
       fleetStationsRaw = Array.isArray(fleetStations) ? fleetStations : [];
-      bookings2025Raw = Array.isArray(bookings2025) ? bookings2025 : [];
-      bookingsJan2026Raw = Array.isArray(bookingsJan2026) ? bookingsJan2026 : [];
+      bookings2025Raw = Array.isArray(bookings2025) ? bookings2025 : []
 
       inferFleetColumns(fleetRaw);
-      inferBookingColumns(bookings2025Raw.length ? bookings2025Raw : bookingsJan2026Raw);
+      inferBookingColumns(bookings2025Raw.length ? bookings2025Raw);
 
       fleetNormalized = [];
       tipologiaValues = [];
@@ -1665,21 +1643,7 @@
         const norm = normalizeBookingRow(row, false);
         if (norm) bookings2025Normalized.push(norm);
       }
-
-      // Booking Jan 2026 reale
-      bookingsJan2026Normalized = [];
-      for (const row of bookingsJan2026Raw) {
-        const norm = normalizeBookingRow(row, true);
-        if (norm) {
-          norm.date.setFullYear(2026);
-          norm.date.setMonth(0);
-          norm.year = 2026;
-          norm.month = 1;
-          norm.isRealJan2026 = true;
-          bookingsJan2026Normalized.push(norm);
-        }
-      }
-
+      
       generateAllBookings(currentProjectionFactor);
 
       populateFilterOptions();
