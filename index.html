@@ -687,29 +687,77 @@
     return s;
   }
 
-  function normalizeGroup(raw) {
-    if (!raw && raw !== 0) return null;
-    let s = String(raw).trim().toLowerCase();
-    if (s === 'furgone' || s === 'furgoni') s = 'commercial van';
-    if (s === 'van') s = 'people mover';
+ function normalizeGroup(raw) {
+  if (!raw && raw !== 0) return null;
 
-    for (const label of VEHICLE_GROUPS) {
-      if (s === label.toLowerCase()) return { label, key: groupLabelToKey(label) };
+  let s = String(raw).trim().toLowerCase();
+
+  // normalizzazioni di base
+  // 👉 VAN ora è considerato COMMERCIAL VAN
+  if (s === 'furgone' || s === 'furgoni' || s === 'van') s = 'commercial van';
+  if (s === 'people mover' || s === 'peoplemover' || s === 'pm') s = 'people mover';
+
+  // se combacia esattamente con una delle label "ufficiali"
+  for (const label of VEHICLE_GROUPS) {
+    if (s === label.toLowerCase()) {
+      return { label, key: groupLabelToKey(label) };
     }
-
-    if (s.includes('commercial')) return { label: 'Commercial Van', key: groupLabelToKey('Commercial Van') };
-    if (s.includes('people'))    return { label: 'People Mover',   key: groupLabelToKey('People Mover') };
-    if (s.includes('station'))   return { label: 'Station Wagon',  key: groupLabelToKey('Station Wagon') };
-    if (s.includes('cabrio'))    return { label: 'Cabriolet',      key: groupLabelToKey('Cabriolet') };
-    if (s.includes('suv'))       return { label: 'Suv',            key: groupLabelToKey('Suv') };
-    if (s.includes('premium'))   return { label: 'Premium',        key: groupLabelToKey('Premium') };
-    if (s.includes('mini'))      return { label: 'Mini',           key: groupLabelToKey('Mini') };
-    if (s.includes('small'))     return { label: 'Small',          key: groupLabelToKey('Small') };
-    if (s.includes('economy'))   return { label: 'Economy',        key: groupLabelToKey('Economy') };
-    if (s.includes('large'))     return { label: 'Large',          key: groupLabelToKey('Large') };
-
-    return null;
   }
+
+  // euristiche:
+  // COMMERCIAL VAN
+  if (
+    s.includes('commercial') ||
+    s.includes('furgon') ||         // "furgone", "furgoni"
+    s.includes('van comm')         // "van commerciale"
+  ) {
+    const label = 'Commercial Van';
+    return { label, key: groupLabelToKey(label) };
+  }
+
+  // PEOPLE MOVER
+  if (s.includes('people')) {
+    const label = 'People Mover';
+    return { label, key: groupLabelToKey(label) };
+  }
+
+  // altre categorie
+  if (s.includes('station')) {
+    const label = 'Station Wagon';
+    return { label, key: groupLabelToKey(label) };
+  }
+  if (s.includes('cabrio')) {
+    const label = 'Cabriolet';
+    return { label, key: groupLabelToKey(label) };
+  }
+  if (s.includes('suv')) {
+    const label = 'Suv';
+    return { label, key: groupLabelToKey(label) };
+  }
+  if (s.includes('premium')) {
+    const label = 'Premium';
+    return { label, key: groupLabelToKey(label) };
+  }
+  if (s.includes('mini')) {
+    const label = 'Mini';
+    return { label, key: groupLabelToKey(label) };
+  }
+  if (s.includes('small')) {
+    const label = 'Small';
+    return { label, key: groupLabelToKey(label) };
+  }
+  if (s.includes('economy')) {
+    const label = 'Economy';
+    return { label, key: groupLabelToKey(label) };
+  }
+  if (s.includes('large')) {
+    const label = 'Large';
+    return { label, key: groupLabelToKey(label) };
+  }
+
+  return null;
+}
+
 
   function normalizeFleetRow(row) {
     // DATA INIZIO
