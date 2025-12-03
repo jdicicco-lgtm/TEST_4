@@ -171,7 +171,6 @@
         </div>
         <div class="card-body">
 
-          <!-- DATA -->
           <div class="filter-section-title">ANNO</div>
           <select id="filterYear" class="form-select form-select-sm" multiple></select>
           <div class="filter-helper mb-2">Seleziona uno o più anni. Vuoto = tutti.</div>
@@ -180,7 +179,6 @@
           <select id="filterMonth" class="form-select form-select-sm" multiple></select>
           <div class="filter-helper mb-2">Etichette in italiano. Vuoto = tutti.</div>
 
-          <!-- TIPOLOGIA / GRUPPO -->
           <div class="filter-section-title">TIPOLOGIA</div>
           <select id="filterTipologia" class="form-select form-select-sm" multiple style="display:none;"></select>
           <div id="filterTipologiaHelper" class="filter-helper mb-2" style="display:none;">
@@ -191,16 +189,14 @@
           <select id="filterGroup" class="form-select form-select-sm" multiple></select>
           <div class="filter-helper mb-2">Lista fissa dei 10 gruppi. Vuoto = tutti.</div>
 
-          <!-- ACQ / STAZIONE -->
           <div class="filter-section-title">ACQUISIZIONE</div>
           <select id="filterAcquisition" class="form-select form-select-sm" multiple></select>
           <div class="filter-helper mb-2">Basato su campo <code>acquisizione</code> di flotta/prenotazioni.</div>
 
           <div class="filter-section-title">STAZIONE</div>
           <select id="filterStation" class="form-select form-select-sm" multiple></select>
-          <div class="filter-helper mb-2">Stazioni normalizzate (niente duplicati per maiuscole/minuscole).</div>
+          <div class="filter-helper mb-2">Stazioni normalizzate (no duplicati per maiuscole/minuscole).</div>
 
-          <!-- PROIEZIONE -->
           <div class="filter-section-title">PROIEZIONE 2026 🔮</div>
           <select id="filterProjection" class="form-select form-select-sm">
             <option value="0.05">5%</option>
@@ -422,6 +418,9 @@
   let tipologiaColumnName = null;
   let tipologiaValues = [];
 
+  // mappa TARGA -> stazione (da fleetStations2025)
+  let fleetStationByPlate = new Map();
+
   let acquisitionsSet = new Set();
   let stationMap = new Map();   // key lowercase -> label
 
@@ -511,7 +510,7 @@
 
   function formatNumberInt(n) {
     if (!isFinite(n)) return '--';
-    return Math.round(n).toLocaleString('it-IT');
+    return Math.round(n).toLocaleString('it-ITALY');
   }
 
   function formatDelta(current, previous) {
@@ -589,6 +588,16 @@
         'gruppo_veicolo'
       ]),
 
+      // targa/plate
+      plate: findColumnName(sample, [
+        'targa',
+        'plate',
+        'vehicleId',
+        'idVeicolo',
+        'id_veicolo',
+        'veicolo'
+      ]),
+
       acquisition: findColumnName(sample, [
         'acquisizione',
         'acquisition',
@@ -627,7 +636,6 @@
         'copertura ass'
       ]),
 
-      // date di fine
       endDateEff: findColumnName(sample, [
         'riconsegna effettiva',
         'data effettiva',
@@ -687,77 +695,73 @@
     return s;
   }
 
- function normalizeGroup(raw) {
-  if (!raw && raw !== 0) return null;
+  function normalizeGroup(raw) {
+    if (!raw && raw !== 0) return null;
 
-  let s = String(raw).trim().toLowerCase();
+    let s = String(raw).trim().toLowerCase();
 
-  // normalizzazioni di base
-  // 👉 VAN ora è considerato COMMERCIAL VAN
-  if (s === 'furgone' || s === 'furgoni' || s === 'van') s = 'commercial van';
-  if (s === 'people mover' || s === 'peoplemover' || s === 'pm') s = 'people mover';
+    // normalizzazioni di base
+    // VAN ora è considerato Commercial Van, non People Mover
+    if (s === 'furgone' || s === 'furgoni' || s === 'van') s = 'commercial van';
+    if (s === 'people mover' || s === 'peoplemover' || s === 'pm') s = 'people mover';
 
-  // se combacia esattamente con una delle label "ufficiali"
-  for (const label of VEHICLE_GROUPS) {
-    if (s === label.toLowerCase()) {
+    // match diretto con le label ufficiali
+    for (const label of VEHICLE_GROUPS) {
+      if (s === label.toLowerCase()) {
+        return { label, key: groupLabelToKey(label) };
+      }
+    }
+
+    // euristiche
+    if (
+      s.includes('commercial') ||
+      s.includes('furgon') ||
+      s.includes('van comm')
+    ) {
+      const label = 'Commercial Van';
       return { label, key: groupLabelToKey(label) };
     }
-  }
 
-  // euristiche:
-  // COMMERCIAL VAN
-  if (
-    s.includes('commercial') ||
-    s.includes('furgon') ||         // "furgone", "furgoni"
-    s.includes('van comm')         // "van commerciale"
-  ) {
-    const label = 'Commercial Van';
-    return { label, key: groupLabelToKey(label) };
-  }
+    if (s.includes('people')) {
+      const label = 'People Mover';
+      return { label, key: groupLabelToKey(label) };
+    }
 
-  // PEOPLE MOVER
-  if (s.includes('people')) {
-    const label = 'People Mover';
-    return { label, key: groupLabelToKey(label) };
-  }
+    if (s.includes('station')) {
+      const label = 'Station Wagon';
+      return { label, key: groupLabelToKey(label) };
+    }
+    if (s.includes('cabrio')) {
+      const label = 'Cabriolet';
+      return { label, key: groupLabelToKey(label) };
+    }
+    if (s.includes('suv')) {
+      const label = 'Suv';
+      return { label, key: groupLabelToKey(label) };
+    }
+    if (s.includes('premium')) {
+      const label = 'Premium';
+      return { label, key: groupLabelToKey(label) };
+    }
+    if (s.includes('mini')) {
+      const label = 'Mini';
+      return { label, key: groupLabelToKey(label) };
+    }
+    if (s.includes('small')) {
+      const label = 'Small';
+      return { label, key: groupLabelToKey(label) };
+    }
+    if (s.includes('economy')) {
+      const label = 'Economy';
+      return { label, key: groupLabelToKey(label) };
+    }
+    if (s.includes('large')) {
+      const label = 'Large';
+      return { label, key: groupLabelToKey(label) };
+    }
 
-  // altre categorie
-  if (s.includes('station')) {
-    const label = 'Station Wagon';
-    return { label, key: groupLabelToKey(label) };
+    return null;
   }
-  if (s.includes('cabrio')) {
-    const label = 'Cabriolet';
-    return { label, key: groupLabelToKey(label) };
-  }
-  if (s.includes('suv')) {
-    const label = 'Suv';
-    return { label, key: groupLabelToKey(label) };
-  }
-  if (s.includes('premium')) {
-    const label = 'Premium';
-    return { label, key: groupLabelToKey(label) };
-  }
-  if (s.includes('mini')) {
-    const label = 'Mini';
-    return { label, key: groupLabelToKey(label) };
-  }
-  if (s.includes('small')) {
-    const label = 'Small';
-    return { label, key: groupLabelToKey(label) };
-  }
-  if (s.includes('economy')) {
-    const label = 'Economy';
-    return { label, key: groupLabelToKey(label) };
-  }
-  if (s.includes('large')) {
-    const label = 'Large';
-    return { label, key: groupLabelToKey(label) };
-  }
-
-  return null;
-}
-
 
   function normalizeFleetRow(row) {
     // DATA INIZIO
@@ -789,14 +793,24 @@
     }
 
     let endDate = endEff || endFine || startDate;
-
-    // se per errore endDate < startDate, forziamo almeno lo stesso mese
     if (endDate < startDate) endDate = startDate;
 
     const groupInfo = normalizeGroup(row[fleetColumnMap.group]);
     const acquisition = normalizeAcquisition(fleetColumnMap.acquisition ? row[fleetColumnMap.acquisition] : '');
-    const stationRaw = fleetColumnMap.station ? row[fleetColumnMap.station] : '';
-    const stationInfo = normalizeStation(stationRaw);
+
+    // STAZIONE: prima dalla flotta, altrimenti da mappa TARGA -> stazione
+    let stationInfo = { label: null, key: null };
+
+    if (fleetColumnMap.station) {
+      const stationRaw = row[fleetColumnMap.station];
+      stationInfo = normalizeStation(stationRaw);
+    } else if (fleetColumnMap.plate && fleetStationByPlate.size) {
+      const plateRaw = row[fleetColumnMap.plate];
+      const plateKey = plateRaw ? String(plateRaw).trim().toUpperCase() : null;
+      if (plateKey && fleetStationByPlate.has(plateKey)) {
+        stationInfo = fleetStationByPlate.get(plateKey);
+      }
+    }
 
     const canoneImponibile = fleetColumnMap.canoneImponibile ? parseNumber(row[fleetColumnMap.canoneImponibile]) : 0;
     const canoneIvato = fleetColumnMap.canoneIvato ? parseNumber(row[fleetColumnMap.canoneIvato]) : 0;
@@ -998,7 +1012,6 @@
 
   function filterFleetForRange(range, filters) {
     return fleetNormalized.filter(row => {
-      // intervallo attivo che interseca il range
       if (row.endDate < range.startDate || row.startDate > range.endDate) return false;
       return fleetRowMatchesFilters(row, filters);
     });
@@ -1018,7 +1031,6 @@
     let curYear = range.startYM.year;
     let curMonth = range.startYM.month;
 
-    // inizializza tutti i mesi del range
     for (let i = 0; i < range.monthsCount; i++) {
       const key = ymToKey(curYear, curMonth);
       agg[key] = {
@@ -1038,7 +1050,7 @@
       curMonth = next.month;
     }
 
-    // flotta: veicolo attivo per TUTTI i mesi tra startDate e endDate
+    // flotta: attiva per tutti i mesi tra startDate e endDate
     for (const row of fleetRows) {
       const activeStart = row.startDate > range.startDate ? row.startDate : range.startDate;
       const activeEnd = row.endDate < range.endDate ? row.endDate : range.endDate;
@@ -1288,7 +1300,7 @@
       'kpiCanoneImponibileDelta'
     );
 
-    // canone IVATO: usiamo il valore reale e lo mostriamo inline sotto il canone imponibile
+    // canone IVATO: valore reale + inline sotto il canone imponibile
     document.getElementById('kpiCanoneIvatoCurrent').textContent = formatMoney(kpiCurrent.sumCanoneIvato);
     document.getElementById('kpiCanoneIvatoInline').textContent = 'IVATO: ' + formatMoney(kpiCurrent.sumCanoneIvato);
 
@@ -1445,7 +1457,6 @@
   }
 
   function populateFilterOptions() {
-    // ANNO
     const yearSelect = document.getElementById('filterYear');
     yearSelect.innerHTML = '';
     addPlaceholderOption(yearSelect, 'Tutti');
@@ -1456,7 +1467,6 @@
       yearSelect.appendChild(opt);
     });
 
-    // MESE
     const monthSelect = document.getElementById('filterMonth');
     monthSelect.innerHTML = '';
     addPlaceholderOption(monthSelect, 'Tutti');
@@ -1467,7 +1477,6 @@
       monthSelect.appendChild(opt);
     }
 
-    // GRUPPO
     const groupSelect = document.getElementById('filterGroup');
     groupSelect.innerHTML = '';
     addPlaceholderOption(groupSelect, 'Tutti');
@@ -1478,7 +1487,6 @@
       groupSelect.appendChild(opt);
     }
 
-    // ACQUISIZIONE
     const acqSelect = document.getElementById('filterAcquisition');
     acqSelect.innerHTML = '';
     addPlaceholderOption(acqSelect, 'Tutte');
@@ -1490,7 +1498,6 @@
       acqSelect.appendChild(opt);
     }
 
-    // STAZIONE
     const stationSelect = document.getElementById('filterStation');
     stationSelect.innerHTML = '';
     addPlaceholderOption(stationSelect, 'Tutte');
@@ -1502,7 +1509,6 @@
       stationSelect.appendChild(opt);
     }
 
-    // TIPOLOGIA se presente
     if (tipologiaColumnName && tipologiaValues.length) {
       const tipSelect = document.getElementById('filterTipologia');
       const tipHelper = document.getElementById('filterTipologiaHelper');
@@ -1609,28 +1615,58 @@
       tipologiaValues = [];
       acquisitionsSet = new Set();
       stationMap = new Map();
+      fleetStationByPlate = new Map();
 
+      // Costruisci mappa TARGA -> stazione da fleetStations2025
+      if (fleetStationsRaw.length) {
+        const sampleStation = fleetStationsRaw[0];
+        const plateColStations = findColumnName(sampleStation, [
+          'targa',
+          'plate',
+          'vehicleId',
+          'idVeicolo',
+          'id_veicolo',
+          'veicolo'
+        ]);
+        const stationColStations = findColumnName(sampleStation, [
+          'stazione',
+          'station',
+          'filiale',
+          'location'
+        ]);
+
+        if (plateColStations && stationColStations) {
+          for (const row of fleetStationsRaw) {
+            const plateRaw = row[plateColStations];
+            const stationRaw = row[stationColStations];
+            if (!plateRaw || !stationRaw) continue;
+            const plateKey = String(plateRaw).trim().toUpperCase();
+            const stInfo = normalizeStation(stationRaw); // popola anche stationMap
+            if (stInfo.key) {
+              fleetStationByPlate.set(plateKey, stInfo);
+            }
+          }
+        } else if (stationColStations) {
+          for (const row of fleetStationsRaw) {
+            normalizeStation(row[stationColStations]);
+          }
+        }
+      }
+
+      // Normalizza flotta (usando eventualmente la mappa TARGA -> stazione)
       for (const row of fleetRaw) {
         const norm = normalizeFleetRow(row);
         if (norm) fleetNormalized.push(norm);
       }
 
-      if (fleetStationsRaw.length) {
-        const sampleStation = fleetStationsRaw[0];
-        const stationKeyName = findColumnName(sampleStation, ['stazione', 'station', 'filiale', 'location']);
-        if (stationKeyName) {
-          for (const row of fleetStationsRaw) {
-            normalizeStation(row[stationKeyName]);
-          }
-        }
-      }
-
+      // Booking 2025
       bookings2025Normalized = [];
       for (const row of bookings2025Raw) {
         const norm = normalizeBookingRow(row, false);
         if (norm) bookings2025Normalized.push(norm);
       }
 
+      // Booking Jan 2026 reale
       bookingsJan2026Normalized = [];
       for (const row of bookingsJan2026Raw) {
         const norm = normalizeBookingRow(row, true);
