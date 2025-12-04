@@ -19,42 +19,65 @@
   ></script>
 
   <style>
+    :root {
+      --bg-main: #0f1115;
+      --bg-card: #181b22;
+      --bg-sidebar: #12151c;
+      --border-subtle: #262a33;
+      --text-primary: #f5f5f7;
+      --text-muted: #9ca3af;
+      --accent: #3b82f6;
+      --accent-soft: rgba(59, 130, 246, 0.15);
+      --danger: #ef4444;
+      --success: #22c55e;
+    }
+
     body {
-      background-color: #f5f5f7;
+      background: radial-gradient(circle at top, #1e293b 0, #020617 55%);
+      color: var(--text-primary);
       font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      min-height: 100vh;
+    }
+
+    .dashboard-shell {
+      padding: 1.5rem 1rem 1.5rem;
     }
 
     .dashboard-header {
-      padding: 1.5rem 0 0.5rem;
+      padding-bottom: 1rem;
+      border-bottom: 1px solid rgba(148, 163, 184, 0.3);
+      margin-bottom: 1rem;
+    }
+
+    .dashboard-header h3 {
+      font-weight: 600;
+      letter-spacing: 0.03em;
     }
 
     .kpi-card {
       border-radius: 1rem;
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
-      background-color: #ffffff;
+      background: radial-gradient(circle at top left, #1f2937 0, #020617 55%);
+      border: 1px solid rgba(148, 163, 184, 0.3);
+      box-shadow: 0 18px 45px rgba(15, 23, 42, 0.8);
       height: 100%;
     }
 
     .kpi-title {
-      font-size: 0.9rem;
+      font-size: 0.85rem;
       text-transform: uppercase;
-      letter-spacing: 0.06em;
-      color: #6c757d;
+      letter-spacing: 0.08em;
+      color: var(--text-muted);
     }
 
     .kpi-value {
-      font-size: 1.4rem;
+      font-size: 1.5rem;
       font-weight: 700;
     }
 
-    .kpi-sub {
-      font-size: 0.8rem;
-      color: #6c757d;
-    }
-
+    .kpi-sub,
     .kpi-prev {
       font-size: 0.8rem;
-      color: #6c757d;
+      color: var(--text-muted);
     }
 
     .kpi-diff {
@@ -63,31 +86,94 @@
     }
 
     .kpi-diff.positive {
-      color: #198754; /* verde */
+      color: var(--success);
     }
 
     .kpi-diff.negative {
-      color: #dc3545; /* rosso */
+      color: var(--danger);
     }
 
     .kpi-diff.neutral {
-      color: #6c757d;
+      color: var(--text-muted);
+    }
+
+    .sidebar {
+      background: linear-gradient(180deg, #020617 0%, #020617 20%, #020617 100%);
+      border-radius: 1.2rem;
+      border: 1px solid rgba(148, 163, 184, 0.4);
+      padding: 1rem;
+      box-shadow: 0 18px 40px rgba(15, 23, 42, 0.9);
+      height: 100%;
+    }
+
+    .sidebar-title {
+      font-size: 0.9rem;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      color: var(--text-muted);
+      margin-bottom: 0.75rem;
     }
 
     .filter-label {
-      font-size: 0.85rem;
+      font-size: 0.8rem;
       font-weight: 600;
-      margin-bottom: 0.1rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--text-muted);
+      margin-bottom: 0.15rem;
+    }
+
+    .form-select,
+    .form-control {
+      background-color: #020617;
+      color: var(--text-primary);
+      border: 1px solid var(--border-subtle);
+      font-size: 0.85rem;
+    }
+
+    .form-select:focus,
+    .form-control:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 1px var(--accent-soft);
+      background-color: #020617;
+      color: var(--text-primary);
     }
 
     .accordion-button {
-      font-weight: 600;
+      background-color: #020617;
+      color: var(--text-primary);
+      border-bottom: 1px solid var(--border-subtle);
+      padding: 0.4rem 0.6rem;
+      font-size: 0.8rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
+    .accordion-button::after {
+      filter: invert(1);
+    }
+
+    .accordion-button:not(.collapsed) {
+      background-color: #020617;
+      color: var(--accent);
+      box-shadow: none;
+    }
+
+    .accordion-item {
+      border: none;
+      border-bottom: 1px solid var(--border-subtle);
+    }
+
+    .accordion-body {
+      padding: 0.4rem 0.6rem 0.6rem;
+      background-color: #020617;
     }
 
     .chart-container {
-      background-color: #ffffff;
-      border-radius: 1rem;
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+      background: radial-gradient(circle at top, #111827 0, #020617 55%);
+      border-radius: 1.2rem;
+      border: 1px solid rgba(148, 163, 184, 0.4);
+      box-shadow: 0 20px 50px rgba(15, 23, 42, 0.9);
       padding: 1rem 1.2rem 1.5rem;
       height: 100%;
     }
@@ -96,6 +182,23 @@
       display: inline-flex;
       align-items: center;
       gap: 0.3rem;
+      font-size: 0.8rem;
+      border-radius: 999px;
+    }
+
+    .btn-outline-secondary {
+      border-color: rgba(148, 163, 184, 0.6);
+      color: var(--text-muted);
+    }
+
+    .btn-outline-secondary:hover {
+      background-color: rgba(148, 163, 184, 0.1);
+      color: var(--text-primary);
+    }
+
+    .btn-outline-danger {
+      border-radius: 999px;
+      font-size: 0.8rem;
     }
 
     @media print {
@@ -103,16 +206,22 @@
         display: none !important;
       }
       body {
-        background-color: #ffffff;
+        background: #ffffff;
+        color: #000000;
       }
-      .chart-container, .kpi-card {
+      .sidebar,
+      .chart-container,
+      .kpi-card {
         box-shadow: none !important;
+        background: #ffffff !important;
+        border-color: #dddddd !important;
+        color: #000000 !important;
       }
     }
   </style>
 </head>
 <body>
-  <div class="container-fluid">
+  <div class="container-fluid dashboard-shell">
     <!-- HEADER -->
     <div class="dashboard-header d-flex justify-content-between align-items-center">
       <div>
@@ -129,211 +238,257 @@
       </div>
     </div>
 
-    <!-- FILTRI -->
-    <div class="row mb-3 no-print">
-      <div class="col-12">
-        <div class="accordion" id="filtersAccordion">
-          <div class="accordion-item">
-            <h2 class="accordion-header" id="filtersHeading">
-              <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#filtersCollapse" aria-expanded="true" aria-controls="filtersCollapse">
-                🎛️ Filtri avanzati
-              </button>
-            </h2>
-            <div id="filtersCollapse" class="accordion-collapse collapse show" aria-labelledby="filtersHeading">
-              <div class="accordion-body">
-                <div class="row g-3">
-                  <!-- Anno -->
-                  <div class="col-12 col-md-2">
-                    <label for="yearFilter" class="filter-label">Anno</label>
-                    <select id="yearFilter" class="form-select form-select-sm" multiple>
-                      <option value="2024">2024</option>
-                      <option value="2025">2025</option>
-                      <option value="2026">2026</option>
-                    </select>
-                    <small class="text-muted">Multi-selezione</small>
-                  </div>
+    <!-- LAYOUT: SIDEBAR SINISTRA + KPIs + GRAFICO -->
+    <div class="row g-3">
+      <!-- SIDEBAR FILTRI -->
+      <div class="col-12 col-lg-3 no-print">
+        <div class="sidebar h-100">
+          <div class="d-flex justify-content-between align-items-center mb-2">
+            <div class="sidebar-title">Filtri</div>
+            <button id="clearFiltersBtn" class="btn btn-outline-danger btn-sm">
+              🔄 Pulisci
+            </button>
+          </div>
 
-                  <!-- Mese -->
-                  <div class="col-12 col-md-3 col-lg-2">
-                    <label for="monthFilter" class="filter-label">Mese</label>
-                    <select id="monthFilter" class="form-select form-select-sm" multiple></select>
-                    <small class="text-muted">Gennaio–Dicembre</small>
-                  </div>
-
-                  <!-- Gruppo veicolo -->
-                  <div class="col-12 col-md-4 col-lg-3">
-                    <label for="groupFilter" class="filter-label">Gruppo veicolo</label>
-                    <select id="groupFilter" class="form-select form-select-sm" multiple></select>
-                    <small class="text-muted">Solo colonna “GRUPPO”</small>
-                  </div>
-
-                  <!-- Acquisizione -->
-                  <div class="col-12 col-md-3 col-lg-2">
-                    <label for="acquisitionFilter" class="filter-label">Acquisizione</label>
-                    <select id="acquisitionFilter" class="form-select form-select-sm" multiple></select>
-                    <small class="text-muted">Da flotta (ACQUISIZIONE)</small>
-                  </div>
-
-                  <!-- Stazione -->
-                  <div class="col-12 col-md-4 col-lg-3">
-                    <label for="stationFilter" class="filter-label">Stazione</label>
-                    <select id="stationFilter" class="form-select form-select-sm" multiple></select>
-                    <small class="text-muted">Capitalize, senza duplicati</small>
-                  </div>
-
-                  <!-- Proiezione 2026 -->
-                  <div class="col-12 col-md-3 col-lg-2">
-                    <label for="projectionSelect" class="filter-label">Proiezione 2026</label>
-                    <select id="projectionSelect" class="form-select form-select-sm">
-                      <option value="0.05">+5%</option>
-                      <option value="0.10" selected>+10%</option>
-                      <option value="0.15">+15%</option>
-                      <option value="0.20">+20%</option>
-                    </select>
-                    <small class="text-muted">Applicata a tutti i KPI</small>
-                  </div>
-
-                  <!-- Pulsante Pulisci -->
-                  <div class="col-12 col-md-3 d-flex align-items-end">
-                    <button id="clearFiltersBtn" class="btn btn-outline-danger btn-sm w-100">
-                      🔄 Pulisci filtri
-                    </button>
-                  </div>
+          <div class="accordion accordion-flush" id="filtersAccordion">
+            <!-- Anno -->
+            <div class="accordion-item">
+              <h2 class="accordion-header" id="headingYear">
+                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseYear" aria-expanded="false" aria-controls="collapseYear">
+                  Anno
+                </button>
+              </h2>
+              <div id="collapseYear" class="accordion-collapse collapse" aria-labelledby="headingYear" data-bs-parent="#filtersAccordion">
+                <div class="accordion-body">
+                  <label for="yearFilter" class="filter-label">Anno (multi)</label>
+                  <select id="yearFilter" class="form-select form-select-sm" multiple>
+                    <option value="2024">2024</option>
+                    <option value="2025">2025</option>
+                    <option value="2026">2026</option>
+                  </select>
                 </div>
               </div>
             </div>
-          </div> <!-- accordion-item -->
-        </div>
-      </div>
-    </div>
 
-    <!-- KPI CARDS -->
-    <div class="row g-3 mb-3">
-      <!-- Dimensione flotta -->
-      <div class="col-12 col-md-3 col-lg-3">
-        <div class="kpi-card p-3">
-          <div class="d-flex justify-content-between align-items-center mb-1">
-            <div class="kpi-title">🚗 Dimensione flotta (media)</div>
-          </div>
-          <div class="kpi-value" id="kpi-fleet-current">–</div>
-          <div class="kpi-prev mb-1">
-            Prev: <span id="kpi-fleet-prev">–</span>
-          </div>
-          <div class="kpi-diff neutral" id="kpi-fleet-diff">–</div>
-        </div>
-      </div>
+            <!-- Mese -->
+            <div class="accordion-item">
+              <h2 class="accordion-header" id="headingMonth">
+                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseMonth" aria-expanded="false" aria-controls="collapseMonth">
+                  Mese
+                </button>
+              </h2>
+              <div id="collapseMonth" class="accordion-collapse collapse" aria-labelledby="headingMonth" data-bs-parent="#filtersAccordion">
+                <div class="accordion-body">
+                  <label for="monthFilter" class="filter-label">Mese (multi)</label>
+                  <select id="monthFilter" class="form-select form-select-sm" multiple></select>
+                </div>
+              </div>
+            </div>
 
-      <!-- Canone imponibile + ivato -->
-      <div class="col-12 col-md-3 col-lg-3">
-        <div class="kpi-card p-3">
-          <div class="d-flex justify-content-between align-items-center mb-1">
-            <div class="kpi-title">💶 Canone imponibile</div>
-          </div>
-          <div class="kpi-value" id="kpi-canone-current">–</div>
-          <div class="kpi-sub mb-1">Canone ivato: <span id="kpi-canone-ivato-current">–</span></div>
-          <div class="kpi-prev mb-1">
-            Prev: <span id="kpi-canone-prev">–</span>
-          </div>
-          <div class="kpi-diff neutral" id="kpi-canone-diff">–</div>
-        </div>
-      </div>
+            <!-- Gruppo veicolo -->
+            <div class="accordion-item">
+              <h2 class="accordion-header" id="headingGroup">
+                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseGroup" aria-expanded="false" aria-controls="collapseGroup">
+                  Gruppo veicolo
+                </button>
+              </h2>
+              <div id="collapseGroup" class="accordion-collapse collapse" aria-labelledby="headingGroup" data-bs-parent="#filtersAccordion">
+                <div class="accordion-body">
+                  <label for="groupFilter" class="filter-label">Gruppo (multi)</label>
+                  <select id="groupFilter" class="form-select form-select-sm" multiple></select>
+                </div>
+              </div>
+            </div>
 
-      <!-- Assicurazione -->
-      <div class="col-12 col-md-3 col-lg-3">
-        <div class="kpi-card p-3">
-          <div class="d-flex justify-content-between align-items-center mb-1">
-            <div class="kpi-title">🛡️ Assicurazione</div>
-          </div>
-          <div class="kpi-value" id="kpi-assicurazione-current">–</div>
-          <div class="kpi-prev mb-1">
-            Prev: <span id="kpi-assicurazione-prev">–</span>
-          </div>
-          <div class="kpi-diff neutral" id="kpi-assicurazione-diff">–</div>
-        </div>
-      </div>
+            <!-- Acquisizione -->
+            <div class="accordion-item">
+              <h2 class="accordion-header" id="headingAcquisition">
+                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseAcquisition" aria-expanded="false" aria-controls="collapseAcquisition">
+                  Acquisizione
+                </button>
+              </h2>
+              <div id="collapseAcquisition" class="accordion-collapse collapse" aria-labelledby="headingAcquisition" data-bs-parent="#filtersAccordion">
+                <div class="accordion-body">
+                  <label for="acquisitionFilter" class="filter-label">Acquisizione (multi)</label>
+                  <select id="acquisitionFilter" class="form-select form-select-sm" multiple></select>
+                </div>
+              </div>
+            </div>
 
-      <!-- Costo totale -->
-      <div class="col-12 col-md-3 col-lg-3">
-        <div class="kpi-card p-3">
-          <div class="d-flex justify-content-between align-items-center mb-1">
-            <div class="kpi-title">💰 Costo totale</div>
-          </div>
-          <div class="kpi-value" id="kpi-costo-current">–</div>
-          <div class="kpi-prev mb-1">
-            Prev: <span id="kpi-costo-prev">–</span>
-          </div>
-          <div class="kpi-diff neutral" id="kpi-costo-diff">–</div>
-        </div>
-      </div>
-    </div>
+            <!-- Stazione -->
+            <div class="accordion-item">
+              <h2 class="accordion-header" id="headingStation">
+                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseStation" aria-expanded="false" aria-controls="collapseStation">
+                  Stazione
+                </button>
+              </h2>
+              <div id="collapseStation" class="accordion-collapse collapse" aria-labelledby="headingStation" data-bs-parent="#filtersAccordion">
+                <div class="accordion-body">
+                  <label for="stationFilter" class="filter-label">Stazione (multi)</label>
+                  <select id="stationFilter" class="form-select form-select-sm" multiple></select>
+                </div>
+              </div>
+            </div>
 
-    <div class="row g-3 mb-4">
-      <!-- Revenue -->
-      <div class="col-12 col-md-3 col-lg-3">
-        <div class="kpi-card p-3">
-          <div class="d-flex justify-content-between align-items-center mb-1">
-            <div class="kpi-title">💸 Revenue</div>
+            <!-- Proiezione 2026 -->
+            <div class="accordion-item">
+              <h2 class="accordion-header" id="headingProjection">
+                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseProjection" aria-expanded="false" aria-controls="collapseProjection">
+                  Proiezione 2026
+                </button>
+              </h2>
+              <div id="collapseProjection" class="accordion-collapse collapse" aria-labelledby="headingProjection" data-bs-parent="#filtersAccordion">
+                <div class="accordion-body">
+                  <label for="projectionSelect" class="filter-label">Proiezione 2026</label>
+                  <select id="projectionSelect" class="form-select form-select-sm">
+                    <option value="0.05">+5%</option>
+                    <option value="0.10" selected>+10%</option>
+                    <option value="0.15">+15%</option>
+                    <option value="0.20">+20%</option>
+                  </select>
+                  <small class="text-muted d-block mt-1" style="font-size: 0.7rem;">
+                    Applicata a tutti i KPI sui mesi 2026.
+                  </small>
+                </div>
+              </div>
+            </div>
           </div>
-          <div class="kpi-value" id="kpi-revenue-current">–</div>
-          <div class="kpi-prev mb-1">
-            Prev: <span id="kpi-revenue-prev">–</span>
-          </div>
-          <div class="kpi-diff neutral" id="kpi-revenue-diff">–</div>
-        </div>
-      </div>
 
-      <!-- Revenue / day -->
-      <div class="col-12 col-md-3 col-lg-3">
-        <div class="kpi-card p-3">
-          <div class="d-flex justify-content-between align-items-center mb-1">
-            <div class="kpi-title">☀️ Revenue / day</div>
-          </div>
-          <div class="kpi-value" id="kpi-revday-current">–</div>
-          <div class="kpi-prev mb-1">
-            Prev: <span id="kpi-revday-prev">–</span>
-          </div>
-          <div class="kpi-diff neutral" id="kpi-revday-diff">–</div>
         </div>
       </div>
 
-      <!-- Numero prenotazioni -->
-      <div class="col-12 col-md-3 col-lg-3">
-        <div class="kpi-card p-3">
-          <div class="d-flex justify-content-between align-items-center mb-1">
-            <div class="kpi-title">📝 Numero prenotazioni</div>
+      <!-- AREA CENTRALE: KPI + GRAFICO -->
+      <div class="col-12 col-lg-9">
+        <!-- KPI ROW 1 -->
+        <div class="row g-3 mb-3">
+          <!-- Dimensione flotta -->
+          <div class="col-12 col-md-6 col-xl-3">
+            <div class="kpi-card p-3">
+              <div class="d-flex justify-content-between align-items-center mb-1">
+                <div class="kpi-title">🚗 Dimensione flotta (media)</div>
+              </div>
+              <div class="kpi-value" id="kpi-fleet-current">–</div>
+              <div class="kpi-prev mb-1">
+                Prev: <span id="kpi-fleet-prev">–</span>
+              </div>
+              <div class="kpi-diff neutral" id="kpi-fleet-diff">–</div>
+            </div>
           </div>
-          <div class="kpi-value" id="kpi-bookings-current">–</div>
-          <div class="kpi-prev mb-1">
-            Prev: <span id="kpi-bookings-prev">–</span>
-          </div>
-          <div class="kpi-diff neutral" id="kpi-bookings-diff">–</div>
-        </div>
-      </div>
 
-      <!-- Noleggiati -->
-      <div class="col-12 col-md-3 col-lg-3">
-        <div class="kpi-card p-3">
-          <div class="d-flex justify-content-between align-items-center mb-1">
-            <div class="kpi-title">🚙 Noleggiati</div>
+          <!-- Canone imponibile + ivato -->
+          <div class="col-12 col-md-6 col-xl-3">
+            <div class="kpi-card p-3">
+              <div class="d-flex justify-content-between align-items-center mb-1">
+                <div class="kpi-title">💶 Canone imponibile</div>
+              </div>
+              <div class="kpi-value" id="kpi-canone-current">–</div>
+              <div class="kpi-sub mb-1">Canone ivato: <span id="kpi-canone-ivato-current">–</span></div>
+              <div class="kpi-prev mb-1">
+                Prev: <span id="kpi-canone-prev">–</span>
+              </div>
+              <div class="kpi-diff neutral" id="kpi-canone-diff">–</div>
+            </div>
           </div>
-          <div class="kpi-value" id="kpi-noleggiati-current">–</div>
-          <div class="kpi-prev mb-1">
-            Prev: <span id="kpi-noleggiati-prev">–</span>
-          </div>
-          <div class="kpi-diff neutral" id="kpi-noleggiati-diff">–</div>
-        </div>
-      </div>
-    </div>
 
-    <!-- GRAFICO -->
-    <div class="row mb-4">
-      <div class="col-12">
-        <div class="chart-container">
-          <div class="d-flex justify-content-between align-items-center mb-2">
-            <h6 class="mb-0">Andamento mensile</h6>
-            <small class="text-muted">Dimensione flotta, costo totale, revenue, noleggiati</small>
+          <!-- Assicurazione -->
+          <div class="col-12 col-md-6 col-xl-3">
+            <div class="kpi-card p-3">
+              <div class="d-flex justify-content-between align-items-center mb-1">
+                <div class="kpi-title">🛡️ Assicurazione</div>
+              </div>
+              <div class="kpi-value" id="kpi-assicurazione-current">–</div>
+              <div class="kpi-prev mb-1">
+                Prev: <span id="kpi-assicurazione-prev">–</span>
+              </div>
+              <div class="kpi-diff neutral" id="kpi-assicurazione-diff">–</div>
+            </div>
           </div>
-          <canvas id="mainChart" height="90"></canvas>
+
+          <!-- Costo totale -->
+          <div class="col-12 col-md-6 col-xl-3">
+            <div class="kpi-card p-3">
+              <div class="d-flex justify-content-between align-items-center mb-1">
+                <div class="kpi-title">💰 Costo totale</div>
+              </div>
+              <div class="kpi-value" id="kpi-costo-current">–</div>
+              <div class="kpi-prev mb-1">
+                Prev: <span id="kpi-costo-prev">–</span>
+              </div>
+              <div class="kpi-diff neutral" id="kpi-costo-diff">–</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- KPI ROW 2 -->
+        <div class="row g-3 mb-4">
+          <!-- Revenue -->
+          <div class="col-12 col-md-6 col-xl-3">
+            <div class="kpi-card p-3">
+              <div class="d-flex justify-content-between align-items-center mb-1">
+                <div class="kpi-title">💸 Revenue</div>
+              </div>
+              <div class="kpi-value" id="kpi-revenue-current">–</div>
+              <div class="kpi-prev mb-1">
+                Prev: <span id="kpi-revenue-prev">–</span>
+              </div>
+              <div class="kpi-diff neutral" id="kpi-revenue-diff">–</div>
+            </div>
+          </div>
+
+          <!-- Revenue / day -->
+          <div class="col-12 col-md-6 col-xl-3">
+            <div class="kpi-card p-3">
+              <div class="d-flex justify-content-between align-items-center mb-1">
+                <div class="kpi-title">☀️ Revenue / day</div>
+              </div>
+              <div class="kpi-value" id="kpi-revday-current">–</div>
+              <div class="kpi-prev mb-1">
+                Prev: <span id="kpi-revday-prev">–</span>
+              </div>
+              <div class="kpi-diff neutral" id="kpi-revday-diff">–</div>
+            </div>
+          </div>
+
+          <!-- Numero prenotazioni -->
+          <div class="col-12 col-md-6 col-xl-3">
+            <div class="kpi-card p-3">
+              <div class="d-flex justify-content-between align-items-center mb-1">
+                <div class="kpi-title">📝 Numero prenotazioni</div>
+              </div>
+              <div class="kpi-value" id="kpi-bookings-current">–</div>
+              <div class="kpi-prev mb-1">
+                Prev: <span id="kpi-bookings-prev">–</span>
+              </div>
+              <div class="kpi-diff neutral" id="kpi-bookings-diff">–</div>
+            </div>
+          </div>
+
+          <!-- Noleggiati -->
+          <div class="col-12 col-md-6 col-xl-3">
+            <div class="kpi-card p-3">
+              <div class="d-flex justify-content-between align-items-center mb-1">
+                <div class="kpi-title">🚙 Noleggiati</div>
+              </div>
+              <div class="kpi-value" id="kpi-noleggiati-current">–</div>
+              <div class="kpi-prev mb-1">
+                Prev: <span id="kpi-noleggiati-prev">–</span>
+              </div>
+              <div class="kpi-diff neutral" id="kpi-noleggiati-diff">–</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- GRAFICO -->
+        <div class="row mb-4">
+          <div class="col-12">
+            <div class="chart-container" style="min-height: 320px;">
+              <div class="d-flex justify-content-between align-items-center mb-2">
+                <h6 class="mb-0">Andamento mensile</h6>
+                <small class="text-muted">Dimensione flotta, costo totale, revenue, noleggiati</small>
+              </div>
+              <canvas id="mainChart" height="90"></canvas>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -382,7 +537,7 @@
     let fleetStationsData = [];
     let bookingsData = [];
 
-    let monthlyAggregates = []; // calcolato ad ogni cambio filtri
+    let monthlyAggregates = [];
     let mainChart = null;
 
     // =========================
@@ -468,7 +623,7 @@
     }
 
     function normalizeStationName(name) {
-      if (!name) return null;
+      if (!name && name !== 0) return null;
       const lower = String(name).trim().toLowerCase();
       if (!lower) return null;
       return lower.charAt(0).toUpperCase() + lower.slice(1);
@@ -532,12 +687,10 @@
     }
 
     function resetFilters() {
-      // reset multi-selects
       ["yearFilter", "monthFilter", "groupFilter", "acquisitionFilter", "stationFilter"].forEach(id => {
         const select = document.getElementById(id);
         Array.from(select.options).forEach(opt => (opt.selected = false));
       });
-      // reset projection to 10%
       document.getElementById("projectionSelect").value = "0.10";
       applyFiltersAndRender();
     }
@@ -552,13 +705,15 @@
 
       // ISO-like
       if (/^\d{4}-\d{2}-\d{2}/.test(str)) {
-        return new Date(str);
+        const d = new Date(str);
+        return isNaN(d.getTime()) ? null : d;
       }
 
       // dd/mm/yyyy
       if (/^\d{2}\/\d{2}\/\d{4}$/.test(str)) {
         const [d, m, y] = str.split("/");
-        return new Date(parseInt(y, 10), parseInt(m, 10) - 1, parseInt(d, 10));
+        const date = new Date(parseInt(y, 10), parseInt(m, 10) - 1, parseInt(d, 10));
+        return isNaN(date.getTime()) ? null : date;
       }
 
       // fallback
@@ -571,7 +726,6 @@
     }
 
     function getMonthIndexGlobal(year, month) {
-      // 2024-01 = 0, 2024-02 = 1, ..., 2026-12 = 35
       return (year - 2024) * 12 + (month - 1);
     }
 
@@ -583,7 +737,6 @@
     // CORE: APPLY FILTERS
     // =========================
     function applyFiltersAndRender() {
-      // Lettura filtri
       const selectedYears = getMultiSelectValues("yearFilter").map(v => parseInt(v, 10));
       const selectedMonths = getMultiSelectValues("monthFilter").map(v => parseInt(v, 10));
       const selectedGroups = getMultiSelectValues("groupFilter");
@@ -591,7 +744,6 @@
       const selectedStations = getMultiSelectValues("stationFilter");
       const projectionFactor = parseFloat(document.getElementById("projectionSelect").value || "0.10");
 
-      // Calcolo aggregati mensili
       monthlyAggregates = computeMonthlyAggregates({
         years: selectedYears,
         months: selectedMonths,
@@ -609,16 +761,13 @@
     // AGGREGATION LOGIC
     // =========================
     function normalizeGroupName(val) {
-      if (!val) return null;
-      const str = String(val).trim();
-      // Non tocchiamo i nomi, solo trimming
-      return str;
+      if (!val && val !== 0) return null;
+      return String(val).trim();
     }
 
     function computeMonthlyAggregates(filters) {
       const { years, months, groups, acquisitions, stations, projectionFactor } = filters;
 
-      // base container per tutte le combinazioni anno-mese
       const monthlyMap = new Map();
       for (let year = 2024; year <= 2026; year++) {
         for (let month = 1; month <= 12; month++) {
@@ -643,14 +792,12 @@
       }
 
       // ---- 1) Flotta ----
-      // Applichiamo filtri gruppo + acquisizione già qui
       fleetData.forEach(row => {
         const gruppo = normalizeGroupName(
           row["GRUPPO"] ||
           row["Gruppo"] ||
           row["gruppo"]
         );
-
         if (!gruppo) return;
         if (groups.length > 0 && !groups.includes(gruppo)) return;
 
@@ -681,15 +828,13 @@
 
         const startDate = start;
         const endDate = effectiveEnd || plannedEnd;
-
         if (!startDate || !endDate) return;
         if (endDate < startDate) return;
 
-        const canoneImp = parseFloat(String(row["CANONE IMPONIBILE"] || row["Canone imponibile"] || row["canone_imponibile"] || "0").replace(",", "."));
-        const canoneIvato = parseFloat(String(row["CANONE IVATO"] || row["Canone ivato"] || row["canone_ivato"] || "0").replace(",", "."));
-        const coperturaAss = parseFloat(String(row["COPERTURA ASS."] || row["Copertura ass."] || row["copertura_ass"] || "0").replace(",", "."));
+        const canoneImp = parseFloat(String(row["CANONE IMPONIBILE"] || row["Canone imponibile"] || row["canone_imponibile"] || "0").replace(",", ".")) || 0;
+        const canoneIvato = parseFloat(String(row["CANONE IVATO"] || row["Canone ivato"] || row["canone_ivato"] || "0").replace(",", ".")) || 0;
+        const coperturaAss = parseFloat(String(row["COPERTURA ASS."] || row["Copertura ass."] || row["copertura_ass"] || "0").replace(",", ".")) || 0;
 
-        // iteriamo mese per mese dal 2024-01 al 2026-12
         const startYear = Math.max(2024, startDate.getFullYear());
         const endYear = Math.min(2026, endDate.getFullYear());
 
@@ -702,8 +847,6 @@
             const bucket = monthlyMap.get(key);
             if (!bucket) continue;
 
-            // Anno/mese filtrati? Li applichiamo più avanti per il chart/KPI,
-            // qui accumuliamo comunque per avere corretto previousRange.
             bucket.fleetSize += 1;
             bucket.canoneImponibile += canoneImp;
             bucket.canoneIvato += canoneIvato;
@@ -713,10 +856,9 @@
         }
       });
 
-      // ---- 2) Ridistribuzione per stazione (flotta) via fleetStations2025 ----
+      // ---- 2) Filtro stazione sulla flotta (via fleetStations2025) ----
       const stationFactor = computeStationFactorForFleet(filters);
       if (stationFactor !== null) {
-        // Applichiamo la quota selezionata a tutte le metriche di flotta
         monthlyMap.forEach(bucket => {
           bucket.fleetSize *= stationFactor;
           bucket.canoneImponibile *= stationFactor;
@@ -736,7 +878,6 @@
         if (!gruppo) return;
         if (filters.groups.length > 0 && !filters.groups.includes(gruppo)) return;
 
-        // stazione per filtri
         const rawStation =
           row["stazione"] ||
           row["STAZIONE"] ||
@@ -765,33 +906,31 @@
 
         if (!fromDate || !toDate) return;
 
-        // DATEDIFF: days = max(1, to - from)
         const msDiff = toDate.getTime() - fromDate.getTime();
         let days = Math.floor(msDiff / (1000 * 60 * 60 * 24));
         if (days < 1) days = 1;
 
-        // Revenue
         const revenue = parseFloat(String(
           row["REVENUE"] ||
           row["Revenue"] ||
           row["revenue"] ||
           "0"
-        ).replace(",", "."));
+        ).replace(",", ".")) || 0;
 
         const year = fromDate.getFullYear();
         const month = fromDate.getMonth() + 1;
-        if (year < 2024 || year > 2026) return; // mettiamo comunque in 2024–2026
+        if (year < 2024 || year > 2026) return;
 
         const key = formatYearMonthKey(year, month);
         const bucket = monthlyMap.get(key);
         if (!bucket) return;
 
-        bucket.revenue += isFinite(revenue) ? revenue : 0;
+        bucket.revenue += revenue;
         bucket.revenueDays += days;
         bucket.numBookings += 1;
       });
 
-      // Calcolo revenue/day e noleggiati per mese
+      // Calcolo revenue/day e noleggiati
       monthlyMap.forEach(bucket => {
         if (bucket.revenueDays > 0) {
           bucket.revenuePerDay = bucket.revenue / bucket.revenueDays;
@@ -799,10 +938,6 @@
           bucket.revenuePerDay = 0;
         }
 
-        // Noleggiati = utilization * fleetAvailable
-        // utilization = durationDays / (fleetAvailable * 30)
-        // durationDays = revenueDays (somma giorni noleggio)
-        // Nota: se fleetSize è 0, niente calcolo
         const fleetAvailable = bucket.fleetSize;
         if (fleetAvailable > 0 && bucket.revenueDays > 0) {
           const utilization = bucket.revenueDays / (fleetAvailable * 30);
@@ -830,10 +965,8 @@
         });
       }
 
-      // Trasformiamo la mappa in array
       let result = Array.from(monthlyMap.values());
 
-      // Applichiamo i filtri anno/mese SOLO per ciò che visualizziamo
       if (years.length > 0) {
         result = result.filter(b => years.includes(b.year));
       }
@@ -841,7 +974,6 @@
         result = result.filter(b => months.includes(b.month));
       }
 
-      // Ordiniamo per data
       result.sort((a, b) => {
         const ia = getMonthIndexGlobal(a.year, a.month);
         const ib = getMonthIndexGlobal(b.year, b.month);
@@ -912,7 +1044,6 @@
         return;
       }
 
-      // Calcolo currentRange e previousRange
       const indices = monthlyAggregates.map(b => getMonthIndexGlobal(b.year, b.month));
       const minIdx = Math.min(...indices);
       const maxIdx = Math.max(...indices);
@@ -921,11 +1052,9 @@
       const prevEnd = minIdx - 1;
       const prevStart = prevEnd - (lengthRange - 1);
 
-      // limiti globali 0..35 (2024-01..2026-12)
       const prevStartClamped = clamp(prevStart, 0, 35);
       const prevEndClamped = clamp(prevEnd, 0, 35);
 
-      // helper: somma KPI per un set di indici
       function sumForIndices(indicesSet) {
         const res = {
           fleetSize: 0,
@@ -974,7 +1103,6 @@
       const current = sumForIndices(currentIndicesSet);
       const prev = sumForIndices(prevIndicesSet);
 
-      // KPI helper
       function setKpi(idCurrent, idPrev, idDiff, currVal, prevVal, options = {}) {
         const elCurr = document.getElementById(idCurrent);
         const elPrev = document.getElementById(idPrev);
@@ -1024,7 +1152,6 @@
         }
       }
 
-      // Dimensione flotta (media sui mesi selezionati)
       const monthsCountCurrent = currentIndicesSet.size || 1;
       const monthsCountPrev = prevIndicesSet.size || 1;
       const fleetCurrAvg = current.fleetSize / monthsCountCurrent;
@@ -1035,13 +1162,11 @@
         decimals: 1
       });
 
-      // Canone imponibile + ivato
       setKpi("kpi-canone-current", "kpi-canone-prev", "kpi-canone-diff", current.canoneImponibile, prev.canoneImponibile, {
         currency: true,
         decimals: 0
       });
 
-      // Canone ivato solo display (no diff)
       const elCanIvato = document.getElementById("kpi-canone-ivato-current");
       elCanIvato.textContent =
         current.canoneIvato > 0
@@ -1052,37 +1177,31 @@
             })
           : "–";
 
-      // Assicurazione
       setKpi("kpi-assicurazione-current", "kpi-assicurazione-prev", "kpi-assicurazione-diff", current.assicurazione, prev.assicurazione, {
         currency: true,
         decimals: 0
       });
 
-      // Costo totale
       setKpi("kpi-costo-current", "kpi-costo-prev", "kpi-costo-diff", current.costoTotale, prev.costoTotale, {
         currency: true,
         decimals: 0
       });
 
-      // Revenue
       setKpi("kpi-revenue-current", "kpi-revenue-prev", "kpi-revenue-diff", current.revenue, prev.revenue, {
         currency: true,
         decimals: 0
       });
 
-      // Revenue / day
       setKpi("kpi-revday-current", "kpi-revday-prev", "kpi-revday-diff", current.revenuePerDay, prev.revenuePerDay, {
         currency: true,
         decimals: 2
       });
 
-      // Numero prenotazioni
       setKpi("kpi-bookings-current", "kpi-bookings-prev", "kpi-bookings-diff", current.numBookings, prev.numBookings, {
         currency: false,
         decimals: 0
       });
 
-      // Noleggiati
       setKpi("kpi-noleggiati-current", "kpi-noleggiati-prev", "kpi-noleggiati-diff", current.noleggiati, prev.noleggiati, {
         currency: false,
         decimals: 1
@@ -1154,28 +1273,28 @@
               data: fleetSeries,
               yAxisID: "y",
               borderWidth: 2,
-              tension: 0.2
+              tension: 0.3
             },
             {
               label: "Costo totale",
               data: costSeries,
               yAxisID: "y1",
               borderWidth: 2,
-              tension: 0.2
+              tension: 0.3
             },
             {
               label: "Revenue",
               data: revenueSeries,
               yAxisID: "y1",
               borderWidth: 2,
-              tension: 0.2
+              tension: 0.3
             },
             {
               label: "Noleggiati",
               data: noleggiatiSeries,
               yAxisID: "y",
               borderWidth: 2,
-              tension: 0.2
+              tension: 0.3
             }
           ]
         },
@@ -1188,12 +1307,29 @@
           },
           stacked: false,
           scales: {
+            x: {
+              ticks: {
+                color: "#e5e7eb",
+                maxRotation: 0,
+                autoSkip: true
+              },
+              grid: {
+                color: "rgba(148, 163, 184, 0.15)"
+              }
+            },
             y: {
               type: "linear",
               position: "left",
               title: {
                 display: true,
-                text: "Flotta / Noleggiati"
+                text: "Flotta / Noleggiati",
+                color: "#e5e7eb"
+              },
+              ticks: {
+                color: "#e5e7eb"
+              },
+              grid: {
+                color: "rgba(148, 163, 184, 0.15)"
               }
             },
             y1: {
@@ -1201,7 +1337,11 @@
               position: "right",
               title: {
                 display: true,
-                text: "€"
+                text: "€",
+                color: "#e5e7eb"
+              },
+              ticks: {
+                color: "#e5e7eb"
               },
               grid: {
                 drawOnChartArea: false
@@ -1209,16 +1349,15 @@
             }
           },
           plugins: {
-            tooltip: {
-              callbacks: {
-                footer: (items) => {
-                  // Tooltip esteso facoltativo
-                  return "";
-                }
+            legend: {
+              labels: {
+                color: "#e5e7eb"
               }
             },
-            legend: {
-              display: true
+            tooltip: {
+              callbacks: {
+                footer: () => ""
+              }
             }
           }
         }
