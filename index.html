@@ -238,6 +238,13 @@
     </div>
 
     <!-- LAYOUT: SIDEBAR SINISTRA + KPI + GRAFICO -->
+    <select id="yearFilter" class="form-select form-select-sm" multiple>
+  <option value="ALL" selected>Tutti</option>   <!-- 👈 aggiungi -->
+  <option value="2024">2024</option>
+  <option value="2025">2025</option>
+  <option value="2026">2026</option>
+</select>
+
     <div class="row g-3">
       <!-- SIDEBAR FILTRI -->
       <div class="col-12 col-lg-3 no-print">
@@ -270,6 +277,9 @@
             </div>
 
             <!-- Mese -->
+            <select id="monthFilter" class="form-select form-select-sm" multiple>
+  <option value="ALL" selected>Tutti</option>   <!-- 👈 aggiungi -->
+</select>
             <div class="accordion-item">
               <h2 class="accordion-header" id="headingMonth">
                 <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseMonth" aria-expanded="false" aria-controls="collapseMonth">
@@ -285,6 +295,18 @@
             </div>
 
             <!-- Gruppo veicolo -->
+            <select id="groupFilter" class="form-select form-select-sm" multiple>
+  <option value="ALL" selected>Tutti</option>   <!-- 👈 aggiungi -->
+</select>
+
+<select id="acquisitionFilter" class="form-select form-select-sm" multiple>
+  <option value="ALL" selected>Tutti</option>   <!-- 👈 aggiungi -->
+</select>
+
+<select id="stationFilter" class="form-select form-select-sm" multiple>
+  <option value="ALL" selected>Tutti</option>   <!-- 👈 aggiungi -->
+</select>
+
             <div class="accordion-item">
               <h2 class="accordion-header" id="headingGroup">
                 <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseGroup" aria-expanded="false" aria-controls="collapseGroup">
@@ -593,6 +615,23 @@
         printBtn.addEventListener("click", () => window.print());
       }
     });
+    
+function resetFilters() {
+  ["yearFilter","monthFilter","groupFilter","acquisitionFilter","stationFilter"]
+    .forEach(id => {
+      const select = document.getElementById(id);
+      if (!select) return;
+
+      Array.from(select.options).forEach(opt => {
+        opt.selected = (opt.value === "ALL"); // 👈 seleziono solo "Tutti"
+      });
+    });
+
+  const proj = document.getElementById("projectionSelect");
+  if (proj) proj.value = "0.10";
+
+  applyFiltersAndRender();
+}
 
     // =========================
     // DATA LOADING
@@ -732,22 +771,18 @@
     }
 
     function getMultiSelectValues(selectId) {
-      const select = document.getElementById(selectId);
-      if (!select) return [];
-      return Array.from(select.selectedOptions).map(o => o.value);
-    }
+  const select = document.getElementById(selectId);
+  if (!select) return [];
 
-    function resetFilters() {
-      ["yearFilter","monthFilter","groupFilter","acquisitionFilter","stationFilter"]
-        .forEach(id => {
-          const select = document.getElementById(id);
-          if (!select) return;
-          Array.from(select.options).forEach(opt => (opt.selected = false));
-        });
-      const proj = document.getElementById("projectionSelect");
-      if (proj) proj.value = "0.10";
-      applyFiltersAndRender();
-    }
+  const values = Array.from(select.selectedOptions).map(o => o.value);
+
+  // Se è selezionato "ALL" → nessun filtro: restituisco []
+  if (values.includes("ALL")) {
+    return [];
+  }
+  return values;
+}
+
 
     // =========================
     // DATE HELPERS
@@ -1286,86 +1321,105 @@
     // =========================
     // CHART
     // =========================
-    function updateChart() {
-      const canvas = document.getElementById("mainChart");
-      if (!canvas) return;
-      const ctx = canvas.getContext("2d");
+   function updateChart() {
+  const canvas = document.getElementById("mainChart");
+  if (!canvas) return;
+  const ctx = canvas.getContext("2d");
 
-      const labels = monthlyAggregates.map(b => b.label);
-      const fleetSeries = monthlyAggregates.map(b => b.fleetSize);
-      const costSeries = monthlyAggregates.map(b => b.costoTotale);
-      const revenueSeries = monthlyAggregates.map(b => b.revenue);
-      const noleggiatiSeries = monthlyAggregates.map(b => b.noleggiati);
-
-      if (mainChart) mainChart.destroy();
-
-      mainChart = new Chart(ctx, {
-        type: "line",
-        data: {
-          labels,
-          datasets: [
-            {
-              label: "Dimensione flotta",
-              data: fleetSeries,
-              yAxisID: "y",
-              borderWidth: 2,
-              tension: 0.3
-            },
-            {
-              label: "Costo totale",
-              data: costSeries,
-              yAxisID: "y1",
-              borderWidth: 2,
-              tension: 0.3
-            },
-            {
-              label: "Revenue",
-              data: revenueSeries,
-              yAxisID: "y1",
-              borderWidth: 2,
-              tension: 0.3
-            },
-            {
-              label: "Noleggiati",
-              data: noleggiatiSeries,
-              yAxisID: "y",
-              borderWidth: 2,
-              tension: 0.3
-            }
-          ]
-        },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          interaction: { mode: "index", intersect: false },
-          stacked: false,
-          scales: {
-            x: {
-              ticks: { color: "#e5e7eb", maxRotation: 0, autoSkip: true },
-              grid: { color: "rgba(148,163,184,0.15)" }
-            },
-            y: {
-              type: "linear",
-              position: "left",
-              title: { display: true, text: "Flotta / Noleggiati", color: "#e5e7eb" },
-              ticks: { color: "#e5e7eb" },
-              grid: { color: "rgba(148,163,184,0.15)" }
-            },
-            y1: {
-              type: "linear",
-              position: "right",
-              title: { display: true, text: "€", color: "#e5e7eb" },
-              ticks: { color: "#e5e7eb" },
-              grid: { drawOnChartArea: false }
-            }
-          },
-          plugins: {
-            legend: { labels: { color: "#e5e7eb" } },
-            tooltip: { callbacks: { footer: () => "" } }
-          }
-        }
-      });
+  // Se non ci sono dati, distruggi il grafico e basta
+  if (!monthlyAggregates || monthlyAggregates.length === 0) {
+    if (mainChart) {
+      mainChart.destroy();
+      mainChart = null;
     }
+    return;
+  }
+
+  const labels = monthlyAggregates.map(b => b.label);
+
+  function safeNumber(v) {
+    return Number.isFinite(v) ? v : 0;
+  }
+
+  const fleetSeries      = monthlyAggregates.map(b => safeNumber(b.fleetSize));
+  const costSeries       = monthlyAggregates.map(b => safeNumber(b.costoTotale));
+  const revenueSeries    = monthlyAggregates.map(b => safeNumber(b.revenue));
+  const noleggiatiSeries = monthlyAggregates.map(b => safeNumber(b.noleggiati));
+
+  if (mainChart) {
+    mainChart.destroy();
+  }
+
+  mainChart = new Chart(ctx, {
+    type: "line",
+    data: {
+      labels,
+      datasets: [
+        {
+          label: "Dimensione flotta",
+          data: fleetSeries,
+          yAxisID: "y",
+          borderWidth: 2,
+          tension: 0.3
+        },
+        {
+          label: "Costo totale",
+          data: costSeries,
+          yAxisID: "y1",
+          borderWidth: 2,
+          tension: 0.3
+        },
+        {
+          label: "Revenue",
+          data: revenueSeries,
+          yAxisID: "y1",
+          borderWidth: 2,
+          tension: 0.3
+        },
+        {
+          label: "Noleggiati",
+          data: noleggiatiSeries,
+          yAxisID: "y",
+          borderWidth: 2,
+          tension: 0.3
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: { mode: "index", intersect: false },
+      stacked: false,
+      scales: {
+        x: {
+          ticks: { color: "#e5e7eb", maxRotation: 0, autoSkip: true },
+          grid: { color: "rgba(148,163,184,0.15)" }
+        },
+        y: {
+          type: "linear",
+          position: "left",
+          beginAtZero: true,                  // 👈 evita scale strane
+          title: { display: true, text: "Flotta / Noleggiati", color: "#e5e7eb" },
+          ticks: { color: "#e5e7eb" },
+          grid: { color: "rgba(148,163,184,0.15)" }
+        },
+        y1: {
+          type: "linear",
+          position: "right",
+          beginAtZero: true,                  // 👈 idem per € 
+          title: { display: true, text: "€", color: "#e5e7eb" },
+          ticks: { color: "#e5e7eb" },
+          grid: { drawOnChartArea: false }
+        }
+      },
+      plugins: {
+        legend: { labels: { color: "#e5e7eb" } },
+        tooltip: { callbacks: { footer: () => "" } }
+      }
+    }
+  });
+}
+
 
     // =========================
     // EXPORT CSV
