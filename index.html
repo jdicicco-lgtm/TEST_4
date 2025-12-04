@@ -518,6 +518,26 @@
       "Cabriolet"
     ];
 
+    const GROUP_MAP = {
+      "COMMERCIAL VAN": "Commercial Van",
+      "LARGE": "Large",
+      "ECONOMY": "Economy",
+      "SMALL": "Small",
+      "MINI": "Mini",
+      "PREMIUM": "Premium",
+      "SUV": "Suv",
+      "PEOPLE MOVER": "People Mover",
+      "COMMERCIAL PEOPLE MOVER": "People Mover",
+      "STATION WAGON": "Station Wagon",
+      "CABRIOLET": "Cabriolet"
+    };
+
+    function canonicalGroup(raw) {
+      if (raw === null || raw === undefined) return null;
+      const g = String(raw).trim().toUpperCase();
+      return GROUP_MAP[g] || null;
+    }
+
     const MONTH_LABELS_IT = [
       "Gennaio",
       "Febbraio",
@@ -585,7 +605,7 @@
       const monthSelect = document.getElementById("monthFilter");
       MONTH_LABELS_IT.forEach((label, idx) => {
         const opt = document.createElement("option");
-        opt.value = (idx + 1).toString().padStart(2, "0");
+        opt.value = String(idx + 1).padStart(2, "0");
         opt.textContent = label;
         monthSelect.appendChild(opt);
       });
@@ -605,12 +625,8 @@
       const acquisitionSelect = document.getElementById("acquisitionFilter");
       const set = new Set();
       fleetData.forEach(row => {
-        const val =
-          row["ACQUISIZIONE"] ||
-          row["Acquisizione"] ||
-          row["acquisizione"] ||
-          null;
-        if (val) {
+        const val = row["ACQUISIZIONE"];
+        if (val !== null && val !== undefined && String(val).trim() !== "") {
           set.add(String(val).trim());
         }
       });
@@ -623,7 +639,7 @@
     }
 
     function normalizeStationName(name) {
-      if (!name && name !== 0) return null;
+      if (name === null || name === undefined) return null;
       const lower = String(name).trim().toLowerCase();
       if (!lower) return null;
       return lower.charAt(0).toUpperCase() + lower.slice(1);
@@ -635,24 +651,14 @@
 
       // da fleetStations2025
       fleetStationsData.forEach(row => {
-        const raw =
-          row["stazione"] ||
-          row["STAZIONE"] ||
-          row["Station"] ||
-          row["station"] ||
-          null;
+        const raw = row["station"];
         const norm = normalizeStationName(raw);
         if (norm) set.add(norm);
       });
 
-      // da bookings 2025
+      // da bookings2025
       bookingsData.forEach(row => {
-        const raw =
-          row["stazione"] ||
-          row["STAZIONE"] ||
-          row["Station"] ||
-          row["station"] ||
-          null;
+        const raw = row["stazione"];
         const norm = normalizeStationName(raw);
         if (norm) set.add(norm);
       });
@@ -699,11 +705,25 @@
     // DATE HELPERS
     // =========================
     function parseDate(value) {
-      if (!value && value !== 0) return null;
+      if (value === null || value === undefined) return null;
+
+      // numero: epoch ms
+      if (typeof value === "number") {
+        const d = new Date(value);
+        return isNaN(d.getTime()) ? null : d;
+      }
+
       let str = String(value).trim();
       if (!str) return null;
 
-      // ISO-like
+      // solo cifre → epoch ms
+      if (/^\d+$/.test(str)) {
+        const ms = parseInt(str, 10);
+        const d = new Date(ms);
+        return isNaN(d.getTime()) ? null : d;
+      }
+
+      // ISO-like yyyy-mm-dd
       if (/^\d{4}-\d{2}-\d{2}/.test(str)) {
         const d = new Date(str);
         return isNaN(d.getTime()) ? null : d;
@@ -711,12 +731,11 @@
 
       // dd/mm/yyyy
       if (/^\d{2}\/\d{2}\/\d{4}$/.test(str)) {
-        const [d, m, y] = str.split("/");
-        const date = new Date(parseInt(y, 10), parseInt(m, 10) - 1, parseInt(d, 10));
-        return isNaN(date.getTime()) ? null : date;
+        const [dStr, mStr, yStr] = str.split("/");
+        const d = new Date(parseInt(yStr, 10), parseInt(mStr, 10) - 1, parseInt(dStr, 10));
+        return isNaN(d.getTime()) ? null : d;
       }
 
-      // fallback
       const d = new Date(str);
       return isNaN(d.getTime()) ? null : d;
     }
@@ -726,6 +745,7 @@
     }
 
     function getMonthIndexGlobal(year, month) {
+      // 2024-01 → 0, ... 2026-12 → 35
       return (year - 2024) * 12 + (month - 1);
     }
 
@@ -760,11 +780,6 @@
     // =========================
     // AGGREGATION LOGIC
     // =========================
-    function normalizeGroupName(val) {
-      if (!val && val !== 0) return null;
-      return String(val).trim();
-    }
-
     function computeMonthlyAggregates(filters) {
       const { years, months, groups, acquisitions, stations, projectionFactor } = filters;
 
@@ -791,56 +806,44 @@
         }
       }
 
-      // ---- 1) Flotta ----
+      // ---- 1) Flotta (fleetData_clean) ----
       fleetData.forEach(row => {
-        const gruppo = normalizeGroupName(
-          row["GRUPPO"] ||
-          row["Gruppo"] ||
-          row["gruppo"]
-        );
-        if (!gruppo) return;
-        if (groups.length > 0 && !groups.includes(gruppo)) return;
+        const gruppoCanonico = canonicalGroup(row["GRUPPO"]);
+        if (!gruppoCanonico) return;
+        if (groups.length > 0 && !groups.includes(gruppoCanonico)) return;
 
-        const acquisizione =
-          row["ACQUISIZIONE"] ||
-          row["Acquisizione"] ||
-          row["acquisizione"] ||
-          null;
-        if (acquisizione && acquisitions.length > 0 && !acquisitions.includes(String(acquisizione).trim())) {
+        const acquisizione = row["ACQUISIZIONE"];
+        if (
+          acquisitions.length > 0 &&
+          (!acquisizione || !acquisitions.includes(String(acquisizione).trim()))
+        ) {
           return;
         }
 
-        const start = parseDate(
-          row["DATA INIZIO"] ||
-          row["Data inizio"] ||
-          row["data_inizio"]
-        );
-        let effectiveEnd = parseDate(
-          row["RICONSEGNA EFFETTIVA"] ||
-          row["Riconsegna effettiva"] ||
-          row["riconsegna_effettiva"]
-        );
-        const plannedEnd = parseDate(
-          row["DATA FINE"] ||
-          row["Data fine"] ||
-          row["data_fine"]
-        );
+        const start = parseDate(row["DATA INIZIO"]);
+        const effectiveEnd = parseDate(row["RICONSEGNA EFFETTIVA"]);
+        const plannedEnd = parseDate(row["DATA FINE"]);
 
         const startDate = start;
         const endDate = effectiveEnd || plannedEnd;
         if (!startDate || !endDate) return;
         if (endDate < startDate) return;
 
-        const canoneImp = parseFloat(String(row["CANONE IMPONIBILE"] || row["Canone imponibile"] || row["canone_imponibile"] || "0").replace(",", ".")) || 0;
-        const canoneIvato = parseFloat(String(row["CANONE IVATO"] || row["Canone ivato"] || row["canone_ivato"] || "0").replace(",", ".")) || 0;
-        const coperturaAss = parseFloat(String(row["COPERTURA ASS."] || row["Copertura ass."] || row["copertura_ass"] || "0").replace(",", ".")) || 0;
+        const canoneImp =
+          parseFloat(String(row["CANONE IMPONIBILE"] ?? "0").replace(",", ".")) || 0;
+        const canoneIvato =
+          parseFloat(String(row["CANONE IVATO"] ?? "0").replace(",", ".")) || 0;
+        const coperturaAss =
+          parseFloat(String(row["COPERTURA ASS."] ?? "0").replace(",", ".")) || 0;
 
         const startYear = Math.max(2024, startDate.getFullYear());
         const endYear = Math.min(2026, endDate.getFullYear());
 
         for (let year = startYear; year <= endYear; year++) {
-          const monthStart = year === startDate.getFullYear() ? (startDate.getMonth() + 1) : 1;
-          const monthEnd = year === endDate.getFullYear() ? (endDate.getMonth() + 1) : 12;
+          const monthStart =
+            year === startDate.getFullYear() ? startDate.getMonth() + 1 : 1;
+          const monthEnd =
+            year === endDate.getFullYear() ? endDate.getMonth() + 1 : 12;
 
           for (let month = monthStart; month <= monthEnd; month++) {
             const key = formatYearMonthKey(year, month);
@@ -856,7 +859,7 @@
         }
       });
 
-      // ---- 2) Filtro stazione sulla flotta (via fleetStations2025) ----
+      // ---- 2) Filtro stazione sulla flotta tramite fleetStations2025 ----
       const stationFactor = computeStationFactorForFleet(filters);
       if (stationFactor !== null) {
         monthlyMap.forEach(bucket => {
@@ -870,52 +873,34 @@
 
       // ---- 3) Prenotazioni (bookings2025) ----
       bookingsData.forEach(row => {
-        const gruppo = normalizeGroupName(
-          row["GRUPPO"] ||
-          row["Gruppo"] ||
-          row["gruppo"]
-        );
-        if (!gruppo) return;
-        if (filters.groups.length > 0 && !filters.groups.includes(gruppo)) return;
+        const gruppoCanonico = canonicalGroup(row["gruppo"]);
+        if (!gruppoCanonico) return;
+        if (groups.length > 0 && !groups.includes(gruppoCanonico)) return;
 
-        const rawStation =
-          row["stazione"] ||
-          row["STAZIONE"] ||
-          row["Station"] ||
-          row["station"] ||
-          null;
+        const rawStation = row["stazione"];
         const stationNorm = normalizeStationName(rawStation);
         if (stations.length > 0 && (!stationNorm || !stations.includes(stationNorm))) {
           return;
         }
 
-        const fromDate = parseDate(
-          row["FROM"] ||
-          row["From"] ||
-          row["from"] ||
-          row["start_date"] ||
-          row["StartDate"]
-        );
-        const toDate = parseDate(
-          row["TO"] ||
-          row["To"] ||
-          row["to"] ||
-          row["end_date"] ||
-          row["EndDate"]
-        );
+        const acquisizioneBooking = row["acquisizione"];
+        if (
+          acquisitions.length > 0 &&
+          (!acquisizioneBooking ||
+            !acquisitions.includes(String(acquisizioneBooking).trim()))
+        ) {
+          return;
+        }
 
-        if (!fromDate || !toDate) return;
+        const fromDate = parseDate(row["startDate"]);
+        if (!fromDate) return;
 
-        const msDiff = toDate.getTime() - fromDate.getTime();
-        let days = Math.floor(msDiff / (1000 * 60 * 60 * 24));
+        let days = parseFloat(row["duration"] ?? 0);
+        if (!isFinite(days)) days = 0;
         if (days < 1) days = 1;
 
-        const revenue = parseFloat(String(
-          row["REVENUE"] ||
-          row["Revenue"] ||
-          row["revenue"] ||
-          "0"
-        ).replace(",", ".")) || 0;
+        const revenue =
+          parseFloat(String(row["price"] ?? "0").replace(",", ".")) || 0;
 
         const year = fromDate.getFullYear();
         const month = fromDate.getMonth() + 1;
@@ -965,6 +950,7 @@
         });
       }
 
+      // Filtri anno/mese finali
       let result = Array.from(monthlyMap.values());
 
       if (years.length > 0) {
@@ -995,33 +981,16 @@
       let totalSelected = 0;
 
       fleetStationsData.forEach(row => {
-        const gruppo = normalizeGroupName(
-          row["GRUPPO"] ||
-          row["Gruppo"] ||
-          row["gruppo"]
-        );
-        if (!gruppo) return;
-        if (groups.length > 0 && !groups.includes(gruppo)) return;
+        const gruppoCanonico = canonicalGroup(row["group"]);
+        if (!gruppoCanonico) return;
+        if (groups.length > 0 && !groups.includes(gruppoCanonico)) return;
 
-        const rawStation =
-          row["stazione"] ||
-          row["STAZIONE"] ||
-          row["Station"] ||
-          row["station"] ||
-          null;
+        const rawStation = row["station"];
         const stationNorm = normalizeStationName(rawStation);
         if (!stationNorm) return;
 
-        const count = parseFloat(
-          String(
-            row["count"] ||
-            row["COUNT"] ||
-            row["totale"] ||
-            row["Totale"] ||
-            row["TOT"] ||
-            0
-          ).replace(",", ".")
-        ) || 0;
+        const count =
+          parseFloat(String(row["fleet"] ?? 0).replace(",", ".")) || 0;
 
         totalAll += count;
         if (stations.includes(stationNorm)) {
@@ -1157,15 +1126,23 @@
       const fleetCurrAvg = current.fleetSize / monthsCountCurrent;
       const fleetPrevAvg = prev.fleetSize / monthsCountPrev;
 
-      setKpi("kpi-fleet-current", "kpi-fleet-prev", "kpi-fleet-diff", fleetCurrAvg, fleetPrevAvg, {
-        currency: false,
-        decimals: 1
-      });
+      setKpi(
+        "kpi-fleet-current",
+        "kpi-fleet-prev",
+        "kpi-fleet-diff",
+        fleetCurrAvg,
+        fleetPrevAvg,
+        { currency: false, decimals: 1 }
+      );
 
-      setKpi("kpi-canone-current", "kpi-canone-prev", "kpi-canone-diff", current.canoneImponibile, prev.canoneImponibile, {
-        currency: true,
-        decimals: 0
-      });
+      setKpi(
+        "kpi-canone-current",
+        "kpi-canone-prev",
+        "kpi-canone-diff",
+        current.canoneImponibile,
+        prev.canoneImponibile,
+        { currency: true, decimals: 0 }
+      );
 
       const elCanIvato = document.getElementById("kpi-canone-ivato-current");
       elCanIvato.textContent =
@@ -1177,35 +1154,59 @@
             })
           : "–";
 
-      setKpi("kpi-assicurazione-current", "kpi-assicurazione-prev", "kpi-assicurazione-diff", current.assicurazione, prev.assicurazione, {
-        currency: true,
-        decimals: 0
-      });
+      setKpi(
+        "kpi-assicurazione-current",
+        "kpi-assicurazione-prev",
+        "kpi-assicurazione-diff",
+        current.assicurazione,
+        prev.assicurazione,
+        { currency: true, decimals: 0 }
+      );
 
-      setKpi("kpi-costo-current", "kpi-costo-prev", "kpi-costo-diff", current.costoTotale, prev.costoTotale, {
-        currency: true,
-        decimals: 0
-      });
+      setKpi(
+        "kpi-costo-current",
+        "kpi-costo-prev",
+        "kpi-costo-diff",
+        current.costoTotale,
+        prev.costoTotale,
+        { currency: true, decimals: 0 }
+      );
 
-      setKpi("kpi-revenue-current", "kpi-revenue-prev", "kpi-revenue-diff", current.revenue, prev.revenue, {
-        currency: true,
-        decimals: 0
-      });
+      setKpi(
+        "kpi-revenue-current",
+        "kpi-revenue-prev",
+        "kpi-revenue-diff",
+        current.revenue,
+        prev.revenue,
+        { currency: true, decimals: 0 }
+      );
 
-      setKpi("kpi-revday-current", "kpi-revday-prev", "kpi-revday-diff", current.revenuePerDay, prev.revenuePerDay, {
-        currency: true,
-        decimals: 2
-      });
+      setKpi(
+        "kpi-revday-current",
+        "kpi-revday-prev",
+        "kpi-revday-diff",
+        current.revenuePerDay,
+        prev.revenuePerDay,
+        { currency: true, decimals: 2 }
+      );
 
-      setKpi("kpi-bookings-current", "kpi-bookings-prev", "kpi-bookings-diff", current.numBookings, prev.numBookings, {
-        currency: false,
-        decimals: 0
-      });
+      setKpi(
+        "kpi-bookings-current",
+        "kpi-bookings-prev",
+        "kpi-bookings-diff",
+        current.numBookings,
+        prev.numBookings,
+        { currency: false, decimals: 0 }
+      );
 
-      setKpi("kpi-noleggiati-current", "kpi-noleggiati-prev", "kpi-noleggiati-diff", current.noleggiati, prev.noleggiati, {
-        currency: false,
-        decimals: 1
-      });
+      setKpi(
+        "kpi-noleggiati-current",
+        "kpi-noleggiati-prev",
+        "kpi-noleggiati-diff",
+        current.noleggiati,
+        prev.noleggiati,
+        { currency: false, decimals: 1 }
+      );
     }
 
     function resetKpiDisplay() {
