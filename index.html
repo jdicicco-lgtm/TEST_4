@@ -1322,6 +1322,7 @@
   if (!canvas) return;
   const ctx = canvas.getContext("2d");
 
+  // Se non ci sono dati filtrati, pulisco il grafico
   if (!monthlyAggregates || monthlyAggregates.length === 0) {
     if (mainChart) {
       mainChart.destroy();
@@ -1330,19 +1331,20 @@
     return;
   }
 
-  // normalizzo i numeri
+  // helper per avere SEMPRE un numero finito
   function safeNumber(v) {
     if (!Number.isFinite(v) || isNaN(v)) return 0;
     return v;
   }
 
+  // --- 1) Serie da DISEGNARE (solo mesi filtrati) ---
   const labels           = monthlyAggregates.map(b => b.label);
   const fleetSeries      = monthlyAggregates.map(b => safeNumber(b.fleetSize));
   const costSeries       = monthlyAggregates.map(b => safeNumber(b.costoTotale));
   const revenueSeries    = monthlyAggregates.map(b => safeNumber(b.revenue));
   const noleggiatiSeries = monthlyAggregates.map(b => safeNumber(b.noleggiati));
 
-  // se è tutto zero, non disegno nulla
+  // Se davvero è tutto zero → non disegno nulla
   const allValues = [...fleetSeries, ...costSeries, ...revenueSeries, ...noleggiatiSeries];
   const maxAbs = Math.max(...allValues.map(v => Math.abs(v)));
   if (!Number.isFinite(maxAbs) || maxAbs === 0) {
@@ -1353,22 +1355,46 @@
     return;
   }
 
-  // funzione per prendere una soglia tipo 95° percentile
-  function percentileMax(arr, percentile = 0.95) {
-    const filtered = arr.filter(v => Number.isFinite(v) && v > 0).sort((a,b) => a - b);
-    if (filtered.length === 0) return 1;
-    const idx = Math.floor((filtered.length - 1) * percentile);
-    return filtered[idx];
+  // --- 2) Scala degli assi calcolata su TUTTI i mesi (baseAggregates) ---
+  //     così anno/mese non fanno "esplodere" il grafico
+  function getAxisMaxFromBase() {
+    if (!baseAggregates || baseAggregates.length === 0) {
+      return { left: 1, right: 1 };
+    }
+
+    const leftVals = [];
+    const rightVals = [];
+
+    baseAggregates.forEach(b => {
+      leftVals.push(safeNumber(b.fleetSize));
+      leftVals.push(safeNumber(b.noleggiati));
+      rightVals.push(safeNumber(b.costoTotale));
+      rightVals.push(safeNumber(b.revenue));
+    });
+
+    const validLeft  = leftVals.filter(v => v > 0);
+    const validRight = rightVals.filter(v => v > 0);
+
+    // funzione per un "quasi massimo" (tipo 95° percentile) robusto
+    function percentileMax(arr, percentile = 0.95) {
+      const sorted = arr.slice().sort((a, b) => a - b);
+      if (sorted.length === 0) return 1;
+      const idx = Math.floor((sorted.length - 1) * percentile);
+      return sorted[idx];
+    }
+
+    const baseLeft  = validLeft.length  ? percentileMax(validLeft, 0.95)  : 1;
+    const baseRight = validRight.length ? percentileMax(validRight, 0.95) : 1;
+
+    return {
+      left:  baseLeft  * 1.2, // margine +20%
+      right: baseRight * 1.2
+    };
   }
 
-  const leftValues  = [...fleetSeries, ...noleggiatiSeries];
-  const rightValues = [...costSeries, ...revenueSeries];
-
-  const baseLeft  = percentileMax(leftValues, 0.95);
-  const baseRight = percentileMax(rightValues, 0.95);
-
-  const maxLeft  = baseLeft  * 1.2; // piccolo margine
-  const maxRight = baseRight * 1.2;
+  const axisMax = getAxisMaxFromBase();
+  const maxLeft  = axisMax.left  || 1;
+  const maxRight = axisMax.right || 1;
 
   if (mainChart) mainChart.destroy();
 
@@ -1416,7 +1442,7 @@
       maintainAspectRatio: false,
       interaction: { mode: "index", intersect: false },
       stacked: false,
-      animation: false, // niente “salti” sulle transizioni
+      animation: false,
       scales: {
         x: {
           ticks: { color: "#e5e7eb", maxRotation: 0, autoSkip: true },
@@ -1426,7 +1452,7 @@
           type: "linear",
           position: "left",
           beginAtZero: true,
-          max: maxLeft,              // 👈 fissato sul 95° percentile
+          max: maxLeft,   // 👈 scala fissa per il dataset corrente
           title: { display: true, text: "Flotta / Noleggiati", color: "#e5e7eb" },
           ticks: { color: "#e5e7eb" },
           grid: { color: "rgba(148,163,184,0.15)" }
@@ -1435,7 +1461,7 @@
           type: "linear",
           position: "right",
           beginAtZero: true,
-          max: maxRight,             // 👈 fissato sul 95° percentile
+          max: maxRight,  // 👈 idem per i valori in €
           title: { display: true, text: "€", color: "#e5e7eb" },
           ticks: { color: "#e5e7eb" },
           grid: { drawOnChartArea: false }
@@ -1448,6 +1474,7 @@
     }
   });
 }
+
 
     // =========================
     // EXPORT CSV
