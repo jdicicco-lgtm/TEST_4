@@ -1,920 +1,1626 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8" />
+  <title>Dashboard Flotta & Prenotazioni 2024–2026</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <!-- Bootstrap 5 -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
+
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+
+  <style>
+    :root {
+      --bg-body: #020617;
+      --bg-card: #0b1120;
+      --bg-input: #020617;
+      --border-input: #1f2937;
+      --text-primary: #e5e7eb;
+      --text-muted: #9ca3af;
+    }
+
+    body {
+      background-color: var(--bg-body);
+      color: var(--text-primary);
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    .card {
+      background-color: var(--bg-card);
+      color: var(--text-primary);
+      border-radius: 1rem;
+      border: 1px solid #111827;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35);
+    }
+
+    .card-header {
+      border-bottom-color: #111827;
+      background-color: transparent;
+      color: var(--text-primary);
+    }
+
+    .kpi-card { height: 100%; }
+
+    .kpi-title {
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+    }
+
+    .kpi-value {
+      font-size: 1.4rem;
+      font-weight: 700;
+    }
+
+    .kpi-sub {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+    }
+
+    .kpi-delta {
+      font-weight: 600;
+      margin-left: 0.25rem;
+    }
+    .kpi-delta-positive { color: #22c55e; }
+    .kpi-delta-negative { color: #ef4444; }
+    .kpi-delta-neutral  { color: var(--text-muted); }
+
+    .chart-card { height: 100%; }
+
+    .filter-title-main {
+      font-size: 0.95rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      color: var(--text-primary);
+      text-transform: uppercase;
+    }
+
+    .filter-section-title {
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      letter-spacing: 0.1em;
+      margin-top: 0.75rem;
+      margin-bottom: 0.25rem;
+      text-transform: uppercase;
+    }
+
+    .form-select {
+      background-color: var(--bg-input);
+      border-color: var(--border-input);
+      color: var(--text-primary);
+      font-size: 0.85rem;
+    }
+
+    .form-select:focus {
+      border-color: #6366f1;
+      box-shadow: 0 0 0 1px #6366f1;
+      outline: none;
+    }
+
+    .filter-helper {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+    }
+
+    .btn-icon {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.25rem;
+      font-size: 0.8rem;
+    }
+
+    .btn-outline-secondary,
+    .btn-outline-danger {
+      border-radius: 999px;
+    }
+
+    @media print {
+      body {
+        background-color: #ffffff !important;
+        color: #000000 !important;
+      }
+
+      .no-print { display: none !important; }
+
+      .container-fluid {
+        padding: 0 !important;
+        margin: 0 !important;
+      }
+
+      .card {
+        box-shadow: none !important;
+        border-radius: 0 !important;
+      }
+
+      #mainChart { max-height: 400px; }
+    }
+  </style>
+</head>
+<body>
+<div class="container-fluid py-3">
+  <!-- HEADER -->
+  <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-3 gap-2">
+    <div>
+      <h1 class="h4 mb-1">Dashboard Flotta &amp; Prenotazioni 2024–2026</h1>
+      <div class="small" style="color: var(--text-muted);">
+        Analisi integrata <strong>flotta</strong> &amp; <strong>prenotazioni</strong> con proiezioni 2024–2026.
+      </div>
+    </div>
+    <div class="btn-group no-print" role="group">
+      <button id="btnCsv" type="button" class="btn btn-outline-secondary btn-sm btn-icon">
+        📥 <span>Scarica CSV dati filtrati</span>
+      </button>
+      <button id="btnPrint" type="button" class="btn btn-outline-secondary btn-sm btn-icon">
+        🖨️ <span>Stampa / Esporta PDF</span>
+      </button>
+      <button id="btnReset" type="button" class="btn btn-outline-danger btn-sm btn-icon">
+        ♻️ <span>Pulisci filtri</span>
+      </button>
+    </div>
+  </div>
+
+  <div class="row g-3">
+    <!-- FILTRI -->
+    <div class="col-12 col-lg-3 no-print">
+      <div class="card">
+        <div class="card-header">
+          <div class="filter-title-main">Filtri dashboard</div>
+        </div>
+        <div class="card-body">
+
+          <div class="filter-section-title">Anno</div>
+          <select id="filterYear" class="form-select form-select-sm" multiple></select>
+          <div class="filter-helper mb-2">Seleziona uno o più anni. Vuoto = tutti.</div>
+
+          <div class="filter-section-title">Mese</div>
+          <select id="filterMonth" class="form-select form-select-sm" multiple></select>
+          <div class="filter-helper mb-2">Etichette in italiano. Vuoto = tutti.</div>
+
+          <div class="filter-section-title">Tipologia</div>
+          <select id="filterTipologia" class="form-select form-select-sm" multiple style="display:none;"></select>
+          <div id="filterTipologiaHelper" class="filter-helper mb-2" style="display:none;">
+            Se presente nei dati flotta, filtra per tipologia.
+          </div>
+
+          <div class="filter-section-title">Gruppo veicolo</div>
+          <select id="filterGroup" class="form-select form-select-sm" multiple></select>
+          <div class="filter-helper mb-2">Lista fissa dei 10 gruppi. Vuoto = tutti.</div>
+
+          <div class="filter-section-title">Acquisizione</div>
+          <select id="filterAcquisition" class="form-select form-select-sm" multiple></select>
+          <div class="filter-helper mb-2">Basato su campo <code>acquisizione</code> di flotta/prenotazioni.</div>
+
+          <div class="filter-section-title">Stazione</div>
+          <select id="filterStation" class="form-select form-select-sm" multiple></select>
+          <div class="filter-helper mb-2">
+            Stazioni normalizzate, con iniziale maiuscola. Vuoto = tutte.
+          </div>
+
+          <div class="filter-section-title">Proiezione 2026 🔮</div>
+          <select id="filterProjection" class="form-select form-select-sm">
+            <option value="0.05">5%</option>
+            <option value="0.10" selected>10%</option>
+            <option value="0.15">15%</option>
+            <option value="0.20">20%</option>
+          </select>
+          <div class="filter-helper mb-0">
+            Applica la percentuale alle proiezioni 2026 (Feb–Dic).
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- KPI + CHART -->
+    <div class="col-12 col-lg-9">
+      <!-- KPI ROW 1 -->
+      <div class="row g-3 mb-2">
+        <div class="col-12 col-md-4">
+          <div class="card kpi-card">
+            <div class="card-body">
+              <div class="kpi-title">🚗 Dimensione flotta (media)</div>
+              <div class="kpi-value" id="kpiFleetSizeCurrent">--</div>
+              <div class="kpi-sub">
+                <span id="kpiFleetSizePrev">Prec.: --</span>
+                <span id="kpiFleetSizeDelta" class="kpi-delta kpi-delta-neutral">--</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="col-12 col-md-4">
+          <div class="card kpi-card">
+            <div class="card-body">
+              <div class="kpi-title">💶 Canone imponibile</div>
+              <div class="kpi-value" id="kpiCanoneImponibileCurrent">--</div>
+              <div class="kpi-sub">
+                <span id="kpiCanoneImponibilePrev">Prec.: --</span>
+                <span id="kpiCanoneImponibileDelta" class="kpi-delta kpi-delta-neutral">--</span>
+              </div>
+              <div class="kpi-sub">
+                <span id="kpiCanoneIvatoInline">IVATO: --</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="col-12 col-md-4">
+          <div class="card kpi-card">
+            <div class="card-body">
+              <div class="kpi-title">🛡️ Assicurazione</div>
+              <div class="kpi-value" id="kpiAssicurazioneCurrent">--</div>
+              <div class="kpi-sub">
+                <span id="kpiAssicurazionePrev">Prec.: --</span>
+                <span id="kpiAssicurazioneDelta" class="kpi-delta kpi-delta-neutral">--</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- KPI ROW 2 -->
+      <div class="row g-3 mb-2">
+        <div class="col-12 col-md-4">
+          <div class="card kpi-card">
+            <div class="card-body">
+              <div class="kpi-title">💰 Costo totale (canone + ass.)</div>
+              <div class="kpi-value" id="kpiCostoTotaleCurrent">--</div>
+              <div class="kpi-sub">
+                <span id="kpiCostoTotalePrev">Prec.: --</span>
+                <span id="kpiCostoTotaleDelta" class="kpi-delta kpi-delta-neutral">--</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="col-12 col-md-4">
+          <div class="card kpi-card">
+            <div class="card-body">
+              <div class="kpi-title">💸 Revenue</div>
+              <div class="kpi-value" id="kpiRevenueCurrent">--</div>
+              <div class="kpi-sub">
+                <span id="kpiRevenuePrev">Prec.: --</span>
+                <span id="kpiRevenueDelta" class="kpi-delta kpi-delta-neutral">--</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="col-12 col-md-4">
+          <div class="card kpi-card">
+            <div class="card-body">
+              <div class="kpi-title">☀️ Revenue per day</div>
+              <div class="kpi-value" id="kpiRevPerDayCurrent">--</div>
+              <div class="kpi-sub">
+                <span id="kpiRevPerDayPrev">Prec.: --</span>
+                <span id="kpiRevPerDayDelta" class="kpi-delta kpi-delta-neutral">--</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- KPI ROW 3 -->
+      <div class="row g-3 mb-3">
+        <div class="col-12 col-md-6">
+          <div class="card kpi-card">
+            <div class="card-body">
+              <div class="kpi-title">🚙 Noleggiati</div>
+              <div class="kpi-value" id="kpiVeicoliNoleggiatiCurrent">--</div>
+              <div class="kpi-sub">
+                <span id="kpiVeicoliNoleggiatiPrev">Prec.: --</span>
+                <span id="kpiVeicoliNoleggiatiDelta" class="kpi-delta kpi-delta-neutral">--</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="col-12 col-md-6">
+          <div class="card kpi-card">
+            <div class="card-body">
+              <div class="kpi-title">ℹ️ Info KPI</div>
+              <div class="kpi-sub">
+                I confronti storici usano un periodo precedente con la stessa ampiezza temporale (in mesi) spostato indietro rispetto al range selezionato. I “noleggiati” sono calcolati da giorni di noleggio e flotta disponibile.
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- CHART -->
+      <div class="card chart-card">
+        <div class="card-body">
+          <div class="d-flex justify-content-between align-items-center mb-2">
+            <div>
+              <h2 class="h6 mb-0">Andamento mensile</h2>
+              <div class="small" style="color: var(--text-muted);">
+                Flotta, costi totali, revenue e noleggiati su asse temporale Anno–Mese.
+              </div>
+            </div>
+          </div>
+          <canvas id="mainChart" height="120"></canvas>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Bootstrap JS bundle -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
 <script>
-  // =========================
-  // CONFIG & GLOBAL STATE
-  // =========================
-  const VEHICLE_GROUPS = [
-    "Commercial Van",
-    "Large",
-    "Economy",
-    "Small",
-    "Mini",
-    "Premium",
-    "Suv",
-    "People Mover",
-    "Station Wagon",
-    "Cabriolet"
+  /* ========= CONFIG & STATE ========= */
+
+  const YEARS_AVAILABLE = [2024, 2025, 2026];
+  const MONTH_LABELS_IT = [
+    'Gennaio', 'Febbraio', 'Marzo', 'Aprile', 'Maggio', 'Giugno',
+    'Luglio', 'Agosto', 'Settembre', 'Ottobre', 'Novembre', 'Dicembre'
   ];
 
-  const GROUP_MAP = {
-    "COMMERCIAL VAN": "Commercial Van",
-    "LARGE": "Large",
-    "ECONOMY": "Economy",
-    "SMALL": "Small",
-    "MINI": "Mini",
-    "PREMIUM": "Premium",
-    "SUV": "Suv",
-    "PEOPLE MOVER": "People Mover",
-    "COMMERCIAL PEOPLE MOVER": "People Mover",
-    "STATION WAGON": "Station Wagon",
-    "CABRIOLET": "Cabriolet"
-  };
+  const VEHICLE_GROUPS = [
+    'Commercial Van', 'Large', 'Economy', 'Small', 'Mini',
+    'Premium', 'Suv', 'People Mover', 'Station Wagon', 'Cabriolet'
+  ];
 
-  function canonicalGroup(raw) {
-    if (raw === null || raw === undefined) return null;
-    const g = String(raw).trim().toUpperCase();
-    return GROUP_MAP[g] || null;
+  function groupLabelToKey(label) {
+    return label.toUpperCase().replace(/\s+/g, '_').trim();
   }
 
-  const MONTH_LABELS_IT = [
-    "Gennaio",
-    "Febbraio",
-    "Marzo",
-    "Aprile",
-    "Maggio",
-    "Giugno",
-    "Luglio",
-    "Agosto",
-    "Settembre",
-    "Ottobre",
-    "Novembre",
-    "Dicembre"
-  ];
+  let fleetRaw = [];
+  let fleetStationsRaw = [];
+  let bookings2025Raw = [];
 
-  let fleetData = [];
-  let fleetStationsData = [];
-  let bookingsData = [];
+  let fleetNormalized = [];
+  let bookings2025Normalized = [];
+  let allBookingsWithProjections = [];
 
-  // baseAggregates = tutti i mesi 2024–2026 con filtri gruppo/acquisizione/stazione + proiezioni
-  let baseAggregates = [];
-  // monthlyAggregates = baseAggregates filtrata per anni/mesi selezionati (grafico + export)
-  let monthlyAggregates = [];
+  let fleetColumnMap = {};
+  let bookingColumnMap = {};
+  let tipologiaColumnName = null;
+  let tipologiaValues = [];
+
+  // mappa TARGA -> stazione (da fleetStations2025)
+  let fleetStationByPlate = new Map();
+
+  let acquisitionsSet = new Set();
+  let stationMap = new Map();   // key lowercase -> label normalizzata (Title Case)
+
+  let currentProjectionFactor = 0.10;
   let mainChart = null;
 
-  // =========================
-  // INIT
-  // =========================
-  document.addEventListener("DOMContentLoaded", () => {
-    initMonthsFilter();
-    initGroupFilter();
-    loadData().then(() => {
-      initAcquisitionFilter();
-      initStationFilter();
-      initFilterEvents();
-      applyFiltersAndRender();
-    });
+  let lastFilteredBookingsCurrent = [];
 
-    document.getElementById("clearFiltersBtn").addEventListener("click", resetFilters);
-    document.getElementById("exportCsvBtn").addEventListener("click", exportCsv);
-    document.getElementById("printPdfBtn").addEventListener("click", () => window.print());
-  });
+  /* ========= UTILS ========= */
 
-  // =========================
-  // DATA LOADING
-  // =========================
-  async function loadData() {
-    try {
-      const [fleetRes, fleetStationsRes, bookingsRes] = await Promise.all([
-        fetch("fleetData_clean.json"),
-        fetch("fleetStations2025.json"),
-        fetch("bookings2025.json")
-      ]);
-
-      fleetData = await fleetRes.json();
-      fleetStationsData = await fleetStationsRes.json();
-      bookingsData = await bookingsRes.json();
-    } catch (err) {
-      console.error("Errore nel caricamento dei JSON:", err);
-      alert("Errore nel caricamento dei dati. Controlla i file JSON nella root del repo.");
+  function parseNumber(val) {
+    if (typeof val === 'number') return isFinite(val) ? val : 0;
+    if (typeof val === 'string') {
+      const cleaned = val.replace(/\./g, '').replace(',', '.').replace(/[^\d.-]/g, '');
+      const n = parseFloat(cleaned);
+      return isNaN(n) ? 0 : n;
     }
+    return 0;
   }
 
-  // =========================
-  // FILTER INIT
-  // =========================
-  function initMonthsFilter() {
-    const monthSelect = document.getElementById("monthFilter");
-    MONTH_LABELS_IT.forEach((label, idx) => {
-      const opt = document.createElement("option");
-      opt.value = String(idx + 1).padStart(2, "0");
-      opt.textContent = label;
-      monthSelect.appendChild(opt);
-    });
-  }
+  function parseDateFlexible(val) {
+    if (val instanceof Date) return val;
+    if (typeof val === 'number') return new Date(val);
 
-  function initGroupFilter() {
-    const groupSelect = document.getElementById("groupFilter");
-    VEHICLE_GROUPS.forEach(g => {
-      const opt = document.createElement("option");
-      opt.value = g;
-      opt.textContent = g;
-      groupSelect.appendChild(opt);
-    });
-  }
+    if (typeof val === 'string') {
+      const t = val.trim();
+      if (!t) return null;
 
-  function initAcquisitionFilter() {
-    const acquisitionSelect = document.getElementById("acquisitionFilter");
-    const set = new Set();
-    fleetData.forEach(row => {
-      const val = row["ACQUISIZIONE"];
-      if (val !== null && val !== undefined && String(val).trim() !== "") {
-        set.add(String(val).trim());
+      let d = new Date(t);
+      if (!isNaN(d.getTime())) return d;
+
+      let m = t.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/);
+      if (m) {
+        d = new Date(parseInt(m[3], 10), parseInt(m[2], 10) - 1, parseInt(m[1], 10));
+        if (!isNaN(d.getTime())) return d;
       }
-    });
-    Array.from(set).sort().forEach(a => {
-      const opt = document.createElement("option");
-      opt.value = a;
-      opt.textContent = a;
-      acquisitionSelect.appendChild(opt);
-    });
+
+      m = t.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
+      if (m) {
+        d = new Date(parseInt(m[1], 10), parseInt(m[2], 10) - 1, parseInt(m[3], 10));
+        if (!isNaN(d.getTime())) return d;
+      }
+
+      m = t.match(/^(\d{4})-(\d{2})$/);
+      if (m) {
+        d = new Date(parseInt(m[1], 10), parseInt(m[2], 10) - 1, 1);
+        if (!isNaN(d.getTime())) return d;
+      }
+
+      m = t.match(/^(\d{4})(\d{2})(\d{2})$/);
+      if (m) {
+        d = new Date(parseInt(m[1], 10), parseInt(m[2], 10) - 1, parseInt(m[3], 10));
+        if (!isNaN(d.getTime())) return d;
+      }
+
+      m = t.match(/^(\d{4})(\d{2})$/);
+      if (m) {
+        d = new Date(parseInt(m[1], 10), parseInt(m[2], 10) - 1, 1);
+        if (!isNaN(d.getTime())) return d;
+      }
+    }
+    return null;
   }
 
-  function normalizeStationName(name) {
-    if (name === null || name === undefined) return null;
-    const lower = String(name).trim().toLowerCase();
-    if (!lower) return null;
-    return lower.charAt(0).toUpperCase() + lower.slice(1);
+  function ymToKey(year, month) {
+    return `${year}-${String(month).padStart(2, '0')}`;
   }
 
-  function initStationFilter() {
-    const stationSelect = document.getElementById("stationFilter");
-    const set = new Set();
-
-    // da fleetStations2025
-    fleetStationsData.forEach(row => {
-      const raw = row["station"];
-      const norm = normalizeStationName(raw);
-      if (norm) set.add(norm);
-    });
-
-    // da bookings2025
-    bookingsData.forEach(row => {
-      const raw = row["stazione"];
-      const norm = normalizeStationName(raw);
-      if (norm) set.add(norm);
-    });
-
-    Array.from(set)
-      .sort()
-      .forEach(s => {
-        const opt = document.createElement("option");
-        opt.value = s;
-        opt.textContent = s;
-        stationSelect.appendChild(opt);
-      });
+  function shiftMonth(year, month, delta) {
+    const d = new Date(year, month - 1 + delta, 1);
+    return { year: d.getFullYear(), month: d.getMonth() + 1 };
   }
 
-  function initFilterEvents() {
-    const filterIds = [
-      "yearFilter",
-      "monthFilter",
-      "groupFilter",
-      "acquisitionFilter",
-      "stationFilter",
-      "projectionSelect"
-    ];
-    filterIds.forEach(id => {
-      document.getElementById(id).addEventListener("change", applyFiltersAndRender);
-    });
+  function monthsDiff(startYear, startMonth, endYear, endMonth) {
+    return (endYear - startYear) * 12 + (endMonth - startMonth);
+  }
+
+  function formatMoney(eur) {
+    if (!isFinite(eur)) return '--';
+    return eur.toLocaleString('it-IT', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 });
+  }
+
+  function formatMoney2(eur) {
+    if (!isFinite(eur)) return '--';
+    return eur.toLocaleString('it-IT', { style: 'currency', currency: 'EUR', maximumFractionDigits: 2 });
+  }
+
+  function formatNumberInt(n) {
+    if (!isFinite(n)) return '--';
+    return Math.round(n).toLocaleString('it-IT');
+  }
+
+  function formatDelta(current, previous) {
+    if (!isFinite(previous) || previous === 0) return { text: '–', cssClass: 'kpi-delta-neutral' };
+    if (!isFinite(current)) return { text: '–', cssClass: 'kpi-delta-neutral' };
+
+    const diff = current - previous;
+    const pct = (diff / Math.abs(previous)) * 100;
+    if (!isFinite(pct)) return { text: '–', cssClass: 'kpi-delta-neutral' };
+
+    const sign = pct > 0 ? '+' : (pct < 0 ? '−' : '±');
+    const absPct = Math.abs(pct).toFixed(1).replace('.', ',') + '%';
+
+    let cssClass = 'kpi-delta-neutral';
+    if (pct > 0.0001) cssClass = 'kpi-delta-positive';
+    else if (pct < -0.0001) cssClass = 'kpi-delta-negative';
+
+    return { text: `${sign}${absPct}`, cssClass };
   }
 
   function getMultiSelectValues(selectId) {
-    const select = document.getElementById(selectId);
-    return Array.from(select.selectedOptions).map(o => o.value);
+    const el = document.getElementById(selectId);
+    if (!el) return [];
+    return Array.from(el.selectedOptions)
+      .map(o => o.value)
+      .filter(v => v !== '');
   }
 
-  function resetFilters() {
-    ["yearFilter", "monthFilter", "groupFilter", "acquisitionFilter", "stationFilter"].forEach(id => {
-      const select = document.getElementById(id);
-      Array.from(select.options).forEach(opt => (opt.selected = false));
-    });
-    document.getElementById("projectionSelect").value = "0.10";
-    applyFiltersAndRender();
+  function toTitleCase(str) {
+    return String(str)
+      .toLowerCase()
+      .split(/\s+/)
+      .filter(Boolean)
+      .map(w => w.charAt(0).toUpperCase() + w.slice(1))
+      .join(' ');
   }
 
-  // =========================
-  // DATE HELPERS
-  // =========================
-  function parseDate(value) {
-    if (value === null || value === undefined) return null;
+  /* ========= NORMALIZZAZIONE ========= */
 
-    // numero: epoch ms
-    if (typeof value === "number") {
-      const d = new Date(value);
-      return isNaN(d.getTime()) ? null : d;
-    }
+  function findColumnName(row, candidates) {
+    if (!row) return null;
 
-    let str = String(value).trim();
-    if (!str) return null;
+    const normalize = s =>
+      String(s)
+        .toLowerCase()
+        .replace(/[\s_.]/g, '');
 
-    // solo cifre → epoch ms
-    if (/^\d+$/.test(str)) {
-      const ms = parseInt(str, 10);
-      const d = new Date(ms);
-      return isNaN(d.getTime()) ? null : d;
-    }
-
-    // ISO-like yyyy-mm-dd
-    if (/^\d{4}-\d{2}-\d{2}/.test(str)) {
-      const d = new Date(str);
-      return isNaN(d.getTime()) ? null : d;
-    }
-
-    // dd/mm/yyyy
-    if (/^\d{2}\/\d{2}\/\d{4}$/.test(str)) {
-      const [dStr, mStr, yStr] = str.split("/");
-      const d = new Date(parseInt(yStr, 10), parseInt(mStr, 10) - 1, parseInt(dStr, 10));
-      return isNaN(d.getTime()) ? null : d;
-    }
-
-    const d = new Date(str);
-    return isNaN(d.getTime()) ? null : d;
-  }
-
-  function formatYearMonthKey(year, month) {
-    return year + "-" + String(month).padStart(2, "0");
-  }
-
-  function getMonthIndexGlobal(year, month) {
-    // 2024-01 → 0, ... 2026-12 → 35
-    return (year - 2024) * 12 + (month - 1);
-  }
-
-  function clamp(value, min, max) {
-    return Math.min(Math.max(value, min), max);
-  }
-
-  // =========================
-  // CORE: APPLY FILTERS
-  // =========================
-  function applyFiltersAndRender() {
-    const selectedYears = getMultiSelectValues("yearFilter").map(v => parseInt(v, 10));
-    const selectedMonths = getMultiSelectValues("monthFilter").map(v => parseInt(v, 10));
-    const selectedGroups = getMultiSelectValues("groupFilter");
-    const selectedAcquisition = getMultiSelectValues("acquisitionFilter");
-    const selectedStations = getMultiSelectValues("stationFilter");
-    const projectionFactor = parseFloat(document.getElementById("projectionSelect").value || "0.10");
-
-    // 1) Aggregazione base su TUTTI i mesi 2024–2026
-    baseAggregates = computeMonthlyAggregatesBase({
-      groups: selectedGroups,
-      acquisitions: selectedAcquisition,
-      stations: selectedStations,
-      projectionFactor
+    const map = {};
+    Object.keys(row).forEach(k => {
+      map[normalize(k)] = k;
     });
 
-    // 2) Selezione mese/anno per grafico e export
-    monthlyAggregates = baseAggregates.filter(b => {
-      const yearOk = selectedYears.length === 0 || selectedYears.includes(b.year);
-      const monthOk = selectedMonths.length === 0 || selectedMonths.includes(b.month);
-      return yearOk && monthOk;
-    });
-
-    updateKpiCards();
-    updateChart();
+    for (const c of candidates) {
+      const found = map[normalize(c)];
+      if (found) return found;
+    }
+    return null;
   }
 
-  // =========================
-  // AGGREGATION LOGIC (BASE)
-  // =========================
-  function computeMonthlyAggregatesBase(filters) {
-    const { groups, acquisitions, stations, projectionFactor } = filters;
+  function inferFleetColumns(fleetArray) {
+    if (!fleetArray || fleetArray.length === 0) return;
+    const sample = fleetArray[0];
 
-    const monthlyMap = new Map();
-    for (let year = 2024; year <= 2026; year++) {
-      for (let month = 1; month <= 12; month++) {
-        const key = formatYearMonthKey(year, month);
-        monthlyMap.set(key, {
-          year,
-          month,
-          key,
-          label: MONTH_LABELS_IT[month - 1].slice(0, 3) + " " + year,
-          fleetSize: 0,
-          canoneImponibile: 0,
-          canoneIvato: 0,
-          assicurazione: 0,
-          costoTotale: 0,
-          revenue: 0,
-          revenueDays: 0,
-          revenuePerDay: 0,
-          numBookings: 0,
-          noleggiati: 0
-        });
+    fleetColumnMap = {
+      refDate: findColumnName(sample, [
+        'refDate',
+        'data',
+        'date',
+        'referenceDate',
+        'dataRif',
+        'ref_date'
+      ]),
+      yearCol: findColumnName(sample, ['anno', 'year']),
+      monthCol: findColumnName(sample, ['mese', 'month', 'mese_rif']),
+
+      // GRUPPO è la fonte unica per il gruppo veicolo
+      group: findColumnName(sample, [
+        'GRUPPO',
+        'gruppo',
+        'group'
+      ]),
+
+      plate: findColumnName(sample, [
+        'targa',
+        'plate',
+        'vehicleId',
+        'idVeicolo',
+        'id_veicolo',
+        'veicolo'
+      ]),
+
+      acquisition: findColumnName(sample, [
+        'acquisizione',
+        'acquisition',
+        'tipo_acquisizione',
+        'source'
+      ]),
+
+      // NON usiamo la stazione dal file flotta, solo da fleetStations
+      station: null,
+
+      canoneImponibile: findColumnName(sample, [
+        'canone imponibile',
+        'canoneImponibile',
+        'canone_imponibile',
+        'canone',
+        'canoneNetto'
+      ]),
+
+      canoneIvato: findColumnName(sample, [
+        'canone ivato',
+        'canoneIvato',
+        'canone_ivato',
+        'canone lordo'
+      ]),
+
+      assicurazione: findColumnName(sample, [
+        'copertura ass.',
+        'copertura ass',
+        'assicurazione',
+        'insurance',
+        'canoneAssicurazione',
+        'canone_assicurazione'
+      ]),
+
+      endDateEff: findColumnName(sample, [
+        'riconsegna effettiva',
+        'data effettiva',
+        'riconsegna_effettiva'
+      ]),
+      endDateFine: findColumnName(sample, [
+        'data fine',
+        'fine contratto',
+        'data_fine'
+      ]),
+
+      tipologia: findColumnName(sample, [
+        'tipologia',
+        'tipo',
+        'type',
+        'categoria'
+      ])
+    };
+
+    if (fleetColumnMap.tipologia) tipologiaColumnName = fleetColumnMap.tipologia;
+  }
+
+  function inferBookingColumns(bookingsArray) {
+    if (!bookingsArray || bookingsArray.length === 0) return;
+    const sample = bookingsArray[0];
+    bookingColumnMap = {
+      startDate: findColumnName(sample, ['startDate', 'from', 'DATA_INIZIO', 'dataInizio', 'data_inizio', 'date']),
+      yearCol: findColumnName(sample, ['anno', 'year']),
+      monthCol: findColumnName(sample, ['mese', 'month', 'mese_rif']),
+      group: findColumnName(sample, ['gruppo', 'group', 'vehicleGroup', 'carType', 'car_group', 'GRUPPO']),
+      station: findColumnName(sample, ['stazione', 'station', 'filiale', 'location']),
+      acquisition: findColumnName(sample, ['acquisizione', 'acquisition', 'tipo_acquisizione', 'source']),
+      duration: findColumnName(sample, ['duration', 'giorni', 'days', 'n_giorni', 'durata']),
+      price: findColumnName(sample, ['price', 'revenue', 'ricavo', 'importo', 'totale']),
+      vehicleId: findColumnName(sample, ['targa', 'plate', 'vehicleId', 'idVeicolo', 'id_veicolo', 'veicolo'])
+    };
+  }
+
+  function normalizeStation(raw) {
+    if (!raw && raw !== 0) return { label: null, key: null };
+    const original = String(raw).trim();
+    if (!original) return { label: null, key: null };
+    const label = toTitleCase(original);
+    const key = label.toLowerCase();
+    if (!stationMap.has(key)) stationMap.set(key, label);
+    return { label, key };
+  }
+
+  function normalizeAcquisition(raw) {
+    if (raw === null || raw === undefined) return '';
+    if (typeof raw === 'number') {
+      if (!isFinite(raw)) return '';
+      return String(raw);
+    }
+    const s = String(raw).trim();
+    if (!s) return '';
+    if (/^nan$/i.test(s)) return '';
+    return s;
+  }
+
+  function normalizeGroup(raw) {
+    if (!raw && raw !== 0) return null;
+
+    let s = String(raw).trim();
+    if (!s) return null;
+
+    const lower = s.toLowerCase();
+
+    // match diretto con la lista dei 10 gruppi
+    for (const label of VEHICLE_GROUPS) {
+      if (lower === label.toLowerCase()) {
+        return { label, key: groupLabelToKey(label) };
       }
     }
 
-    // ---- 1) Flotta (fleetData_clean) ----
-    fleetData.forEach(row => {
-      const gruppoCanonico = canonicalGroup(row["GRUPPO"]);
-      if (!gruppoCanonico) return;
-      if (groups.length > 0 && !groups.includes(gruppoCanonico)) return;
+    // Sinonimi controllati (People Mover e Commercial Van separati)
+    if (lower === 'furgone' || lower === 'furgoni' || lower === 'van') {
+      const label = 'Commercial Van';
+      return { label, key: groupLabelToKey(label) };
+    }
 
-      const acquisizione = row["ACQUISIZIONE"];
-      if (
-        acquisitions.length > 0 &&
-        (!acquisizione || !acquisitions.includes(String(acquisizione).trim()))
-      ) {
-        return;
+    if (lower === 'people mover' || lower === 'peoplemover' || lower === 'p.m.') {
+      const label = 'People Mover';
+      return { label, key: groupLabelToKey(label) };
+    }
+
+    // altre mappature "sicure"
+    if (lower.includes('station')) {
+      const label = 'Station Wagon';
+      return { label, key: groupLabelToKey(label) };
+    }
+    if (lower.includes('cabrio')) {
+      const label = 'Cabriolet';
+      return { label, key: groupLabelToKey(label) };
+    }
+    if (lower.includes('suv')) {
+      const label = 'Suv';
+      return { label, key: groupLabelToKey(label) };
+    }
+    if (lower.includes('premium')) {
+      const label = 'Premium';
+      return { label, key: groupLabelToKey(label) };
+    }
+    if (lower.includes('mini')) {
+      const label = 'Mini';
+      return { label, key: groupLabelToKey(label) };
+    }
+    if (lower.includes('small')) {
+      const label = 'Small';
+      return { label, key: groupLabelToKey(label) };
+    }
+    if (lower.includes('economy')) {
+      const label = 'Economy';
+      return { label, key: groupLabelToKey(label) };
+    }
+    if (lower.includes('large')) {
+      const label = 'Large';
+      return { label, key: groupLabelToKey(label) };
+    }
+
+    // se non si riesce a mappare in modo sicuro, ignoriamo il gruppo
+    return null;
+  }
+
+  function normalizeFleetRow(row) {
+    // DATA INIZIO
+    let startDate = null;
+
+    if (fleetColumnMap.refDate) {
+      startDate = parseDateFlexible(row[fleetColumnMap.refDate]);
+    }
+
+    if (!startDate && fleetColumnMap.yearCol && fleetColumnMap.monthCol) {
+      const y = parseInt(row[fleetColumnMap.yearCol], 10);
+      const m = parseInt(row[fleetColumnMap.monthCol], 10);
+      if (!isNaN(y) && !isNaN(m) && m >= 1 && m <= 12) {
+        startDate = new Date(y, m - 1, 1);
       }
+    }
 
-      const start = parseDate(row["DATA INIZIO"]);
-      const effectiveEnd = parseDate(row["RICONSEGNA EFFETTIVA"]);
-      const plannedEnd = parseDate(row["DATA FINE"]);
-
-      const startDate = start;
-      const endDate = effectiveEnd || plannedEnd;
-      if (!startDate || !endDate) return;
-      if (endDate < startDate) return;
-
-      const canoneImp =
-        parseFloat(String(row["CANONE IMPONIBILE"] ?? "0").replace(",", ".")) || 0;
-      const canoneIvato =
-        parseFloat(String(row["CANONE IVATO"] ?? "0").replace(",", ".")) || 0;
-      const coperturaAss =
-        parseFloat(String(row["COPERTURA ASS."] ?? "0").replace(",", ".")) || 0;
-
-      const startYear = Math.max(2024, startDate.getFullYear());
-      const endYear = Math.min(2026, endDate.getFullYear());
-
-      for (let year = startYear; year <= endYear; year++) {
-        const monthStart =
-          year === startDate.getFullYear() ? startDate.getMonth() + 1 : 1;
-        const monthEnd =
-          year === endDate.getFullYear() ? endDate.getMonth() + 1 : 12;
-
-        for (let month = monthStart; month <= monthEnd; month++) {
-          const key = formatYearMonthKey(year, month);
-          const bucket = monthlyMap.get(key);
-          if (!bucket) continue;
-
-          bucket.fleetSize += 1;
-          bucket.canoneImponibile += canoneImp;
-          bucket.canoneIvato += canoneIvato;
-          bucket.assicurazione += coperturaAss;
-          bucket.costoTotale += canoneImp + coperturaAss;
-        }
+    // se non abbiamo refDate, usiamo DATA INIZIO vera e propria
+    if (!startDate) {
+      const dataInizioCol = findColumnName(row, ['data inizio', 'data_inizio', 'datainizio']);
+      if (dataInizioCol) {
+        startDate = parseDateFlexible(row[dataInizioCol]);
       }
-    });
+    }
 
-    // ---- 2) Filtro stazione sulla flotta tramite fleetStations2025 ----
-    const stationFactor = computeStationFactorForFleet({ stations, groups });
-    if (stationFactor !== null) {
-      monthlyMap.forEach(bucket => {
-        bucket.fleetSize *= stationFactor;
-        bucket.canoneImponibile *= stationFactor;
-        bucket.canoneIvato *= stationFactor;
-        bucket.assicurazione *= stationFactor;
-        bucket.costoTotale *= stationFactor;
+    if (!startDate) return null;
+
+    // DATA FINE: prima RICONSEGNA EFFETTIVA, poi DATA FINE
+    let endEff = null;
+    let endFine = null;
+
+    if (fleetColumnMap.endDateEff) {
+      endEff = parseDateFlexible(row[fleetColumnMap.endDateEff]);
+    }
+    if (fleetColumnMap.endDateFine) {
+      endFine = parseDateFlexible(row[fleetColumnMap.endDateFine]);
+    }
+
+    let endDate = endEff || endFine || startDate;
+    if (endDate < startDate) endDate = startDate;
+
+    const groupInfo = normalizeGroup(row[fleetColumnMap.group]);
+    const acquisition = normalizeAcquisition(fleetColumnMap.acquisition ? row[fleetColumnMap.acquisition] : '');
+
+    // STAZIONE SOLO DA fleetStations (via targa)
+    let stationInfo = { label: null, key: null };
+    if (fleetColumnMap.plate && fleetStationByPlate.size) {
+      const plateRaw = row[fleetColumnMap.plate];
+      const plateKey = plateRaw ? String(plateRaw).trim().toUpperCase() : null;
+      if (plateKey && fleetStationByPlate.has(plateKey)) {
+        stationInfo = fleetStationByPlate.get(plateKey);
+      }
+    }
+
+    const canoneImponibile = fleetColumnMap.canoneImponibile ? parseNumber(row[fleetColumnMap.canoneImponibile]) : 0;
+    const canoneIvato = fleetColumnMap.canoneIvato ? parseNumber(row[fleetColumnMap.canoneIvato]) : 0;
+    const assicurazione = fleetColumnMap.assicurazione ? parseNumber(row[fleetColumnMap.assicurazione]) : 0;
+
+    let tipologia = null;
+    if (tipologiaColumnName) {
+      tipologia = String(row[tipologiaColumnName] ?? '').trim() || null;
+      if (tipologia) tipologiaValues.push(tipologia);
+    }
+
+    if (acquisition) acquisitionsSet.add(acquisition);
+
+    return {
+      raw: row,
+      startDate,
+      endDate,
+      groupLabel: groupInfo ? groupInfo.label : null,
+      groupKey: groupInfo ? groupInfo.key : null,
+      acquisition,
+      stationLabel: stationInfo.label,
+      stationKey: stationInfo.key,
+      canoneImponibile,
+      canoneIvato,
+      assicurazione,
+      tipologia
+    };
+  }
+
+  function normalizeBookingRow(row) {
+    let d = null;
+
+    if (bookingColumnMap.startDate) {
+      d = parseDateFlexible(row[bookingColumnMap.startDate]);
+    }
+
+    if (!d && bookingColumnMap.yearCol && bookingColumnMap.monthCol) {
+      const y = parseInt(row[bookingColumnMap.yearCol], 10);
+      const m = parseInt(row[bookingColumnMap.monthCol], 10);
+      if (!isNaN(y) && !isNaN(m) && m >= 1 && m <= 12) {
+        d = new Date(y, m - 1, 1);
+      }
+    }
+
+    if (!d) return null;
+
+    const year = d.getFullYear();
+    const month = d.getMonth() + 1;
+
+    const groupInfo = normalizeGroup(bookingColumnMap.group ? row[bookingColumnMap.group] : null);
+    const stationRaw = bookingColumnMap.station ? row[bookingColumnMap.station] : '';
+    const stationInfo = normalizeStation(stationRaw);
+    const acquisition = normalizeAcquisition(bookingColumnMap.acquisition ? row[bookingColumnMap.acquisition] : '');
+    const duration = bookingColumnMap.duration ? parseNumber(row[bookingColumnMap.duration]) : 0;
+    const price = bookingColumnMap.price ? parseNumber(row[bookingColumnMap.price]) : 0;
+    const vehicleId = bookingColumnMap.vehicleId ? String(row[bookingColumnMap.vehicleId] ?? '').trim() : null;
+
+    if (acquisition) acquisitionsSet.add(acquisition);
+
+    return {
+      raw: row,
+      date: d,
+      year,
+      month,
+      groupLabel: groupInfo ? groupInfo.label : null,
+      groupKey: groupInfo ? groupInfo.key : null,
+      stationLabel: stationInfo.label,
+      stationKey: stationInfo.key,
+      acquisition,
+      duration,
+      price,
+      vehicleId
+    };
+  }
+
+  /* ========= PROIEZIONI BOOKING ========= */
+
+  function generateAllBookings(projectionFactor) {
+    const result = [];
+
+    for (const b0 of bookings2025Normalized) {
+      // clone base 2025
+      const base = { ...b0, sourceYear: 2025, source: 'real2025' };
+      result.push(base);
+
+      // 2024: -5% revenue
+      const d2024 = new Date(b0.date);
+      d2024.setFullYear(2024);
+      result.push({
+        ...b0,
+        date: d2024,
+        year: 2024,
+        month: d2024.getMonth() + 1,
+        price: b0.price * 0.95,
+        sourceYear: 2024,
+        source: 'proj2024'
+      });
+
+      // 2026: +X% revenue (tutti i mesi)
+      const d2026 = new Date(b0.date);
+      d2026.setFullYear(2026);
+      result.push({
+        ...b0,
+        date: d2026,
+        year: 2026,
+        month: d2026.getMonth() + 1,
+        price: b0.price * (1 + projectionFactor),
+        sourceYear: 2026,
+        source: 'proj2026'
       });
     }
 
-    // ---- 3) Prenotazioni (bookings2025) ----
-    bookingsData.forEach(row => {
-      const gruppoCanonico = canonicalGroup(row["gruppo"]);
-      if (!gruppoCanonico) return;
-      if (groups.length > 0 && !groups.includes(gruppoCanonico)) return;
-
-      const rawStation = row["stazione"];
-      const stationNorm = normalizeStationName(rawStation);
-      if (stations.length > 0 && (!stationNorm || !stations.includes(stationNorm))) {
-        return;
-      }
-
-      const acquisizioneBooking = row["acquisizione"];
-      if (
-        acquisitions.length > 0 &&
-        (!acquisizioneBooking ||
-          !acquisitions.includes(String(acquisizioneBooking).trim()))
-      ) {
-        return;
-      }
-
-      const fromDate = parseDate(row["startDate"]);
-      if (!fromDate) return;
-
-      let days = parseFloat(row["duration"] ?? 0);
-      if (!isFinite(days)) days = 0;
-      if (days < 1) days = 1;
-
-      const revenue =
-        parseFloat(String(row["price"] ?? "0").replace(",", ".")) || 0;
-
-      const year = fromDate.getFullYear();
-      const month = fromDate.getMonth() + 1;
-      if (year < 2024 || year > 2026) return;
-
-      const key = formatYearMonthKey(year, month);
-      const bucket = monthlyMap.get(key);
-      if (!bucket) return;
-
-      bucket.revenue += revenue;
-      bucket.revenueDays += days;
-      bucket.numBookings += 1;
-    });
-
-    // Calcolo revenue/day e noleggiati
-    monthlyMap.forEach(bucket => {
-      if (bucket.revenueDays > 0) {
-        bucket.revenuePerDay = bucket.revenue / bucket.revenueDays;
-      } else {
-        bucket.revenuePerDay = 0;
-      }
-
-      const fleetAvailable = bucket.fleetSize;
-      if (fleetAvailable > 0 && bucket.revenueDays > 0) {
-        const utilization = bucket.revenueDays / (fleetAvailable * 30);
-        bucket.noleggiati = utilization * fleetAvailable;
-      } else {
-        bucket.noleggiati = 0;
-      }
-    });
-
-    // ---- 4) Proiezioni 2026 ----
-    if (!isNaN(projectionFactor) && projectionFactor !== 0) {
-      monthlyMap.forEach(bucket => {
-        if (bucket.year === 2026) {
-          const factor = 1 + projectionFactor;
-          bucket.fleetSize *= factor;
-          bucket.canoneImponibile *= factor;
-          bucket.canoneIvato *= factor;
-          bucket.assicurazione *= factor;
-          bucket.costoTotale *= factor;
-          bucket.revenue *= factor;
-          bucket.revenuePerDay *= factor;
-          bucket.numBookings *= factor;
-          bucket.noleggiati *= factor;
-        }
-      });
-    }
-
-    const result = Array.from(monthlyMap.values()).sort((a, b) => {
-      const ia = getMonthIndexGlobal(a.year, a.month);
-      const ib = getMonthIndexGlobal(b.year, b.month);
-      return ia - ib;
-    });
-
-    return result;
+    allBookingsWithProjections = result;
   }
 
-  // =========================
-  // STATION FACTOR (FLOTTA)
-  // =========================
-  function computeStationFactorForFleet(filters) {
-    const { stations, groups } = filters;
-    if (!fleetStationsData || fleetStationsData.length === 0) return null;
-    if (!stations || stations.length === 0) return null;
+  /* ========= FILTRI & RANGE ========= */
 
-    let totalAll = 0;
-    let totalSelected = 0;
-
-    fleetStationsData.forEach(row => {
-      const gruppoCanonico = canonicalGroup(row["group"]);
-      if (!gruppoCanonico) return;
-      if (groups.length > 0 && !groups.includes(gruppoCanonico)) return;
-
-      const rawStation = row["station"];
-      const stationNorm = normalizeStationName(rawStation);
-      if (!stationNorm) return;
-
-      const count =
-        parseFloat(String(row["fleet"] ?? 0).replace(",", ".")) || 0;
-
-      totalAll += count;
-      if (stations.includes(stationNorm)) {
-        totalSelected += count;
-      }
-    });
-
-    if (totalAll <= 0) return null;
-    const factor = totalSelected / totalAll;
-    if (!isFinite(factor) || factor <= 0) return null;
-    return factor;
+  function readFilters() {
+    const years = getMultiSelectValues('filterYear').map(v => parseInt(v, 10)).filter(v => !isNaN(v));
+    const months = getMultiSelectValues('filterMonth').map(v => parseInt(v, 10)).filter(v => !isNaN(v));
+    const groups = getMultiSelectValues('filterGroup');
+    const acquisitions = getMultiSelectValues('filterAcquisition');
+    const stations = getMultiSelectValues('filterStation');
+    const tipologie = tipologiaColumnName ? getMultiSelectValues('filterTipologia') : [];
+    return { years, months, groups, acquisitions, stations, tipologie };
   }
 
-  // =========================
-  // KPI CALCULATION
-  // =========================
-  function updateKpiCards() {
-    if (!monthlyAggregates || monthlyAggregates.length === 0) {
-      resetKpiDisplay();
-      return;
+  function getCurrentAndPreviousRanges(filters) {
+    const years = filters.years.length ? filters.years : YEARS_AVAILABLE.slice();
+    const months = filters.months.length ? filters.months : Array.from({ length: 12 }, (_, i) => i + 1);
+
+    const minYear = Math.min(...years);
+    const maxYear = Math.max(...years);
+    const minMonth = Math.min(...months);
+    const maxMonth = Math.max(...months);
+
+    const startCurrent = { year: minYear, month: minMonth };
+    const endCurrent = { year: maxYear, month: maxMonth };
+
+    const monthsCount = monthsDiff(startCurrent.year, startCurrent.month, endCurrent.year, endCurrent.month) + 1;
+
+    const prevEnd = shiftMonth(startCurrent.year, startCurrent.month, -1);
+    const prevStart = shiftMonth(prevEnd.year, prevEnd.month, -(monthsCount - 1));
+
+    const currentRange = {
+      startDate: new Date(startCurrent.year, startCurrent.month - 1, 1),
+      endDate: new Date(endCurrent.year, endCurrent.month, 0),
+      monthsCount,
+      startYM: startCurrent,
+      endYM: endCurrent
+    };
+
+    const previousRange = {
+      startDate: new Date(prevStart.year, prevStart.month - 1, 1),
+      endDate: new Date(prevEnd.year, prevEnd.month, 0),
+      monthsCount,
+      startYM: prevStart,
+      endYM: prevEnd
+    };
+
+    return { current: currentRange, previous: previousRange };
+  }
+
+  function fleetRowMatchesFilters(row, filters) {
+    if (filters.years.length || filters.months.length) {
+      // filtro temporale viene gestito a livello di range (start/end date)
+      // qui non filtriamo per anno/mese
     }
+    if (filters.groups.length && row.groupKey && !filters.groups.includes(row.groupKey)) return false;
+    if (filters.acquisitions.length) {
+      if (!row.acquisition || !filters.acquisitions.includes(row.acquisition)) return false;
+    }
+    if (filters.stations.length) {
+      if (!row.stationKey || !filters.stations.includes(row.stationKey)) return false;
+    }
+    if (tipologiaColumnName && filters.tipologie.length) {
+      if (!row.tipologia || !filters.tipologie.includes(row.tipologia)) return false;
+    }
+    return true;
+  }
 
-    // Selezione indici del range attuale (dai mesi filtrati)
-    const indicesCurrent = monthlyAggregates.map(b =>
-      getMonthIndexGlobal(b.year, b.month)
-    );
-    const minIdx = Math.min(...indicesCurrent);
-    const maxIdx = Math.max(...indicesCurrent);
-    const lengthRange = maxIdx - minIdx + 1;
+  function bookingRowMatchesFilters(row, filters, isPreviousRange) {
+    if (!isPreviousRange) {
+      if (filters.years.length && !filters.years.includes(row.year)) return false;
+      if (filters.months.length && !filters.months.includes(row.month)) return false;
+    }
+    if (filters.groups.length && row.groupKey && !filters.groups.includes(row.groupKey)) return false;
+    if (filters.acquisitions.length) {
+      if (!row.acquisition || !filters.acquisitions.includes(row.acquisition)) return false;
+    }
+    if (filters.stations.length) {
+      if (!row.stationKey || !filters.stations.includes(row.stationKey)) return false;
+    }
+    return true;
+  }
 
-    // Range precedente: stesso numero di mesi spostato indietro
-    const prevEnd = minIdx - 1;
-    const prevStart = prevEnd - (lengthRange - 1);
+  function filterFleetForRange(range, filters) {
+    return fleetNormalized.filter(row => {
+      if (row.endDate < range.startDate || row.startDate > range.endDate) return false;
+      return fleetRowMatchesFilters(row, filters);
+    });
+  }
 
-    const prevStartClamped = clamp(prevStart, 0, 35);
-    const prevEndClamped = clamp(prevEnd, 0, 35);
+  function filterBookingsForRange(range, filters, isPreviousRange) {
+    return allBookingsWithProjections.filter(row => {
+      if (row.date < range.startDate || row.date > range.endDate) return false;
+      return bookingRowMatchesFilters(row, filters, isPreviousRange);
+    });
+  }
 
-    function sumForIndices(indicesSet) {
-      const res = {
-        fleetSize: 0,
+  /* ========= AGGREGAZIONI ========= */
+
+  function buildMonthlyAggregates(range, fleetRows, bookingRows) {
+    const agg = {};
+    let curYear = range.startYM.year;
+    let curMonth = range.startYM.month;
+
+    for (let i = 0; i < range.monthsCount; i++) {
+      const key = ymToKey(curYear, curMonth);
+      agg[key] = {
+        year: curYear,
+        month: curMonth,
+        fleetCount: 0,
         canoneImponibile: 0,
         canoneIvato: 0,
         assicurazione: 0,
-        costoTotale: 0,
+        totalCost: 0,
         revenue: 0,
-        revenuePerDay: 0,
-        numBookings: 0,
-        noleggiati: 0,
-        totalRevenueDays: 0
+        totalDuration: 0,
+        vehiclesRentedCalc: 0
       };
+      const next = shiftMonth(curYear, curMonth, 1);
+      curYear = next.year;
+      curMonth = next.month;
+    }
 
-      baseAggregates.forEach(b => {
-        const idx = getMonthIndexGlobal(b.year, b.month);
-        if (indicesSet.has(idx)) {
-          res.fleetSize += b.fleetSize;
-          res.canoneImponibile += b.canoneImponibile;
-          res.canoneIvato += b.canoneIvato;
-          res.assicurazione += b.assicurazione;
-          res.costoTotale += b.costoTotale;
-          res.revenue += b.revenue;
-          res.numBookings += b.numBookings;
-          res.noleggiati += b.noleggiati;
-          res.totalRevenueDays += b.revenueDays || 0;
+    // flotta: attiva per tutti i mesi tra startDate e endDate
+    for (const row of fleetRows) {
+      const activeStart = row.startDate > range.startDate ? row.startDate : range.startDate;
+      const activeEnd = row.endDate < range.endDate ? row.endDate : range.endDate;
+      if (activeStart > activeEnd) continue;
+
+      let y = activeStart.getFullYear();
+      let m = activeStart.getMonth() + 1;
+      const endY = activeEnd.getFullYear();
+      const endM = activeEnd.getMonth() + 1;
+
+      while (y < endY || (y === endY && m <= endM)) {
+        const key = ymToKey(y, m);
+        const slot = agg[key];
+        if (slot) {
+          slot.fleetCount += 1;
+          slot.canoneImponibile += row.canoneImponibile;
+          slot.canoneIvato += row.canoneIvato;
+          slot.assicurazione += row.assicurazione;
+          slot.totalCost += row.canoneImponibile + row.assicurazione;
         }
-      });
+        if (y === endY && m === endM) break;
+        const next = shiftMonth(y, m, 1);
+        y = next.year;
+        m = next.month;
+      }
+    }
 
-      if (res.totalRevenueDays > 0) {
-        res.revenuePerDay = res.revenue / res.totalRevenueDays;
+    // booking
+    for (const row of bookingRows) {
+      const key = ymToKey(row.year, row.month);
+      const slot = agg[key];
+      if (!slot) continue;
+      slot.revenue += row.price;
+      slot.totalDuration += row.duration;
+    }
+
+    // calcolo "noleggiati" per mese secondo la formula
+    for (const key of Object.keys(agg)) {
+      const slot = agg[key];
+      if (slot.fleetCount > 0 && slot.totalDuration > 0) {
+        const utilizzo = slot.totalDuration / (slot.fleetCount * 30);
+        slot.vehiclesRentedCalc = utilizzo * slot.fleetCount;
       } else {
-        res.revenuePerDay = 0;
-      }
-      return res;
-    }
-
-    const currentIndicesSet = new Set();
-    for (let i = minIdx; i <= maxIdx; i++) currentIndicesSet.add(i);
-
-    const prevIndicesSet = new Set();
-    for (let i = prevStartClamped; i <= prevEndClamped; i++) {
-      if (i >= 0 && i < 36) prevIndicesSet.add(i);
-    }
-
-    const current = sumForIndices(currentIndicesSet);
-    const prev = sumForIndices(prevIndicesSet);
-
-    function setKpi(idCurrent, idPrev, idDiff, currVal, prevVal, options = {}) {
-      const elCurr = document.getElementById(idCurrent);
-      const elPrev = document.getElementById(idPrev);
-      const elDiff = document.getElementById(idDiff);
-
-      const isCurrency = options.currency === true;
-      const decimals = options.decimals ?? 0;
-
-      function formatNumber(v) {
-        if (!isFinite(v)) return "–";
-        if (isCurrency) {
-          return (
-            "€ " +
-            v.toLocaleString("it-IT", {
-              minimumFractionDigits: decimals,
-              maximumFractionDigits: decimals
-            })
-          );
-        }
-        return v.toLocaleString("it-IT", {
-          minimumFractionDigits: decimals,
-          maximumFractionDigits: decimals
-        });
-      }
-
-      elCurr.textContent = formatNumber(currVal);
-      elPrev.textContent = prevVal && prevVal !== 0 ? formatNumber(prevVal) : "–";
-
-      let diffPerc = null;
-      if (prevVal && prevVal !== 0) {
-        diffPerc = ((currVal - prevVal) / prevVal) * 100;
-      }
-
-      elDiff.classList.remove("positive", "negative", "neutral");
-      if (diffPerc === null) {
-        elDiff.textContent = "↔︎ 0%";
-        elDiff.classList.add("neutral");
-      } else if (diffPerc > 0) {
-        elDiff.textContent = "📈 +" + diffPerc.toFixed(1) + "%";
-        elDiff.classList.add("positive");
-      } else if (diffPerc < 0) {
-        elDiff.textContent = "📉 " + diffPerc.toFixed(1) + "%";
-        elDiff.classList.add("negative");
-      } else {
-        elDiff.textContent = "↔︎ 0%";
-        elDiff.classList.add("neutral");
+        slot.vehiclesRentedCalc = 0;
       }
     }
 
-    const monthsCountCurrent = currentIndicesSet.size || 1;
-    const monthsCountPrev = prevIndicesSet.size || 1;
-    const fleetCurrAvg = current.fleetSize / monthsCountCurrent;
-    const fleetPrevAvg = prev.fleetSize / monthsCountPrev;
-
-    setKpi(
-      "kpi-fleet-current",
-      "kpi-fleet-prev",
-      "kpi-fleet-diff",
-      fleetCurrAvg,
-      fleetPrevAvg,
-      { currency: false, decimals: 1 }
-    );
-
-    setKpi(
-      "kpi-canone-current",
-      "kpi-canone-prev",
-      "kpi-canone-diff",
-      current.canoneImponibile,
-      prev.canoneImponibile,
-      { currency: true, decimals: 0 }
-    );
-
-    const elCanIvato = document.getElementById("kpi-canone-ivato-current");
-    elCanIvato.textContent =
-      current.canoneIvato > 0
-        ? "€ " +
-          current.canoneIvato.toLocaleString("it-IT", {
-            minimumFractionDigits: 0,
-            maximumFractionDigits: 0
-          })
-        : "–";
-
-    setKpi(
-      "kpi-assicurazione-current",
-      "kpi-assicurazione-prev",
-      "kpi-assicurazione-diff",
-      current.assicurazione,
-      prev.assicurazione,
-      { currency: true, decimals: 0 }
-    );
-
-    setKpi(
-      "kpi-costo-current",
-      "kpi-costo-prev",
-      "kpi-costo-diff",
-      current.costoTotale,
-      prev.costoTotale,
-      { currency: true, decimals: 0 }
-    );
-
-    setKpi(
-      "kpi-revenue-current",
-      "kpi-revenue-prev",
-      "kpi-revenue-diff",
-      current.revenue,
-      prev.revenue,
-      { currency: true, decimals: 0 }
-    );
-
-    setKpi(
-      "kpi-revday-current",
-      "kpi-revday-prev",
-      "kpi-revday-diff",
-      current.revenuePerDay,
-      prev.revenuePerDay,
-      { currency: true, decimals: 2 }
-    );
-
-    setKpi(
-      "kpi-bookings-current",
-      "kpi-bookings-prev",
-      "kpi-bookings-diff",
-      current.numBookings,
-      prev.numBookings,
-      { currency: false, decimals: 0 }
-    );
-
-    setKpi(
-      "kpi-noleggiati-current",
-      "kpi-noleggiati-prev",
-      "kpi-noleggiati-diff",
-      current.noleggiati,
-      prev.noleggiati,
-      { currency: false, decimals: 1 }
-    );
+    return agg;
   }
 
-  function resetKpiDisplay() {
-    const ids = [
-      "kpi-fleet-current",
-      "kpi-fleet-prev",
-      "kpi-fleet-diff",
-      "kpi-canone-current",
-      "kpi-canone-prev",
-      "kpi-canone-diff",
-      "kpi-canone-ivato-current",
-      "kpi-assicurazione-current",
-      "kpi-assicurazione-prev",
-      "kpi-assicurazione-diff",
-      "kpi-costo-current",
-      "kpi-costo-prev",
-      "kpi-costo-diff",
-      "kpi-revenue-current",
-      "kpi-revenue-prev",
-      "kpi-revenue-diff",
-      "kpi-revday-current",
-      "kpi-revday-prev",
-      "kpi-revday-diff",
-      "kpi-bookings-current",
-      "kpi-bookings-prev",
-      "kpi-bookings-diff",
-      "kpi-noleggiati-current",
-      "kpi-noleggiati-prev",
-      "kpi-noleggiati-diff"
-    ];
-    ids.forEach(id => {
-      const el = document.getElementById(id);
-      if (!el) return;
-      el.textContent = "–";
-      if (el.classList) {
-        el.classList.remove("positive", "negative");
-        el.classList.add("neutral");
+  function computeKpisFromAggregates(aggregates, bookingRows) {
+    const entries = Object.values(aggregates);
+
+    let fleetCountSum = 0;
+    let fleetMonthsWithData = 0;
+    let sumCanoneImponibile = 0;
+    let sumCanoneIvato = 0;
+    let sumAssicurazione = 0;
+    let sumCost = 0;
+    let sumRevenue = 0;
+    let sumDuration = 0;
+    let sumVehiclesRentedCalc = 0;
+
+    for (const slot of entries) {
+      if (slot.fleetCount > 0) {
+        fleetCountSum += slot.fleetCount;
+        fleetMonthsWithData += 1;
       }
+      sumCanoneImponibile += slot.canoneImponibile;
+      sumCanoneIvato += slot.canoneIvato;
+      sumAssicurazione += slot.assicurazione;
+      sumCost += slot.totalCost;
+      sumRevenue += slot.revenue;
+      sumDuration += slot.totalDuration;
+      sumVehiclesRentedCalc += slot.vehiclesRentedCalc;
+    }
+
+    const avgFleetSize = fleetMonthsWithData > 0 ? fleetCountSum / fleetMonthsWithData : 0;
+    const revenuePerDay = sumDuration > 0 ? sumRevenue / sumDuration : 0;
+    const numBookings = bookingRows.length;
+    const numVehiclesRented = sumVehiclesRentedCalc; // "Noleggiati"
+
+    return {
+      avgFleetSize,
+      sumCanoneImponibile,
+      sumCanoneIvato,
+      sumAssicurazione,
+      sumCost,
+      sumRevenue,
+      revenuePerDay,
+      numBookings,
+      numVehiclesRented
+    };
+  }
+
+  /* ========= CHART ========= */
+
+  function updateChart(range, fleetRows, bookingRows) {
+    const aggregates = buildMonthlyAggregates(range, fleetRows, bookingRows);
+    const slots = Object.values(aggregates).sort((a, b) =>
+      a.year === b.year ? a.month - b.month : a.year - b.year
+    );
+
+    const labels = slots.map(slot => {
+      const mLabel = MONTH_LABELS_IT[slot.month - 1].slice(0, 3);
+      return `${mLabel} ${slot.year}`;
     });
-  }
 
-  // =========================
-  // CHART
-  // =========================
-  function updateChart() {
-    const ctx = document.getElementById("mainChart").getContext("2d");
+    const fleetData = slots.map(slot => slot.fleetCount);
+    const costData = slots.map(slot => slot.totalCost);
+    const revenueData = slots.map(slot => slot.revenue);
+    const vehiclesRentedData = slots.map(slot => slot.vehiclesRentedCalc);
 
-    const labels = monthlyAggregates.map(b => b.label);
-    const fleetSeries = monthlyAggregates.map(b => b.fleetSize);
-    const costSeries = monthlyAggregates.map(b => b.costoTotale);
-    const revenueSeries = monthlyAggregates.map(b => b.revenue);
-    const noleggiatiSeries = monthlyAggregates.map(b => b.noleggiati);
+    const ctx = document.getElementById('mainChart').getContext('2d');
 
     if (mainChart) {
-      mainChart.destroy();
+      mainChart.data.labels = labels;
+      mainChart.data.datasets[0].data = fleetData;
+      mainChart.data.datasets[1].data = costData;
+      mainChart.data.datasets[2].data = revenueData;
+      mainChart.data.datasets[3].data = vehiclesRentedData;
+      mainChart.update();
+      return;
     }
 
     mainChart = new Chart(ctx, {
-      type: "line",
+      type: 'line',
       data: {
         labels,
         datasets: [
           {
-            label: "Dimensione flotta",
-            data: fleetSeries,
-            yAxisID: "y",
+            label: 'Flotta (veicoli)',
+            data: fleetData,
+            yAxisID: 'yFleet',
+            tension: 0.3,
             borderWidth: 2,
-            tension: 0.3
+            pointRadius: 2
           },
           {
-            label: "Costo totale",
-            data: costSeries,
-            yAxisID: "y1",
-            borderWidth: 2,
-            tension: 0.3
+            label: 'Costo totale (€)',
+            data: costData,
+            yAxisID: 'yMoney',
+            tension: 0.3,
+            borderWidth: 1.8,
+            borderDash: [4, 3],
+            pointRadius: 2
           },
           {
-            label: "Revenue",
-            data: revenueSeries,
-            yAxisID: "y1",
+            label: 'Revenue (€)',
+            data: revenueData,
+            yAxisID: 'yMoney',
+            tension: 0.3,
             borderWidth: 2,
-            tension: 0.3
+            pointRadius: 2
           },
           {
-            label: "Noleggiati",
-            data: noleggiatiSeries,
-            yAxisID: "y",
-            borderWidth: 2,
-            tension: 0.3
+            label: 'Noleggiati',
+            data: vehiclesRentedData,
+            yAxisID: 'yFleet',
+            tension: 0.3,
+            borderWidth: 1.5,
+            borderDash: [2, 2],
+            pointRadius: 2
           }
         ]
       },
       options: {
         responsive: true,
-        maintainAspectRatio: false,
-        interaction: {
-          mode: "index",
-          intersect: false
-        },
+        interaction: { mode: 'index', intersect: false },
         stacked: false,
-        scales: {
-          x: {
-            ticks: {
-              color: "#e5e7eb",
-              maxRotation: 0,
-              autoSkip: true
-            },
-            grid: {
-              color: "rgba(148, 163, 184, 0.15)"
-            }
-          },
-          y: {
-            type: "linear",
-            position: "left",
-            title: {
-              display: true,
-              text: "Flotta / Noleggiati",
-              color: "#e5e7eb"
-            },
-            ticks: {
-              color: "#e5e7eb"
-            },
-            grid: {
-              color: "rgba(148, 163, 184, 0.15)"
-            }
-          },
-          y1: {
-            type: "linear",
-            position: "right",
-            title: {
-              display: true,
-              text: "€",
-              color: "#e5e7eb"
-            },
-            ticks: {
-              color: "#e5e7eb"
-            },
-            grid: {
-              drawOnChartArea: false
+        plugins: {
+          legend: { position: 'top' },
+          tooltip: {
+            callbacks: {
+              label: function (context) {
+                const label = context.dataset.label || '';
+                const value = context.parsed.y;
+                if (label.includes('Flotta')) return `${label}: ${formatNumberInt(value)} veicoli`;
+                if (label.includes('Costo totale')) return `${label}: ${formatMoney(value)}`;
+                if (label.includes('Revenue')) return `${label}: ${formatMoney(value)}`;
+                if (label.includes('Noleggiati')) return `${label}: ${formatNumberInt(value)}`;
+                return `${label}: ${value}`;
+              }
             }
           }
         },
-        plugins: {
-          legend: {
-            labels: {
-              color: "#e5e7eb"
-            }
+        scales: {
+          yFleet: {
+            type: 'linear',
+            position: 'left',
+            title: { display: true, text: 'Veicoli / Noleggiati' }
           },
-          tooltip: {
-            callbacks: {
-              footer: () => ""
-            }
+          yMoney: {
+            type: 'linear',
+            position: 'right',
+            title: { display: true, text: 'Euro' },
+            grid: { drawOnChartArea: false }
           }
         }
       }
     });
   }
 
-  // =========================
-  // EXPORT CSV
-  // =========================
-  function exportCsv() {
-    if (!monthlyAggregates || monthlyAggregates.length === 0) {
-      alert("Nessun dato da esportare.");
-      return;
+  /* ========= KPI ========= */
+
+  function updateKpiCard(current, previous, currentFormatter, prevFormatter, kpiCurrentId, kpiPrevId, kpiDeltaId) {
+    const currentVal = current ?? 0;
+    const prevVal = previous ?? 0;
+
+    document.getElementById(kpiCurrentId).textContent = currentFormatter(currentVal);
+    document.getElementById(kpiPrevId).textContent = 'Prec.: ' + prevFormatter(prevVal);
+
+    const deltaInfo = formatDelta(currentVal, prevVal);
+    const deltaEl = document.getElementById(kpiDeltaId);
+    deltaEl.textContent = deltaInfo.text;
+    deltaEl.className = 'kpi-delta ' + deltaInfo.cssClass;
+  }
+
+  function updateAllKpis(rangeCurrent, rangePrevious, fleetCurrent, fleetPrevious, bookingsCurrent, bookingsPrevious) {
+    const aggCurrent = buildMonthlyAggregates(rangeCurrent, fleetCurrent, bookingsCurrent);
+    const aggPrevious = buildMonthlyAggregates(rangePrevious, fleetPrevious, bookingsPrevious);
+
+    const kpiCurrent = computeKpisFromAggregates(aggCurrent, bookingsCurrent);
+    const kpiPrevious = computeKpisFromAggregates(aggPrevious, bookingsPrevious);
+
+    updateKpiCard(
+      kpiCurrent.avgFleetSize,
+      kpiPrevious.avgFleetSize,
+      v => formatNumberInt(v),
+      v => formatNumberInt(v),
+      'kpiFleetSizeCurrent',
+      'kpiFleetSizePrev',
+      'kpiFleetSizeDelta'
+    );
+
+    updateKpiCard(
+      kpiCurrent.sumCanoneImponibile,
+      kpiPrevious.sumCanoneImponibile,
+      v => formatMoney(v),
+      v => formatMoney(v),
+      'kpiCanoneImponibileCurrent',
+      'kpiCanoneImponibilePrev',
+      'kpiCanoneImponibileDelta'
+    );
+
+    document.getElementById('kpiCanoneIvatoInline').textContent = 'IVATO: ' + formatMoney(kpiCurrent.sumCanoneIvato);
+
+    updateKpiCard(
+      kpiCurrent.sumAssicurazione,
+      kpiPrevious.sumAssicurazione,
+      v => formatMoney(v),
+      v => formatMoney(v),
+      'kpiAssicurazioneCurrent',
+      'kpiAssicurazionePrev',
+      'kpiAssicurazioneDelta'
+    );
+
+    updateKpiCard(
+      kpiCurrent.sumCost,
+      kpiPrevious.sumCost,
+      v => formatMoney(v),
+      v => formatMoney(v),
+      'kpiCostoTotaleCurrent',
+      'kpiCostoTotalePrev',
+      'kpiCostoTotaleDelta'
+    );
+
+    updateKpiCard(
+      kpiCurrent.sumRevenue,
+      kpiPrevious.sumRevenue,
+      v => formatMoney(v),
+      v => formatMoney(v),
+      'kpiRevenueCurrent',
+      'kpiRevenuePrev',
+      'kpiRevenueDelta'
+    );
+
+    updateKpiCard(
+      kpiCurrent.revenuePerDay,
+      kpiPrevious.revenuePerDay,
+      v => formatMoney2(v),
+      v => formatMoney2(v),
+      'kpiRevPerDayCurrent',
+      'kpiRevPerDayPrev',
+      'kpiRevPerDayDelta'
+    );
+
+    updateKpiCard(
+      kpiCurrent.numVehiclesRented,
+      kpiPrevious.numVehiclesRented,
+      v => formatNumberInt(v),
+      v => formatNumberInt(v),
+      'kpiVeicoliNoleggiatiCurrent',
+      'kpiVeicoliNoleggiatiPrev',
+      'kpiVeicoliNoleggiatiDelta'
+    );
+  }
+
+  /* ========= CSV EXPORT ========= */
+
+  function downloadCsvFilteredData() {
+    const rows = lastFilteredBookingsCurrent || [];
+    const header = ['Data', 'Anno', 'Mese', 'Gruppo', 'Stazione', 'Acquisizione', 'Duration', 'Price'];
+    const lines = [header.join(';')];
+
+    for (const b of rows) {
+      const d = b.date;
+      const dateStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+      const line = [
+        dateStr,
+        b.year,
+        b.month,
+        (b.groupLabel || '').replace(/;/g, ','),
+        (b.stationLabel || '').replace(/;/g, ','),
+        (b.acquisition || '').replace(/;/g, ','),
+        b.duration,
+        b.price.toString().replace('.', ',')
+      ].join(';');
+      lines.push(line);
     }
 
-    const header = [
-      "Anno",
-      "Mese",
-      "Label",
-      "FleetSize",
-      "CanoneImponibile",
-      "CanoneIvato",
-      "Assicurazione",
-      "CostoTotale",
-      "Revenue",
-      "RevenuePerDay",
-      "NumBookings",
-      "Noleggiati"
-    ];
-
-    const rows = monthlyAggregates.map(b => [
-      b.year,
-      b.month,
-      b.label,
-      b.fleetSize,
-      b.canoneImponibile,
-      b.canoneIvato,
-      b.assicurazione,
-      b.costoTotale,
-      b.revenue,
-      b.revenuePerDay,
-      b.numBookings,
-      b.noleggiati
-    ]);
-
-    let csvContent = header.join(";") + "\n";
-    rows.forEach(r => {
-      csvContent += r.join(";") + "\n";
-    });
-
-    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const csvStr = lines.join('\n');
+    const blob = new Blob([csvStr], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = "dashboard_fleet_bookings.csv";
-    link.click();
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'dashboard_dati_filtrati.csv';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
     URL.revokeObjectURL(url);
   }
+
+  /* ========= MAIN UPDATE ========= */
+
+  function updateDashboard() {
+    const filters = readFilters();
+    const ranges = getCurrentAndPreviousRanges(filters);
+
+    const fleetCurrent = filterFleetForRange(ranges.current, filters);
+    const fleetPrevious = filterFleetForRange(ranges.previous, filters);
+
+    const bookingsCurrent = filterBookingsForRange(ranges.current, filters, false);
+    const bookingsPrevious = filterBookingsForRange(ranges.previous, filters, true);
+
+    lastFilteredBookingsCurrent = bookingsCurrent;
+
+    updateAllKpis(
+      ranges.current,
+      ranges.previous,
+      fleetCurrent,
+      fleetPrevious,
+      bookingsCurrent,
+      bookingsPrevious
+    );
+    updateChart(ranges.current, fleetCurrent, bookingsCurrent);
+  }
+
+  /* ========= FILTRI UI ========= */
+
+  function addPlaceholderOption(selectEl, label) {
+    const opt = document.createElement('option');
+    opt.value = '';
+    opt.textContent = label;
+    opt.selected = true;
+    selectEl.appendChild(opt);
+  }
+
+  function setupMultiSelectBehaviour(selectId) {
+    const el = document.getElementById(selectId);
+    if (!el) return;
+    el.addEventListener('change', () => {
+      const options = Array.from(el.options);
+      const realSelected = options.filter(o => o.selected && o.value !== '');
+      const allOption = options.find(o => o.value === '');
+      if (realSelected.length > 0 && allOption && allOption.selected) {
+        allOption.selected = false;
+      }
+      if (realSelected.length === 0 && allOption) {
+        allOption.selected = true;
+      }
+      updateDashboard();
+    });
+  }
+
+  function populateFilterOptions() {
+    const yearSelect = document.getElementById('filterYear');
+    yearSelect.innerHTML = '';
+    addPlaceholderOption(yearSelect, 'Tutti');
+    YEARS_AVAILABLE.forEach(y => {
+      const opt = document.createElement('option');
+      opt.value = String(y);
+      opt.textContent = String(y);
+      yearSelect.appendChild(opt);
+    });
+
+    const monthSelect = document.getElementById('filterMonth');
+    monthSelect.innerHTML = '';
+    addPlaceholderOption(monthSelect, 'Tutti');
+    for (let i = 0; i < 12; i++) {
+      const opt = document.createElement('option');
+      opt.value = String(i + 1);
+      opt.textContent = MONTH_LABELS_IT[i];
+      monthSelect.appendChild(opt);
+    }
+
+    const groupSelect = document.getElementById('filterGroup');
+    groupSelect.innerHTML = '';
+    addPlaceholderOption(groupSelect, 'Tutti');
+    for (const label of VEHICLE_GROUPS) {
+      const opt = document.createElement('option');
+      opt.value = groupLabelToKey(label);
+      opt.textContent = label;
+      groupSelect.appendChild(opt);
+    }
+
+    const acqSelect = document.getElementById('filterAcquisition');
+    acqSelect.innerHTML = '';
+    addPlaceholderOption(acqSelect, 'Tutte');
+    const acqList = Array.from(acquisitionsSet).filter(x => x).sort((a, b) => a.localeCompare(b));
+    for (const a of acqList) {
+      const opt = document.createElement('option');
+      opt.value = a;
+      opt.textContent = a;
+      acqSelect.appendChild(opt);
+    }
+
+    const stationSelect = document.getElementById('filterStation');
+    stationSelect.innerHTML = '';
+    addPlaceholderOption(stationSelect, 'Tutte');
+    const stationEntries = Array.from(stationMap.entries()).sort((a, b) => a[1].localeCompare(b[1]));
+    for (const [key, label] of stationEntries) {
+      const opt = document.createElement('option');
+      opt.value = key;
+      opt.textContent = label;
+      stationSelect.appendChild(opt);
+    }
+
+    if (tipologiaColumnName && tipologiaValues.length) {
+      const tipSelect = document.getElementById('filterTipologia');
+      const tipHelper = document.getElementById('filterTipologiaHelper');
+      tipSelect.innerHTML = '';
+      addPlaceholderOption(tipSelect, 'Tutte');
+      const uniqueTips = Array.from(new Set(tipologiaValues.filter(x => x))).sort((a, b) => a.localeCompare(b));
+      for (const t of uniqueTips) {
+        const opt = document.createElement('option');
+        opt.value = t;
+        opt.textContent = t;
+        tipSelect.appendChild(opt);
+      }
+      tipSelect.style.display = '';
+      tipHelper.style.display = '';
+      setupMultiSelectBehaviour('filterTipologia');
+    } else {
+      document.getElementById('filterTipologia').style.display = 'none';
+      document.getElementById('filterTipologiaHelper').style.display = 'none';
+    }
+
+    setupMultiSelectBehaviour('filterYear');
+    setupMultiSelectBehaviour('filterMonth');
+    setupMultiSelectBehaviour('filterGroup');
+    setupMultiSelectBehaviour('filterAcquisition');
+    setupMultiSelectBehaviour('filterStation');
+  }
+
+  function attachExtraListeners() {
+    document.getElementById('filterProjection').addEventListener('change', () => {
+      const val = parseFloat(document.getElementById('filterProjection').value);
+      if (!isNaN(val)) {
+        currentProjectionFactor = val;
+        generateAllBookings(currentProjectionFactor);
+        updateDashboard();
+      }
+    });
+
+    document.getElementById('btnReset').addEventListener('click', () => {
+      currentProjectionFactor = 0.10;
+      document.getElementById('filterProjection').value = '0.10';
+      generateAllBookings(currentProjectionFactor);
+
+      const selectIds = ['filterYear', 'filterMonth', 'filterGroup', 'filterAcquisition', 'filterStation', 'filterTipologia'];
+      selectIds.forEach(id => {
+        const el = document.getElementById(id);
+        if (!el) return;
+        const options = Array.from(el.options);
+        options.forEach(o => (o.selected = false));
+        const allOpt = options.find(o => o.value === '');
+        if (allOpt) allOpt.selected = true;
+      });
+
+      updateDashboard();
+    });
+
+    document.getElementById('btnCsv').addEventListener('click', downloadCsvFilteredData);
+    document.getElementById('btnPrint').addEventListener('click', () => window.print());
+  }
+
+  /* ========= DATA LOADING ========= */
+
+  async function loadJson(path) {
+    const response = await fetch(path);
+    if (!response.ok) {
+      throw new Error(`Errore nel caricamento di ${path}: ${response.status}`);
+    }
+
+    const text = await response.text();
+    if (!text.trim()) {
+      throw new Error(`Il file ${path} è vuoto o non contiene JSON.`);
+    }
+
+    try {
+      return JSON.parse(text);
+    } catch (e) {
+      console.error(`Errore nel parsing di ${path}`, e, 'Primi caratteri:', text.slice(0, 200));
+      throw new Error(`Impossibile leggere ${path}. Controlla che sia un JSON valido.`);
+    }
+  }
+
+  async function initDashboard() {
+    try {
+      const [
+        fleetData,
+        fleetStations,
+        bookings2025
+      ] = await Promise.all([
+        loadJson('fleetData_clean.json'),
+        loadJson('fleetStations2025.json'),
+        loadJson('bookings2025.json')
+      ]);
+
+      fleetRaw = Array.isArray(fleetData) ? fleetData : [];
+      fleetStationsRaw = Array.isArray(fleetStations) ? fleetStations : [];
+      bookings2025Raw = Array.isArray(bookings2025) ? bookings2025 : [];
+
+      inferFleetColumns(fleetRaw);
+      inferBookingColumns(bookings2025Raw);
+
+      fleetNormalized = [];
+      tipologiaValues = [];
+      acquisitionsSet = new Set();
+      stationMap = new Map();
+      fleetStationByPlate = new Map();
+
+      // Costruisci mappa TARGA -> stazione da fleetStations2025
+      if (fleetStationsRaw.length) {
+        const sampleStation = fleetStationsRaw[0];
+        const plateColStations = findColumnName(sampleStation, [
+          'targa',
+          'plate',
+          'vehicleId',
+          'idVeicolo',
+          'id_veicolo',
+          'veicolo'
+        ]);
+        const stationColStations = findColumnName(sampleStation, [
+          'stazione',
+          'station',
+          'filiale',
+          'parco/sede',
+          'parco sede',
+          'parco_sede',
+          'location'
+        ]);
+
+        if (plateColStations && stationColStations) {
+          for (const row of fleetStationsRaw) {
+            const plateRaw = row[plateColStations];
+            const stationRaw = row[stationColStations];
+            if (!plateRaw || !stationRaw) continue;
+            const plateKey = String(plateRaw).trim().toUpperCase();
+            const stInfo = normalizeStation(stationRaw);
+            if (stInfo.key) {
+              fleetStationByPlate.set(plateKey, stInfo);
+            }
+          }
+        } else if (stationColStations) {
+          for (const row of fleetStationsRaw) {
+            normalizeStation(row[stationColStations]);
+          }
+        }
+      }
+
+      // Normalizza flotta
+      for (const row of fleetRaw) {
+        const norm = normalizeFleetRow(row);
+        if (norm) fleetNormalized.push(norm);
+      }
+
+      // Booking 2025
+      bookings2025Normalized = [];
+      for (const row of bookings2025Raw) {
+        const norm = normalizeBookingRow(row);
+        if (norm) bookings2025Normalized.push(norm);
+      }
+
+      generateAllBookings(currentProjectionFactor);
+
+      populateFilterOptions();
+      attachExtraListeners();
+      updateDashboard();
+    } catch (err) {
+      console.error(err);
+      alert(err.message);
+    }
+  }
+
+  document.addEventListener('DOMContentLoaded', initDashboard);
 </script>
+</body>
+</html>
