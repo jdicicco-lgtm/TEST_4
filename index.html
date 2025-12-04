@@ -224,7 +224,7 @@
     <!-- HEADER -->
     <div class="dashboard-header d-flex justify-content-between align-items-center">
       <div>
-        <h3 class="mb-0">Dashboard Flotta & Prenotazioni</h3>
+        <h3 class="mb-0">Dashboard Flotta &amp; Prenotazioni</h3>
         <small class="text-muted">Analisi flotta 2024–2026 e prenotazioni 2025</small>
       </div>
       <div class="no-print">
@@ -236,14 +236,6 @@
         </button>
       </div>
     </div>
-
-    <!-- LAYOUT: SIDEBAR SINISTRA + KPI + GRAFICO -->
-    <select id="yearFilter" class="form-select form-select-sm" multiple>
-  <option value="ALL" selected>Tutti</option>   <!-- 👈 aggiungi -->
-  <option value="2024">2024</option>
-  <option value="2025">2025</option>
-  <option value="2026">2026</option>
-</select>
 
     <div class="row g-3">
       <!-- SIDEBAR FILTRI -->
@@ -260,14 +252,18 @@
             <!-- Anno -->
             <div class="accordion-item">
               <h2 class="accordion-header" id="headingYear">
-                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseYear" aria-expanded="false" aria-controls="collapseYear">
+                <button class="accordion-button collapsed" type="button"
+                        data-bs-toggle="collapse" data-bs-target="#collapseYear"
+                        aria-expanded="false" aria-controls="collapseYear">
                   Anno
                 </button>
               </h2>
-              <div id="collapseYear" class="accordion-collapse collapse" aria-labelledby="headingYear" data-bs-parent="#filtersAccordion">
+              <div id="collapseYear" class="accordion-collapse collapse"
+                   aria-labelledby="headingYear" data-bs-parent="#filtersAccordion">
                 <div class="accordion-body">
                   <label for="yearFilter" class="filter-label">Anno (multi)</label>
                   <select id="yearFilter" class="form-select form-select-sm" multiple>
+                    <option value="ALL" selected>Tutti</option>
                     <option value="2024">2024</option>
                     <option value="2025">2025</option>
                     <option value="2026">2026</option>
@@ -277,16 +273,16 @@
             </div>
 
             <!-- Mese -->
-            <select id="monthFilter" class="form-select form-select-sm" multiple>
-  <option value="ALL" selected>Tutti</option>   <!-- 👈 aggiungi -->
-</select>
             <div class="accordion-item">
               <h2 class="accordion-header" id="headingMonth">
-                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseMonth" aria-expanded="false" aria-controls="collapseMonth">
+                <button class="accordion-button collapsed" type="button"
+                        data-bs-toggle="collapse" data-bs-target="#collapseMonth"
+                        aria-expanded="false" aria-controls="collapseMonth">
                   Mese
                 </button>
               </h2>
-              <div id="collapseMonth" class="accordion-collapse collapse" aria-labelledby="headingMonth" data-bs-parent="#filtersAccordion">
+              <div id="collapseMonth" class="accordion-collapse collapse"
+                   aria-labelledby="headingMonth" data-bs-parent="#filtersAccordion">
                 <div class="accordion-body">
                   <label for="monthFilter" class="filter-label">Mese (multi)</label>
                   <select id="monthFilter" class="form-select form-select-sm" multiple></select>
@@ -295,25 +291,16 @@
             </div>
 
             <!-- Gruppo veicolo -->
-            <select id="groupFilter" class="form-select form-select-sm" multiple>
-  <option value="ALL" selected>Tutti</option>   <!-- 👈 aggiungi -->
-</select>
-
-<select id="acquisitionFilter" class="form-select form-select-sm" multiple>
-  <option value="ALL" selected>Tutti</option>   <!-- 👈 aggiungi -->
-</select>
-
-<select id="stationFilter" class="form-select form-select-sm" multiple>
-  <option value="ALL" selected>Tutti</option>   <!-- 👈 aggiungi -->
-</select>
-
             <div class="accordion-item">
               <h2 class="accordion-header" id="headingGroup">
-                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseGroup" aria-expanded="false" aria-controls="collapseGroup">
+                <button class="accordion-button collapsed" type="button"
+                        data-bs-toggle="collapse" data-bs-target="#collapseGroup"
+                        aria-expanded="false" aria-controls="collapseGroup">
                   Gruppo veicolo
                 </button>
               </h2>
-              <div id="collapseGroup" class="accordion-collapse collapse" aria-labelledby="headingGroup" data-bs-parent="#filtersAccordion">
+              <div id="collapseGroup" class="accordion-collapse collapse"
+                   aria-labelledby="headingGroup" data-bs-parent="#filtersAccordion">
                 <div class="accordion-body">
                   <label for="groupFilter" class="filter-label">Gruppo (multi)</label>
                   <select id="groupFilter" class="form-select form-select-sm" multiple></select>
@@ -324,11 +311,14 @@
             <!-- Acquisizione -->
             <div class="accordion-item">
               <h2 class="accordion-header" id="headingAcquisition">
-                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseAcquisition" aria-expanded="false" aria-controls="collapseAcquisition">
+                <button class="accordion-button collapsed" type="button"
+                        data-bs-toggle="collapse" data-bs-target="#collapseAcquisition"
+                        aria-expanded="false" aria-controls="collapseAcquisition">
                   Acquisizione
                 </button>
               </h2>
-              <div id="collapseAcquisition" class="accordion-collapse collapse" aria-labelledby="headingAcquisition" data-bs-parent="#filtersAccordion">
+              <div id="collapseAcquisition" class="accordion-collapse collapse"
+                   aria-labelledby="headingAcquisition" data-bs-parent="#filtersAccordion">
                 <div class="accordion-body">
                   <label for="acquisitionFilter" class="filter-label">Acquisizione (multi)</label>
                   <select id="acquisitionFilter" class="form-select form-select-sm" multiple></select>
@@ -339,11 +329,14 @@
             <!-- Stazione -->
             <div class="accordion-item">
               <h2 class="accordion-header" id="headingStation">
-                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseStation" aria-expanded="false" aria-controls="collapseStation">
+                <button class="accordion-button collapsed" type="button"
+                        data-bs-toggle="collapse" data-bs-target="#collapseStation"
+                        aria-expanded="false" aria-controls="collapseStation">
                   Stazione
                 </button>
               </h2>
-              <div id="collapseStation" class="accordion-collapse collapse" aria-labelledby="headingStation" data-bs-parent="#filtersAccordion">
+              <div id="collapseStation" class="accordion-collapse collapse"
+                   aria-labelledby="headingStation" data-bs-parent="#filtersAccordion">
                 <div class="accordion-body">
                   <label for="stationFilter" class="filter-label">Stazione (multi)</label>
                   <select id="stationFilter" class="form-select form-select-sm" multiple></select>
@@ -354,11 +347,14 @@
             <!-- Proiezione 2026 -->
             <div class="accordion-item">
               <h2 class="accordion-header" id="headingProjection">
-                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseProjection" aria-expanded="false" aria-controls="collapseProjection">
+                <button class="accordion-button collapsed" type="button"
+                        data-bs-toggle="collapse" data-bs-target="#collapseProjection"
+                        aria-expanded="false" aria-controls="collapseProjection">
                   Proiezione 2026
                 </button>
               </h2>
-              <div id="collapseProjection" class="accordion-collapse collapse" aria-labelledby="headingProjection" data-bs-parent="#filtersAccordion">
+              <div id="collapseProjection" class="accordion-collapse collapse"
+                   aria-labelledby="headingProjection" data-bs-parent="#filtersAccordion">
                 <div class="accordion-body">
                   <label for="projectionSelect" class="filter-label">Proiezione 2026</label>
                   <select id="projectionSelect" class="form-select form-select-sm">
@@ -378,11 +374,10 @@
         </div>
       </div>
 
-      <!-- AREA KPI + GRAFICO -->
+      <!-- KPI + GRAFICO -->
       <div class="col-12 col-lg-9">
         <!-- KPI ROW 1 -->
         <div class="row g-3 mb-3">
-          <!-- Dimensione flotta -->
           <div class="col-12 col-md-6 col-xl-3">
             <div class="kpi-card p-3">
               <div class="d-flex justify-content-between align-items-center mb-1">
@@ -396,14 +391,15 @@
             </div>
           </div>
 
-          <!-- Canone imponibile + ivato -->
           <div class="col-12 col-md-6 col-xl-3">
             <div class="kpi-card p-3">
               <div class="d-flex justify-content-between align-items-center mb-1">
                 <div class="kpi-title">💶 Canone imponibile</div>
               </div>
               <div class="kpi-value" id="kpi-canone-current">–</div>
-              <div class="kpi-sub mb-1">Canone ivato: <span id="kpi-canone-ivato-current">–</span></div>
+              <div class="kpi-sub mb-1">
+                Canone ivato: <span id="kpi-canone-ivato-current">–</span>
+              </div>
               <div class="kpi-prev mb-1">
                 Prev: <span id="kpi-canone-prev">–</span>
               </div>
@@ -411,7 +407,6 @@
             </div>
           </div>
 
-          <!-- Assicurazione -->
           <div class="col-12 col-md-6 col-xl-3">
             <div class="kpi-card p-3">
               <div class="d-flex justify-content-between align-items-center mb-1">
@@ -425,7 +420,6 @@
             </div>
           </div>
 
-          <!-- Costo totale -->
           <div class="col-12 col-md-6 col-xl-3">
             <div class="kpi-card p-3">
               <div class="d-flex justify-content-between align-items-center mb-1">
@@ -442,7 +436,6 @@
 
         <!-- KPI ROW 2 -->
         <div class="row g-3 mb-4">
-          <!-- Revenue -->
           <div class="col-12 col-md-6 col-xl-3">
             <div class="kpi-card p-3">
               <div class="d-flex justify-content-between align-items-center mb-1">
@@ -456,7 +449,6 @@
             </div>
           </div>
 
-          <!-- Revenue / day -->
           <div class="col-12 col-md-6 col-xl-3">
             <div class="kpi-card p-3">
               <div class="d-flex justify-content-between align-items-center mb-1">
@@ -470,7 +462,6 @@
             </div>
           </div>
 
-          <!-- Numero prenotazioni -->
           <div class="col-12 col-md-6 col-xl-3">
             <div class="kpi-card p-3">
               <div class="d-flex justify-content-between align-items-center mb-1">
@@ -484,7 +475,6 @@
             </div>
           </div>
 
-          <!-- Noleggiati -->
           <div class="col-12 col-md-6 col-xl-3">
             <div class="kpi-card p-3">
               <div class="d-flex justify-content-between align-items-center mb-1">
@@ -538,7 +528,6 @@
       "Cabriolet"
     ];
 
-    // Mappa tutti i codici possibili → 10 gruppi canonici
     const RAW_GROUP_MAP = {
       "COMMERCIAL VAN": "Commercial Van",
       "COMM VAN": "Commercial Van",
@@ -570,7 +559,6 @@
       const up = s.toUpperCase();
       if (RAW_GROUP_MAP[up]) return RAW_GROUP_MAP[up];
 
-      // Se arriva già nei 10 gruppi canonici
       if (VEHICLE_GROUPS.includes(s)) return s;
 
       return null;
@@ -585,8 +573,8 @@
     let fleetStationsData = [];
     let bookingsData = [];
 
-    let baseAggregates = [];    // tutti i mesi 2024–2026 con filtri gruppo/acquisizione/stazione
-    let monthlyAggregates = []; // baseAggregates filtrata per anno/mese (grafico + export)
+    let baseAggregates = [];
+    let monthlyAggregates = [];
     let mainChart = null;
 
     // =========================
@@ -603,35 +591,14 @@
       });
 
       const clearBtn = document.getElementById("clearFiltersBtn");
-      if (clearBtn) {
-        clearBtn.addEventListener("click", resetFilters);
-      }
+      if (clearBtn) clearBtn.addEventListener("click", resetFilters);
+
       const exportBtn = document.getElementById("exportCsvBtn");
-      if (exportBtn) {
-        exportBtn.addEventListener("click", exportCsv);
-      }
+      if (exportBtn) exportBtn.addEventListener("click", exportCsv);
+
       const printBtn = document.getElementById("printPdfBtn");
-      if (printBtn) {
-        printBtn.addEventListener("click", () => window.print());
-      }
+      if (printBtn) printBtn.addEventListener("click", () => window.print());
     });
-    
-function resetFilters() {
-  ["yearFilter","monthFilter","groupFilter","acquisitionFilter","stationFilter"]
-    .forEach(id => {
-      const select = document.getElementById(id);
-      if (!select) return;
-
-      Array.from(select.options).forEach(opt => {
-        opt.selected = (opt.value === "ALL"); // 👈 seleziono solo "Tutti"
-      });
-    });
-
-  const proj = document.getElementById("projectionSelect");
-  if (proj) proj.value = "0.10";
-
-  applyFiltersAndRender();
-}
 
     // =========================
     // DATA LOADING
@@ -656,33 +623,34 @@ function resetFilters() {
     // =========================
     // FILTER INIT
     // =========================
+    function initMonthsFilter() {
+      const monthSelect = document.getElementById("monthFilter");
+      if (!monthSelect) return;
 
-  function initMonthsFilter() {
-  // prova che la funzione parte
-  console.log("initMonthsFilter chiamata");
+      // prima opzione: Tutti
+      const optAll = document.createElement("option");
+      optAll.value = "ALL";
+      optAll.textContent = "Tutti";
+      optAll.selected = true;
+      monthSelect.appendChild(optAll);
 
-  const monthSelect = document.getElementById("monthFilter");
-
-  // se l'elemento non esiste, esco SUBITO
-  if (!monthSelect) {
-    console.warn("monthFilter non trovato nel DOM");
-    return;
-  }
-
-  // svuoto, nel caso venisse richiamata più volte
-  monthSelect.innerHTML = "";
-
-  MONTH_LABELS_IT.forEach((label, idx) => {
-    const opt = document.createElement("option");
-    opt.value = String(idx + 1).padStart(2, "0");
-    opt.textContent = label;
-    monthSelect.appendChild(opt);
-  });
-}
+      MONTH_LABELS_IT.forEach((label, idx) => {
+        const opt = document.createElement("option");
+        opt.value = String(idx + 1).padStart(2, "0");
+        opt.textContent = label;
+        monthSelect.appendChild(opt);
+      });
+    }
 
     function initGroupFilter() {
       const groupSelect = document.getElementById("groupFilter");
       if (!groupSelect) return;
+
+      const optAll = document.createElement("option");
+      optAll.value = "ALL";
+      optAll.textContent = "Tutti";
+      optAll.selected = true;
+      groupSelect.appendChild(optAll);
 
       VEHICLE_GROUPS.forEach(g => {
         const opt = document.createElement("option");
@@ -695,6 +663,13 @@ function resetFilters() {
     function initAcquisitionFilter() {
       const acquisitionSelect = document.getElementById("acquisitionFilter");
       if (!acquisitionSelect) return;
+
+      acquisitionSelect.innerHTML = "";
+      const optAll = document.createElement("option");
+      optAll.value = "ALL";
+      optAll.textContent = "Tutti";
+      optAll.selected = true;
+      acquisitionSelect.appendChild(optAll);
 
       const set = new Set();
       fleetData.forEach(row => {
@@ -728,6 +703,13 @@ function resetFilters() {
     function initStationFilter() {
       const stationSelect = document.getElementById("stationFilter");
       if (!stationSelect) return;
+
+      stationSelect.innerHTML = "";
+      const optAll = document.createElement("option");
+      optAll.value = "ALL";
+      optAll.textContent = "Tutti";
+      optAll.selected = true;
+      stationSelect.appendChild(optAll);
 
       const set = new Set();
 
@@ -771,18 +753,32 @@ function resetFilters() {
     }
 
     function getMultiSelectValues(selectId) {
-  const select = document.getElementById(selectId);
-  if (!select) return [];
+      const select = document.getElementById(selectId);
+      if (!select) return [];
 
-  const values = Array.from(select.selectedOptions).map(o => o.value);
+      const values = Array.from(select.selectedOptions).map(o => o.value);
+      if (values.includes("ALL")) {
+        return []; // nessun filtro
+      }
+      return values;
+    }
 
-  // Se è selezionato "ALL" → nessun filtro: restituisco []
-  if (values.includes("ALL")) {
-    return [];
-  }
-  return values;
-}
+    function resetFilters() {
+      ["yearFilter","monthFilter","groupFilter","acquisitionFilter","stationFilter"]
+        .forEach(id => {
+          const select = document.getElementById(id);
+          if (!select) return;
 
+          Array.from(select.options).forEach(opt => {
+            opt.selected = (opt.value === "ALL");
+          });
+        });
+
+      const proj = document.getElementById("projectionSelect");
+      if (proj) proj.value = "0.10";
+
+      applyFiltersAndRender();
+    }
 
     // =========================
     // DATE HELPERS
@@ -890,7 +886,7 @@ function resetFilters() {
         }
       }
 
-      // 1) Flotta (fleetData_clean) -> GRUPPO
+      // 1) Flotta
       fleetData.forEach(row => {
         const gruppoCanonico = canonicalGroup(row["GRUPPO"]);
         if (!gruppoCanonico) return;
@@ -943,10 +939,10 @@ function resetFilters() {
         }
       });
 
-      // 2) Filtro stazione sulla flotta tramite fleetStations2025 (per anno/mese/gruppo)
+      // 2) Filtro stazione su flotta (per year/month/group)
       applyStationFilterToFleet(monthlyMap, groups, stations);
 
-      // 3) Prenotazioni (bookings2025) -> gruppo/cartype
+      // 3) Prenotazioni
       bookingsData.forEach(row => {
         const gruppoCanonico = canonicalGroup(row["cartype"] ?? row["gruppo"]);
         if (!gruppoCanonico) return;
@@ -990,7 +986,7 @@ function resetFilters() {
         bucket.numBookings += 1;
       });
 
-      // calcolo revenue/day e noleggiati
+      // 3b) revenue/day e noleggiati
       monthlyMap.forEach(bucket => {
         if (bucket.revenueDays > 0) {
           bucket.revenuePerDay = bucket.revenue / bucket.revenueDays;
@@ -1035,7 +1031,7 @@ function resetFilters() {
     }
 
     // =========================
-    // STATION FILTER (FLOTTA) PER ANNO/MESE via fleetStations2025
+    // STATION FILTER (flotta) via fleetStations2025
     // =========================
     function applyStationFilterToFleet(monthlyMap, groups, stations) {
       if (!fleetStationsData || fleetStationsData.length === 0) return;
@@ -1086,7 +1082,7 @@ function resetFilters() {
     }
 
     // =========================
-    // KPI CALCULATION
+    // KPI
     // =========================
     function updateKpiCards() {
       if (!monthlyAggregates || monthlyAggregates.length === 0) {
@@ -1321,105 +1317,100 @@ function resetFilters() {
     // =========================
     // CHART
     // =========================
-   function updateChart() {
-  const canvas = document.getElementById("mainChart");
-  if (!canvas) return;
-  const ctx = canvas.getContext("2d");
+    function updateChart() {
+      const canvas = document.getElementById("mainChart");
+      if (!canvas) return;
+      const ctx = canvas.getContext("2d");
 
-  // Se non ci sono dati, distruggi il grafico e basta
-  if (!monthlyAggregates || monthlyAggregates.length === 0) {
-    if (mainChart) {
-      mainChart.destroy();
-      mainChart = null;
-    }
-    return;
-  }
-
-  const labels = monthlyAggregates.map(b => b.label);
-
-  function safeNumber(v) {
-    return Number.isFinite(v) ? v : 0;
-  }
-
-  const fleetSeries      = monthlyAggregates.map(b => safeNumber(b.fleetSize));
-  const costSeries       = monthlyAggregates.map(b => safeNumber(b.costoTotale));
-  const revenueSeries    = monthlyAggregates.map(b => safeNumber(b.revenue));
-  const noleggiatiSeries = monthlyAggregates.map(b => safeNumber(b.noleggiati));
-
-  if (mainChart) {
-    mainChart.destroy();
-  }
-
-  mainChart = new Chart(ctx, {
-    type: "line",
-    data: {
-      labels,
-      datasets: [
-        {
-          label: "Dimensione flotta",
-          data: fleetSeries,
-          yAxisID: "y",
-          borderWidth: 2,
-          tension: 0.3
-        },
-        {
-          label: "Costo totale",
-          data: costSeries,
-          yAxisID: "y1",
-          borderWidth: 2,
-          tension: 0.3
-        },
-        {
-          label: "Revenue",
-          data: revenueSeries,
-          yAxisID: "y1",
-          borderWidth: 2,
-          tension: 0.3
-        },
-        {
-          label: "Noleggiati",
-          data: noleggiatiSeries,
-          yAxisID: "y",
-          borderWidth: 2,
-          tension: 0.3
+      if (!monthlyAggregates || monthlyAggregates.length === 0) {
+        if (mainChart) {
+          mainChart.destroy();
+          mainChart = null;
         }
-      ]
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      interaction: { mode: "index", intersect: false },
-      stacked: false,
-      scales: {
-        x: {
-          ticks: { color: "#e5e7eb", maxRotation: 0, autoSkip: true },
-          grid: { color: "rgba(148,163,184,0.15)" }
-        },
-        y: {
-          type: "linear",
-          position: "left",
-          beginAtZero: true,                  // 👈 evita scale strane
-          title: { display: true, text: "Flotta / Noleggiati", color: "#e5e7eb" },
-          ticks: { color: "#e5e7eb" },
-          grid: { color: "rgba(148,163,184,0.15)" }
-        },
-        y1: {
-          type: "linear",
-          position: "right",
-          beginAtZero: true,                  // 👈 idem per € 
-          title: { display: true, text: "€", color: "#e5e7eb" },
-          ticks: { color: "#e5e7eb" },
-          grid: { drawOnChartArea: false }
-        }
-      },
-      plugins: {
-        legend: { labels: { color: "#e5e7eb" } },
-        tooltip: { callbacks: { footer: () => "" } }
+        return;
       }
-    }
-  });
-}
 
+      function safeNumber(v) {
+        return Number.isFinite(v) ? v : 0;
+      }
+
+      const labels           = monthlyAggregates.map(b => b.label);
+      const fleetSeries      = monthlyAggregates.map(b => safeNumber(b.fleetSize));
+      const costSeries       = monthlyAggregates.map(b => safeNumber(b.costoTotale));
+      const revenueSeries    = monthlyAggregates.map(b => safeNumber(b.revenue));
+      const noleggiatiSeries = monthlyAggregates.map(b => safeNumber(b.noleggiati));
+
+      if (mainChart) mainChart.destroy();
+
+      mainChart = new Chart(ctx, {
+        type: "line",
+        data: {
+          labels,
+          datasets: [
+            {
+              label: "Dimensione flotta",
+              data: fleetSeries,
+              yAxisID: "y",
+              borderWidth: 2,
+              tension: 0.3
+            },
+            {
+              label: "Costo totale",
+              data: costSeries,
+              yAxisID: "y1",
+              borderWidth: 2,
+              tension: 0.3
+            },
+            {
+              label: "Revenue",
+              data: revenueSeries,
+              yAxisID: "y1",
+              borderWidth: 2,
+              tension: 0.3
+            },
+            {
+              label: "Noleggiati",
+              data: noleggiatiSeries,
+              yAxisID: "y",
+              borderWidth: 2,
+              tension: 0.3
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          interaction: { mode: "index", intersect: false },
+          stacked: false,
+          scales: {
+            x: {
+              ticks: { color: "#e5e7eb", maxRotation: 0, autoSkip: true },
+              grid: { color: "rgba(148,163,184,0.15)" }
+            },
+            y: {
+              type: "linear",
+              position: "left",
+              beginAtZero: true,
+              title: { display: true, text: "Flotta / Noleggiati", color: "#e5e7eb" },
+              ticks: { color: "#e5e7eb" },
+              grid: { color: "rgba(148,163,184,0.15)" }
+            },
+            y1: {
+              type: "linear",
+              position: "right",
+              beginAtZero: true,
+              title: { display: true, text: "€", color: "#e5e7eb" },
+              ticks: { color: "#e5e7eb" },
+              grid: { drawOnChartArea: false }
+            }
+          },
+          plugins: {
+            legend: { labels: { color: "#e5e7eb" } },
+            tooltip: { callbacks: { footer: () => "" } }
+          }
+        }
+      });
+    }
 
     // =========================
     // EXPORT CSV
