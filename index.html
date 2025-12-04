@@ -1,271 +1,207 @@
-<!DOCTYPE html>
-<html lang="it">
 <head>
   <meta charset="UTF-8" />
   <title>Dashboard Flotta & Prenotazioni</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
 
-  <!-- Bootstrap 5 CSS -->
-  <link
-    href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
-    rel="stylesheet"
-    crossorigin="anonymous"
-  />
+  <!-- Bootstrap 5 -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
+        rel="stylesheet" crossorigin="anonymous" />
 
   <!-- Chart.js -->
-  <script
-    src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"
-  ></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 
   <style>
     :root {
       --bg-main: #0f1115;
-      --bg-card: #181b22;
-      --bg-sidebar: #12151c;
-      --border-subtle: #262a33;
+      --bg-card: #1a1f29;
+      --bg-sidebar: #141821;
+      --border-subtle: #2d3341;
+
+      /* PALETTE A — Blu / Ciano / Verde */
+      --c-flotta: #3b82f6;     /* blu */
+      --c-costo: #06b6d4;      /* ciano */
+      --c-revenue: #22c55e;    /* verde */
+
       --text-primary: #f5f5f7;
       --text-muted: #9ca3af;
-      --accent: #3b82f6;
-      --accent-soft: rgba(59, 130, 246, 0.15);
-      --danger: #ef4444;
+
       --success: #22c55e;
+      --danger: #ef4444;
     }
 
     body {
-      background: radial-gradient(circle at top, #1e293b 0, #020617 55%);
+      background: radial-gradient(circle at top, #1e293b 0, #020617 60%);
       color: var(--text-primary);
-      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont;
       min-height: 100vh;
     }
 
-    .dashboard-shell {
-      padding: 1.5rem 1rem 1.5rem;
-    }
+    .dashboard-shell { padding: 1.5rem 1rem; }
 
     .dashboard-header {
       padding-bottom: 1rem;
-      border-bottom: 1px solid rgba(148, 163, 184, 0.3);
+      border-bottom: 1px solid rgba(148,163,184,0.25);
       margin-bottom: 1rem;
     }
 
-    .dashboard-header h3 {
-      font-weight: 600;
-      letter-spacing: 0.03em;
+    /* SIDEBAR */
+    .sidebar {
+      background: var(--bg-sidebar);
+      padding: 1rem;
+      border-radius: 1rem;
+      border: 1px solid var(--border-subtle);
+      box-shadow: 0 12px 30px rgba(0,0,0,0.4);
     }
 
+    .sidebar-title {
+      font-size: .9rem;
+      font-weight: 600;
+      letter-spacing: .08em;
+      color: var(--text-muted);
+      text-transform: uppercase;
+    }
+
+    .filter-label {
+      font-size: .75rem;
+      color: var(--text-muted);
+      margin-bottom: .15rem;
+      font-weight: 600;
+      text-transform: uppercase;
+    }
+
+    .form-select {
+      background-color: #0b1120;
+      color: var(--text-primary);
+      border: 1px solid #2b3344;
+      font-size: .85rem;
+    }
+
+    .form-select:focus {
+      border-color: var(--c-flotta);
+      box-shadow: 0 0 0 1px rgba(59,130,246,0.25);
+    }
+
+    .accordion-button {
+      background: #0b1120;
+      color: var(--text-primary);
+      font-size: .8rem;
+      text-transform: uppercase;
+      letter-spacing: .08em;
+      border-bottom: 1px solid var(--border-subtle);
+    }
+
+    .accordion-button:not(.collapsed) {
+      color: var(--c-flotta);
+      background: #0b1120;
+      box-shadow: none;
+    }
+
+    /* KPI */
     .kpi-card {
+      background: var(--bg-card);
       border-radius: 1rem;
-      background: radial-gradient(circle at top left, #1f2937 0, #020617 55%);
-      border: 1px solid rgba(148, 163, 184, 0.3);
-      box-shadow: 0 18px 45px rgba(15, 23, 42, 0.8);
-      height: 100%;
+      padding: 1rem;
+      border: 1px solid var(--border-subtle);
+      box-shadow: 0 16px 35px rgba(0,0,0,0.45);
     }
 
     .kpi-title {
-      font-size: 0.85rem;
-      text-transform: uppercase;
-      letter-spacing: 0.08em;
+      font-size: .78rem;
       color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: .08em;
+      margin-bottom: .25rem;
     }
 
     .kpi-value {
-      font-size: 1.5rem;
+      font-size: 1.45rem;
       font-weight: 700;
+      margin-bottom: .25rem;
     }
 
-    .kpi-sub,
     .kpi-prev {
-      font-size: 0.8rem;
+      font-size: .75rem;
       color: var(--text-muted);
     }
 
     .kpi-diff {
-      font-size: 0.9rem;
-      font-weight: 600;
+      font-size: .85rem;
+      font-weight: 700;
     }
 
-    .kpi-diff.positive {
-      color: var(--success);
-    }
+    .kpi-diff.positive { color: var(--success); }
+    .kpi-diff.negative { color: var(--danger); }
+    .kpi-diff.neutral  { color: var(--text-muted); }
 
-    .kpi-diff.negative {
-      color: var(--danger);
-    }
-
-    .kpi-diff.neutral {
-      color: var(--text-muted);
-    }
-
-    .sidebar {
-      background: linear-gradient(180deg, #020617 0%, #020617 100%);
-      border-radius: 1.2rem;
-      border: 1px solid rgba(148, 163, 184, 0.4);
-      padding: 1rem;
-      box-shadow: 0 18px 40px rgba(15, 23, 42, 0.9);
-      height: 100%;
-    }
-
-    .sidebar-title {
-      font-size: 0.9rem;
-      text-transform: uppercase;
-      letter-spacing: 0.12em;
-      color: var(--text-muted);
-      margin-bottom: 0.75rem;
-    }
-
-    .filter-label {
-      font-size: 0.8rem;
-      font-weight: 600;
-      text-transform: uppercase;
-      letter-spacing: 0.08em;
-      color: var(--text-muted);
-      margin-bottom: 0.15rem;
-    }
-
-    .form-select,
-    .form-control {
-      background-color: #020617;
-      color: var(--text-primary);
-      border: 1px solid var(--border-subtle);
-      font-size: 0.85rem;
-    }
-
-    .form-select:focus,
-    .form-control:focus {
-      border-color: var(--accent);
-      box-shadow: 0 0 0 1px var(--accent-soft);
-      background-color: #020617;
-      color: var(--text-primary);
-    }
-
-    .accordion-button {
-      background-color: #020617;
-      color: var(--text-primary);
-      border-bottom: 1px solid var(--border-subtle);
-      padding: 0.4rem 0.6rem;
-      font-size: 0.8rem;
-      text-transform: uppercase;
-      letter-spacing: 0.08em;
-    }
-
-    .accordion-button::after {
-      filter: invert(1);
-    }
-
-    .accordion-button:not(.collapsed) {
-      background-color: #020617;
-      color: var(--accent);
-      box-shadow: none;
-    }
-
-    .accordion-item {
-      border: none;
-      border-bottom: 1px solid var(--border-subtle);
-    }
-
-    .accordion-body {
-      padding: 0.4rem 0.6rem 0.6rem;
-      background-color: #020617;
-    }
-
+    /* GRAFICI */
     .chart-container {
-  background: radial-gradient(circle at top, #111827 0, #020617 55%);
-  border-radius: 1.2rem;
-  border: 1px solid rgba(148, 163, 184, 0.4);
-  box-shadow: 0 20px 50px rgba(15, 23, 42, 0.9);
-  padding: 1rem 1.2rem 1.5rem;
-
-  /* altezza controllata */
-  height: 45vh;
-  max-height: 480px;
-}
-
-
-    .btn-icon {
-      display: inline-flex;
-      align-items: center;
-      gap: 0.3rem;
-      font-size: 0.8rem;
-      border-radius: 999px;
-    }
-
-    .btn-outline-secondary {
-      border-color: rgba(148, 163, 184, 0.6);
-      color: var(--text-muted);
-    }
-
-    .btn-outline-secondary:hover {
-      background-color: rgba(148, 163, 184, 0.1);
-      color: var(--text-primary);
-    }
-
-    .btn-outline-danger {
-      border-radius: 999px;
-      font-size: 0.8rem;
+      background: #0f1623;
+      border-radius: 1rem;
+      padding: 1.2rem;
+      box-shadow: 0 18px 40px rgba(0,0,0,0.55);
+      border: 1px solid var(--border-subtle);
+      height: 45vh;
+      max-height: 480px;
     }
 
     @media print {
-      .no-print {
-        display: none !important;
-      }
-      body {
-        background: #ffffff;
-        color: #000000;
-      }
-      .sidebar,
-      .chart-container,
-      .kpi-card {
+      body { background: #fff; color: #000; }
+      .sidebar, .kpi-card, .chart-container {
+        background: #fff !important;
         box-shadow: none !important;
-        background: #ffffff !important;
-        border-color: #dddddd !important;
-        color: #000000 !important;
+        border-color: #ccc !important;
+        color: #000 !important;
       }
     }
   </style>
 </head>
 <body>
   <div class="container-fluid dashboard-shell">
+
     <!-- HEADER -->
     <div class="dashboard-header d-flex justify-content-between align-items-center">
       <div>
-        <h3 class="mb-0">Dashboard Flotta &amp; Prenotazioni</h3>
-        <small class="text-muted">Analisi flotta 2024–2026 e prenotazioni 2025</small>
+        <h3 class="mb-0">Dashboard Flotta & Prenotazioni</h3>
+        <small class="text-muted">Analisi flotta 2024–2026 + prenotazioni 2025</small>
       </div>
+
       <div class="no-print">
-        <button id="exportCsvBtn" class="btn btn-outline-secondary btn-sm btn-icon me-2">
-          <span>⬇️</span><span>Esporta CSV</span>
+        <button id="exportCsvBtn" class="btn btn-outline-secondary btn-sm me-2">
+          ⬇️ Esporta CSV
         </button>
-        <button id="printPdfBtn" class="btn btn-outline-secondary btn-sm btn-icon">
-          <span>🖨️</span><span>Stampa / PDF</span>
+        <button id="printPdfBtn" class="btn btn-outline-secondary btn-sm">
+          🖨️ Stampa / PDF
         </button>
       </div>
     </div>
 
     <div class="row g-3">
-      <!-- SIDEBAR FILTRI -->
+
+      <!-- ------------------------- -->
+      <!-- SIDEBAR FILTRI           -->
+      <!-- ------------------------- -->
       <div class="col-12 col-lg-3 no-print">
-        <div class="sidebar h-100">
+        <div class="sidebar">
+
           <div class="d-flex justify-content-between align-items-center mb-2">
             <div class="sidebar-title">Filtri</div>
             <button id="clearFiltersBtn" class="btn btn-outline-danger btn-sm">
-              🔄 Pulisci
+              🔄 Reset
             </button>
           </div>
 
           <div class="accordion accordion-flush" id="filtersAccordion">
+
             <!-- Anno -->
             <div class="accordion-item">
-              <h2 class="accordion-header" id="headingYear">
-                <button class="accordion-button collapsed" type="button"
-                        data-bs-toggle="collapse" data-bs-target="#collapseYear"
-                        aria-expanded="false" aria-controls="collapseYear">
+              <h2 class="accordion-header">
+                <button class="accordion-button collapsed" data-bs-toggle="collapse" data-bs-target="#collapseYear">
                   Anno
                 </button>
               </h2>
-              <div id="collapseYear" class="accordion-collapse collapse"
-                   aria-labelledby="headingYear" data-bs-parent="#filtersAccordion">
+              <div id="collapseYear" class="accordion-collapse collapse">
                 <div class="accordion-body">
-                  <label for="yearFilter" class="filter-label">Anno (multi)</label>
+                  <label class="filter-label">Anno</label>
                   <select id="yearFilter" class="form-select form-select-sm" multiple>
                     <option value="ALL" selected>Tutti</option>
                     <option value="2024">2024</option>
@@ -278,35 +214,29 @@
 
             <!-- Mese -->
             <div class="accordion-item">
-              <h2 class="accordion-header" id="headingMonth">
-                <button class="accordion-button collapsed" type="button"
-                        data-bs-toggle="collapse" data-bs-target="#collapseMonth"
-                        aria-expanded="false" aria-controls="collapseMonth">
+              <h2 class="accordion-header">
+                <button class="accordion-button collapsed" data-bs-toggle="collapse" data-bs-target="#collapseMonth">
                   Mese
                 </button>
               </h2>
-              <div id="collapseMonth" class="accordion-collapse collapse"
-                   aria-labelledby="headingMonth" data-bs-parent="#filtersAccordion">
+              <div id="collapseMonth" class="accordion-collapse collapse">
                 <div class="accordion-body">
-                  <label for="monthFilter" class="filter-label">Mese (multi)</label>
+                  <label class="filter-label">Mese</label>
                   <select id="monthFilter" class="form-select form-select-sm" multiple></select>
                 </div>
               </div>
             </div>
 
-            <!-- Gruppo veicolo -->
+            <!-- Gruppo -->
             <div class="accordion-item">
-              <h2 class="accordion-header" id="headingGroup">
-                <button class="accordion-button collapsed" type="button"
-                        data-bs-toggle="collapse" data-bs-target="#collapseGroup"
-                        aria-expanded="false" aria-controls="collapseGroup">
+              <h2 class="accordion-header">
+                <button class="accordion-button collapsed" data-bs-toggle="collapse" data-bs-target="#collapseGroup">
                   Gruppo veicolo
                 </button>
               </h2>
-              <div id="collapseGroup" class="accordion-collapse collapse"
-                   aria-labelledby="headingGroup" data-bs-parent="#filtersAccordion">
+              <div id="collapseGroup" class="accordion-collapse collapse">
                 <div class="accordion-body">
-                  <label for="groupFilter" class="filter-label">Gruppo (multi)</label>
+                  <label class="filter-label">Gruppo</label>
                   <select id="groupFilter" class="form-select form-select-sm" multiple></select>
                 </div>
               </div>
@@ -314,17 +244,14 @@
 
             <!-- Acquisizione -->
             <div class="accordion-item">
-              <h2 class="accordion-header" id="headingAcquisition">
-                <button class="accordion-button collapsed" type="button"
-                        data-bs-toggle="collapse" data-bs-target="#collapseAcquisition"
-                        aria-expanded="false" aria-controls="collapseAcquisition">
+              <h2 class="accordion-header">
+                <button class="accordion-button collapsed" data-bs-toggle="collapse" data-bs-target="#collapseAcq">
                   Acquisizione
                 </button>
               </h2>
-              <div id="collapseAcquisition" class="accordion-collapse collapse"
-                   aria-labelledby="headingAcquisition" data-bs-parent="#filtersAccordion">
+              <div id="collapseAcq" class="accordion-collapse collapse">
                 <div class="accordion-body">
-                  <label for="acquisitionFilter" class="filter-label">Acquisizione (multi)</label>
+                  <label class="filter-label">Acquisizione</label>
                   <select id="acquisitionFilter" class="form-select form-select-sm" multiple></select>
                 </div>
               </div>
@@ -332,108 +259,89 @@
 
             <!-- Stazione -->
             <div class="accordion-item">
-              <h2 class="accordion-header" id="headingStation">
-                <button class="accordion-button collapsed" type="button"
-                        data-bs-toggle="collapse" data-bs-target="#collapseStation"
-                        aria-expanded="false" aria-controls="collapseStation">
+              <h2 class="accordion-header">
+                <button class="accordion-button collapsed" data-bs-toggle="collapse" data-bs-target="#collapseStation">
                   Stazione
                 </button>
               </h2>
-              <div id="collapseStation" class="accordion-collapse collapse"
-                   aria-labelledby="headingStation" data-bs-parent="#filtersAccordion">
+              <div id="collapseStation" class="accordion-collapse collapse">
                 <div class="accordion-body">
-                  <label for="stationFilter" class="filter-label">Stazione (multi)</label>
+                  <label class="filter-label">Stazione</label>
                   <select id="stationFilter" class="form-select form-select-sm" multiple></select>
                 </div>
               </div>
             </div>
 
-            <!-- Proiezione 2026 -->
+            <!-- Proiezioni -->
             <div class="accordion-item">
-              <h2 class="accordion-header" id="headingProjection">
-                <button class="accordion-button collapsed" type="button"
-                        data-bs-toggle="collapse" data-bs-target="#collapseProjection"
-                        aria-expanded="false" aria-controls="collapseProjection">
+              <h2 class="accordion-header">
+                <button class="accordion-button collapsed" data-bs-toggle="collapse" data-bs-target="#collapseProjection">
                   Proiezione 2026
                 </button>
               </h2>
-              <div id="collapseProjection" class="accordion-collapse collapse"
-                   aria-labelledby="headingProjection" data-bs-parent="#filtersAccordion">
+              <div id="collapseProjection" class="accordion-collapse collapse">
                 <div class="accordion-body">
-                  <label for="projectionSelect" class="filter-label">Proiezione 2026</label>
+                  <label class="filter-label">Proiezione</label>
                   <select id="projectionSelect" class="form-select form-select-sm">
                     <option value="0.05">+5%</option>
                     <option value="0.10" selected>+10%</option>
                     <option value="0.15">+15%</option>
                     <option value="0.20">+20%</option>
                   </select>
-                  <small class="text-muted d-block mt-1" style="font-size: 0.7rem;">
-                    Applicata a tutti i KPI sui mesi 2026.
+                  <small class="text-muted d-block mt-1" style="font-size:.7rem">
+                    Applicata sui dati 2026 ricostruiti dal 2025.
                   </small>
                 </div>
               </div>
             </div>
-          </div>
 
+          </div>
         </div>
       </div>
 
-      <!-- KPI + GRAFICO -->
+      <!-- ------------------------- -->
+      <!-- KPI & GRAFICI            -->
+      <!-- ------------------------- -->
       <div class="col-12 col-lg-9">
+
         <!-- KPI ROW 1 -->
         <div class="row g-3 mb-3">
           <div class="col-12 col-md-6 col-xl-3">
-            <div class="kpi-card p-3">
-              <div class="d-flex justify-content-between align-items-center mb-1">
-                <div class="kpi-title">🚗 Dimensione flotta (media)</div>
-              </div>
+            <div class="kpi-card">
+              <div class="kpi-title">🚗 Flotta (media)</div>
               <div class="kpi-value" id="kpi-fleet-current">–</div>
-              <div class="kpi-prev mb-1">
-                Prev: <span id="kpi-fleet-prev">–</span>
-              </div>
-              <div class="kpi-diff neutral" id="kpi-fleet-diff">–</div>
+              <div class="kpi-prev">Prev: <span id="kpi-fleet-prev">–</span></div>
+              <div id="kpi-fleet-diff" class="kpi-diff neutral">–</div>
             </div>
           </div>
 
           <div class="col-12 col-md-6 col-xl-3">
-            <div class="kpi-card p-3">
-              <div class="d-flex justify-content-between align-items-center mb-1">
-                <div class="kpi-title">💶 Canone imponibile</div>
-              </div>
+            <div class="kpi-card">
+              <div class="kpi-title">💶 Canone imponibile</div>
               <div class="kpi-value" id="kpi-canone-current">–</div>
-              <div class="kpi-sub mb-1">
-                Canone ivato: <span id="kpi-canone-ivato-current">–</span>
+              <div class="kpi-prev">Prev: <span id="kpi-canone-prev">–</span></div>
+              <div id="kpi-canone-diff" class="kpi-diff neutral">–</div>
+              <div class="kpi-prev">
+                Ivato: <span id="kpi-canone-ivato-current">–</span>
               </div>
-              <div class="kpi-prev mb-1">
-                Prev: <span id="kpi-canone-prev">–</span>
-              </div>
-              <div class="kpi-diff neutral" id="kpi-canone-diff">–</div>
             </div>
           </div>
 
           <div class="col-12 col-md-6 col-xl-3">
-            <div class="kpi-card p-3">
-              <div class="d-flex justify-content-between align-items-center mb-1">
-                <div class="kpi-title">🛡️ Assicurazione</div>
-              </div>
+            <div class="kpi-card">
+              <div class="kpi-title">🛡️ Assicurazione</div>
               <div class="kpi-value" id="kpi-assicurazione-current">–</div>
-              <div class="kpi-prev mb-1">
-                Prev: <span id="kpi-assicurazione-prev">–</span>
-              </div>
-              <div class="kpi-diff neutral" id="kpi-assicurazione-diff">–</div>
+              <div class="kpi-prev">Prev: <span id="kpi-assicurazione-prev">–</span></div>
+              <div id="kpi-assicurazione-diff" class="kpi-diff neutral">–</div>
             </div>
           </div>
 
           <div class="col-12 col-md-6 col-xl-3">
-            <div class="kpi-card p-3">
-              <div class="d-flex justify-content-between align-items-center mb-1">
-                <div class="kpi-title">💰 Costo totale</div>
-              </div>
+            <div class="kpi-card">
+              <div class="kpi-title">💰 Costo totale</div>
               <div class="kpi-value" id="kpi-costo-current">–</div>
-              <div class="kpi-prev mb-1">
-                Prev: <span id="kpi-costo-prev">–</span>
-              </div>
-              <div class="kpi-diff neutral" id="kpi-costo-diff">–</div>
+              <div class="kpi-prev">Prev: <span id="kpi-costo-prev">–</span></div>
+              <div id="kpi-costo-diff" class="kpi-diff neutral">–</div>
             </div>
           </div>
         </div>
@@ -441,1218 +349,735 @@
         <!-- KPI ROW 2 -->
         <div class="row g-3 mb-4">
           <div class="col-12 col-md-6 col-xl-3">
-            <div class="kpi-card p-3">
-              <div class="d-flex justify-content-between align-items-center mb-1">
-                <div class="kpi-title">💸 Revenue</div>
-              </div>
+            <div class="kpi-card">
+              <div class="kpi-title">💸 Revenue</div>
               <div class="kpi-value" id="kpi-revenue-current">–</div>
-              <div class="kpi-prev mb-1">
-                Prev: <span id="kpi-revenue-prev">–</span>
-              </div>
-              <div class="kpi-diff neutral" id="kpi-revenue-diff">–</div>
+              <div class="kpi-prev">Prev: <span id="kpi-revenue-prev">–</span></div>
+              <div id="kpi-revenue-diff" class="kpi-diff neutral">–</div>
             </div>
           </div>
 
           <div class="col-12 col-md-6 col-xl-3">
-            <div class="kpi-card p-3">
-              <div class="d-flex justify-content-between align-items-center mb-1">
-                <div class="kpi-title">☀️ Revenue / day</div>
-              </div>
+            <div class="kpi-card">
+              <div class="kpi-title">☀️ Revenue/day</div>
               <div class="kpi-value" id="kpi-revday-current">–</div>
-              <div class="kpi-prev mb-1">
-                Prev: <span id="kpi-revday-prev">–</span>
-              </div>
-              <div class="kpi-diff neutral" id="kpi-revday-diff">–</div>
+              <div class="kpi-prev">Prev: <span id="kpi-revday-prev">–</span></div>
+              <div id="kpi-revday-diff" class="kpi-diff neutral">–</div>
             </div>
           </div>
 
           <div class="col-12 col-md-6 col-xl-3">
-            <div class="kpi-card p-3">
-              <div class="d-flex justify-content-between align-items-center mb-1">
-                <div class="kpi-title">📝 Numero prenotazioni</div>
-              </div>
+            <div class="kpi-card">
+              <div class="kpi-title">📝 Prenotazioni</div>
               <div class="kpi-value" id="kpi-bookings-current">–</div>
-              <div class="kpi-prev mb-1">
-                Prev: <span id="kpi-bookings-prev">–</span>
-              </div>
-              <div class="kpi-diff neutral" id="kpi-bookings-diff">–</div>
+              <div class="kpi-prev">Prev: <span id="kpi-bookings-prev">–</span></div>
+              <div id="kpi-bookings-diff" class="kpi-diff neutral">–</div>
             </div>
           </div>
 
           <div class="col-12 col-md-6 col-xl-3">
-            <div class="kpi-card p-3">
-              <div class="d-flex justify-content-between align-items-center mb-1">
-                <div class="kpi-title">🚙 Noleggiati</div>
-              </div>
+            <div class="kpi-card">
+              <div class="kpi-title">🚙 Noleggiati (media)</div>
               <div class="kpi-value" id="kpi-noleggiati-current">–</div>
-              <div class="kpi-prev mb-1">
-                Prev: <span id="kpi-noleggiati-prev">–</span>
-              </div>
-              <div class="kpi-diff neutral" id="kpi-noleggiati-diff">–</div>
+              <div class="kpi-prev">Prev: <span id="kpi-noleggiati-prev">–</span></div>
+              <div id="kpi-noleggiati-diff" class="kpi-diff neutral">–</div>
             </div>
           </div>
         </div>
 
-        <!-- GRAFICI -->
-        <div class="row mb-4">
-          <div class="col-12">
-            <div class="chart-container" style="min-height: 320px;">
-              <div class="d-flex justify-content-between align-items-center mb-2">
-                <h6 class="mb-0">Andamento mensile flotta &amp; costi</h6>
-                <small class="text-muted">Flotta, costo totale, revenue (filtrati)</small>
-              </div>
-           <canvas id="lineChart"></canvas>
-            </div>
+        <!-- ===================== -->
+        <!-- GRAFICO LINEA MODERNO -->
+        <!-- ===================== -->
+        <div class="chart-container mb-4">
+          <div class="d-flex justify-content-between align-items-center mb-2">
+            <h6 class="mb-0">Andamento flotta & costi</h6>
+            <small class="text-muted">Flotta, costo totale, revenue</small>
           </div>
+          <canvas id="lineChart"></canvas>
         </div>
 
-        <div class="row mb-4">
-          <div class="col-12">
-            <div class="chart-container" style="min-height: 280px;">
-              <div class="d-flex justify-content-between align-items-center mb-2">
-                <h6 class="mb-0">Confronto costi vs revenue</h6>
-                <small class="text-muted">Barre per mese, in base ai filtri</small>
-              </div>
-              <canvas id="barChart" height="80"></canvas>
-            </div>
+        <!-- ======================== -->
+        <!-- GRAFICO BARRE MODERNO   -->
+        <!-- ======================== -->
+        <div class="chart-container mb-4">
+          <div class="d-flex justify-content-between align-items-center mb-2">
+            <h6 class="mb-0">Confronto costi vs revenue</h6>
           </div>
+          <canvas id="barChart"></canvas>
         </div>
 
-      </div> <!-- /col-12 col-lg-9 -->
-    </div> <!-- /row g-3 -->
-  </div> <!-- /container-fluid -->
+      </div> <!-- /col-lg-9 -->
+
+    </div> <!-- /row -->
+  </div><!-- /dashboard-shell -->
 
   <!-- Bootstrap JS -->
-  <script
-    src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"
-    crossorigin="anonymous"
-  ></script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"
+          crossorigin="anonymous"></script>
 
-  <script>
-    // =========================
-    // GLOBAL CHART STATE
-    // =========================
-    let lineChart = null;
-    let barChart  = null;
+<script>
+// =========================
+// GLOBAL CHART STATE
+// =========================
+let lineChart = null;
+let barChart  = null;
 
-    function safeNumber(v) {
-      if (!Number.isFinite(v) || isNaN(v)) return 0;
-      return v;
-    }
+function safeNumber(v) {
+  if (!Number.isFinite(v) || isNaN(v)) return 0;
+  return v;
+}
 
-    // =========================
-    // CONFIG & GLOBAL STATE
-    // =========================
-    const VEHICLE_GROUPS = [
-      "Commercial Van",
-      "Large",
-      "Economy",
-      "Small",
-      "Mini",
-      "Premium",
-      "Suv",
-      "People Mover",
-      "Station Wagon",
-      "Cabriolet"
-    ];
+// =========================
+// CONFIG & GLOBAL STATE
+// =========================
+const VEHICLE_GROUPS = [
+  "Commercial Van","Large","Economy","Small","Mini",
+  "Premium","Suv","People Mover","Station Wagon","Cabriolet"
+];
 
-    const RAW_GROUP_MAP = {
-      "COMMERCIAL VAN": "Commercial Van",
-      "COMM VAN": "Commercial Van",
-      "COMMERCIALVAN": "Commercial Van",
-      "COMMERCIAL PEOPLE MOVER": "Commercial Van", // sempre Commercial Van
+const RAW_GROUP_MAP = {
+  "COMMERCIAL VAN":"Commercial Van", "COMM VAN":"Commercial Van", "COMMERCIALVAN":"Commercial Van",
+  "LARGE":"Large","ECONOMY":"Economy","SMALL":"Small","MINI":"Mini","PREMIUM":"Premium","SUV":"Suv",
+  "PEOPLE MOVER":"People Mover","PEOPLEMOVER":"People Mover",
+  "STATION":"Station Wagon","STATION WAGON":"Station Wagon",
+  "CABRIOLET":"Cabriolet","CABRIO":"Cabriolet"
+};
 
-      "LARGE": "Large",
-      "ECONOMY": "Economy",
-      "SMALL": "Small",
-      "MINI": "Mini",
-      "PREMIUM": "Premium",
-      "SUV": "Suv",
+function canonicalGroup(raw) {
+  if (raw == null) return null;
+  let s = String(raw).trim();
+  if (!s || s.toLowerCase() === "nan") return null;
 
-      "PEOPLE MOVER": "People Mover",
-      "PEOPLEMOVER": "People Mover",
+  const up = s.toUpperCase();
+  if (RAW_GROUP_MAP[up]) return RAW_GROUP_MAP[up];
+  if (VEHICLE_GROUPS.includes(s)) return s;
 
-      "STATION": "Station Wagon",
-      "STATION WAGON": "Station Wagon",
+  return null;
+}
 
-      "CABRIOLET": "Cabriolet",
-      "CABRIO": "Cabriolet"
-    };
+const MONTH_LABELS_IT = [
+  "Gennaio","Febbraio","Marzo","Aprile","Maggio","Giugno",
+  "Luglio","Agosto","Settembre","Ottobre","Novembre","Dicembre"
+];
 
-    function canonicalGroup(raw) {
-      if (raw === null || raw === undefined) return null;
-      let s = String(raw).trim();
-      if (!s || s.toLowerCase() === "nan") return null;
+let fleetData = [];
+let fleetStationsData = [];
+let bookingsData = [];
 
-      const up = s.toUpperCase();
-      if (RAW_GROUP_MAP[up]) return RAW_GROUP_MAP[up];
+let baseAggregates = [];
+let monthlyAggregates = [];
 
-      if (VEHICLE_GROUPS.includes(s)) return s;
+// =========================
+// INIT
+// =========================
+document.addEventListener("DOMContentLoaded", () => {
+  initMonthsFilter();
+  initGroupFilter();
 
-      return null;
-    }
+  loadData().then(() => {
+    initAcquisitionFilter();
+    initStationFilter();
+    initFilterEvents();
+    applyFiltersAndRender();
+  });
 
-    const MONTH_LABELS_IT = [
-      "Gennaio","Febbraio","Marzo","Aprile","Maggio","Giugno",
-      "Luglio","Agosto","Settembre","Ottobre","Novembre","Dicembre"
-    ];
+  document.getElementById("clearFiltersBtn").onclick = resetFilters;
+  document.getElementById("exportCsvBtn").onclick = exportCsv;
+  document.getElementById("printPdfBtn").onclick = () => window.print();
+});
 
-    let fleetData = [];
-    let fleetStationsData = [];
-    let bookingsData = [];
+// =========================
+// LOADING DATA
+// =========================
+async function loadData() {
+  try {
+    const [fleetRes, stationsRes, bookingsRes] = await Promise.all([
+      fetch("fleetData_clean.json"),
+      fetch("fleetStations2025.json"),
+      fetch("bookings2025.json")
+    ]);
 
-    let baseAggregates = [];
-    let monthlyAggregates = [];
+    fleetData = await fleetRes.json();
+    fleetStationsData = await stationsRes.json();
+    bookingsData = await bookingsRes.json();
 
-    // =========================
-    // INIT
-    // =========================
-    document.addEventListener("DOMContentLoaded", () => {
-      initMonthsFilter();
-      initGroupFilter();
-      loadData().then(() => {
-        initAcquisitionFilter();
-        initStationFilter();
-        initFilterEvents();
-        applyFiltersAndRender();
-      });
+  } catch (err) {
+    console.error("Errore JSON:", err);
+    alert("Errore nel caricamento dei file JSON.");
+  }
+}
 
-      const clearBtn = document.getElementById("clearFiltersBtn");
-      if (clearBtn) clearBtn.addEventListener("click", resetFilters);
+// =========================
+// FILTERS
+// =========================
+function initMonthsFilter() {
+  const el = document.getElementById("monthFilter");
+  const optAll = new Option("Tutti","ALL",true,true);
+  el.appendChild(optAll);
 
-      const exportBtn = document.getElementById("exportCsvBtn");
-      if (exportBtn) exportBtn.addEventListener("click", exportCsv);
+  MONTH_LABELS_IT.forEach((label,idx)=>{
+    el.appendChild(new Option(label, String(idx+1).padStart(2,"0")));
+  });
+}
 
-      const printBtn = document.getElementById("printPdfBtn");
-      if (printBtn) printBtn.addEventListener("click", () => window.print());
-    });
+function initGroupFilter() {
+  const el = document.getElementById("groupFilter");
+  el.appendChild(new Option("Tutti","ALL",true,true));
+  VEHICLE_GROUPS.forEach(g => el.appendChild(new Option(g,g)));
+}
 
-    // =========================
-    // DATA LOADING
-    // =========================
-    async function loadData() {
-      try {
-        const [fleetRes, fleetStationsRes, bookingsRes] = await Promise.all([
-          fetch("fleetData_clean.json"),
-          fetch("fleetStations2025.json"),
-          fetch("bookings2025.json")
-        ]);
-
-        fleetData = await fleetRes.json();
-        fleetStationsData = await fleetStationsRes.json();
-        bookingsData = await bookingsRes.json();
-      } catch (err) {
-        console.error("Errore nel caricamento dei JSON:", err);
-        alert("Errore nel caricamento dei dati. Controlla i file JSON nella root del repo.");
-      }
-    }
-
-    // =========================
-    // FILTER INIT
-    // =========================
-    function initMonthsFilter() {
-      const monthSelect = document.getElementById("monthFilter");
-      if (!monthSelect) return;
-
-      const optAll = document.createElement("option");
-      optAll.value = "ALL";
-      optAll.textContent = "Tutti";
-      optAll.selected = true;
-      monthSelect.appendChild(optAll);
-
-      MONTH_LABELS_IT.forEach((label, idx) => {
-        const opt = document.createElement("option");
-        opt.value = String(idx + 1).padStart(2, "0");
-        opt.textContent = label;
-        monthSelect.appendChild(opt);
-      });
-    }
-
-    function initGroupFilter() {
-      const groupSelect = document.getElementById("groupFilter");
-      if (!groupSelect) return;
-
-      const optAll = document.createElement("option");
-      optAll.value = "ALL";
-      optAll.textContent = "Tutti";
-      optAll.selected = true;
-      groupSelect.appendChild(optAll);
-
-      VEHICLE_GROUPS.forEach(g => {
-        const opt = document.createElement("option");
-        opt.value = g;
-        opt.textContent = g;
-        groupSelect.appendChild(opt);
-      });
-    }
-
-    function initAcquisitionFilter() {
-      const acquisitionSelect = document.getElementById("acquisitionFilter");
-      if (!acquisitionSelect) return;
-
-      acquisitionSelect.innerHTML = "";
-      const optAll = document.createElement("option");
-      optAll.value = "ALL";
-      optAll.textContent = "Tutti";
-      optAll.selected = true;
-      acquisitionSelect.appendChild(optAll);
-
-      const set = new Set();
-      function cleanValue(v) {
-  if (v === null || v === undefined) return null;
+function cleanValue(v) {
+  if (v == null) return null;
   const s = String(v).trim();
   if (!s || s.toLowerCase() === "nan") return null;
   return s;
 }
 
 function initAcquisitionFilter() {
-  const acquisitionSelect = document.getElementById("acquisitionFilter");
-  if (!acquisitionSelect) return;
-
-  acquisitionSelect.innerHTML = "";
-
-  const optAll = document.createElement("option");
-  optAll.value = "ALL";
-  optAll.textContent = "Tutti";
-  optAll.selected = true;
-  acquisitionSelect.appendChild(optAll);
+  const el = document.getElementById("acquisitionFilter");
+  el.innerHTML = "";
+  el.appendChild(new Option("Tutti","ALL",true,true));
 
   const set = new Set();
 
-  fleetData.forEach(row => {
-    const val = cleanValue(row["ACQUISIZIONE"]);
-    if (val) set.add(val);
+  fleetData.forEach(r => { const v = cleanValue(r["ACQUISIZIONE"]); if (v) set.add(v); });
+  bookingsData.forEach(r => { const v = cleanValue(r["acquisizione"]); if (v) set.add(v); });
+
+  [...set].sort().forEach(v => el.appendChild(new Option(v,v)));
+}
+
+function normalizeStationName(n) {
+  if (!n) return null;
+  const s = String(n).trim().toLowerCase();
+  if (!s) return null;
+  return s.charAt(0).toUpperCase() + s.slice(1);
+}
+
+function initStationFilter() {
+  const el = document.getElementById("stationFilter");
+  el.innerHTML = "";
+  el.appendChild(new Option("Tutti","ALL",true,true));
+
+  const set = new Set();
+
+  fleetStationsData.forEach(r => {
+    const v = normalizeStationName(r.station);
+    if (v) set.add(v);
   });
 
-  bookingsData.forEach(row => {
-    const val = cleanValue(row["acquisizione"]);
-    if (val) set.add(val);
+  bookingsData.forEach(r => {
+    const v = normalizeStationName(r.stazione);
+    if (v) set.add(v);
   });
 
-  Array.from(set).sort().forEach(a => {
-    const opt = document.createElement("option");
-    opt.value = a;
-    opt.textContent = a;
-    acquisitionSelect.appendChild(opt);
+  [...set].sort().forEach(v => el.appendChild(new Option(v,v)));
+}
+
+function initFilterEvents() {
+  ["yearFilter","monthFilter","groupFilter","acquisitionFilter","stationFilter","projectionSelect"]
+    .forEach(id=>{
+      const el = document.getElementById(id);
+      el && el.addEventListener("change", applyFiltersAndRender);
+    });
+}
+
+function getMulti(id) {
+  const el = document.getElementById(id);
+  if (!el) return [];
+  const sel = [...el.selectedOptions].map(o=>o.value);
+  if (sel.includes("ALL")) return [];
+  return sel;
+}
+
+function resetFilters() {
+  ["yearFilter","monthFilter","groupFilter","acquisitionFilter","stationFilter"].forEach(id=>{
+    const el = document.getElementById(id);
+    if (!el) return;
+    [...el.options].forEach(o => o.selected = (o.value==="ALL"));
+  });
+  document.getElementById("projectionSelect").value = "0.10";
+  applyFiltersAndRender();
+}
+
+// =========================
+// DATE HELPERS
+// =========================
+function parseDate(v) {
+  if (!v) return null;
+  if (typeof v === "number") {
+    const d = new Date(v);
+    return isNaN(d) ? null : d;
+  }
+  const s = String(v).trim();
+  if (!s) return null;
+
+  if (/^\d{4}-\d{2}-\d{2}/.test(s)) return new Date(s);
+  if (/^\d{2}\/\d{2}\/\d{4}$/.test(s)) {
+    const [d,m,y] = s.split("/");
+    return new Date(+y, +m-1, +d);
+  }
+  const d = new Date(s);
+  return isNaN(d) ? null : d;
+}
+
+function formatYM(year,month){ return `${year}-${String(month).padStart(2,"0")}`; }
+
+function idxGlobal(y,m){
+  return (y - 2024)*12 + (m - 1);
+}
+
+// =========================
+// CORE APPLY FILTERS
+// =========================
+function applyFiltersAndRender() {
+  const years = getMulti("yearFilter").map(v=>+v);
+  const months = getMulti("monthFilter").map(v=>+v);
+  const groups = getMulti("groupFilter");
+  const acq = getMulti("acquisitionFilter");
+  const stations = getMulti("stationFilter");
+  const proj = parseFloat(document.getElementById("projectionSelect").value);
+
+  baseAggregates = computeMonthlyAggregates({ groups, acq, stations, proj });
+
+  monthlyAggregates = baseAggregates.filter(b => {
+    const y = (!years.length || years.includes(b.year));
+    const m = (!months.length || months.includes(b.month));
+    return y && m;
+  });
+
+  updateKPI();
+  updateCharts();
+}
+
+// =========================
+// AGGREGATIONS
+// =========================
+function computeMonthlyAggregates({groups,acq,stations,proj}) {
+
+  const map = new Map();
+
+  // init buckets
+  for (let y=2024;y<=2026;y++){
+    for (let m=1;m<=12;m++){
+      const key = formatYM(y,m);
+      map.set(key,{
+        year:y, month:m, key,
+        label: MONTH_LABELS_IT[m-1].slice(0,3)+" "+y,
+        fleetSize:0, canoneImponibile:0, canoneIvato:0,
+        assicurazione:0, costoTotale:0,
+        revenue:0, revenueDays:0, revenuePerDay:0,
+        numBookings:0,
+        noleggiati:0
+      });
+    }
+  }
+
+  // ----- FLOTA -----
+  fleetData.forEach(r=>{
+
+    const g = canonicalGroup(r["GRUPPO"]);
+    if (!g) return;
+    if (groups.length && !groups.includes(g)) return;
+
+    const aq = cleanValue(r["ACQUISIZIONE"]);
+    if (acq.length && (!aq || !acq.includes(aq))) return;
+
+    const start = parseDate(r["DATA INIZIO"]);
+    const eff   = parseDate(r["RICONSEGNA EFFETTIVA"]);
+    const end   = parseDate(r["DATA FINE"]) || eff;
+    if (!start || !end) return;
+    if (end < start) return;
+
+    const canImp = parseFloat((r["CANONE IMPONIBILE"]||"0").toString().replace(",", "."))||0;
+    const canIvato = parseFloat((r["CANONE IVATO"]||"0").toString().replace(",", "."))||0;
+    const ass = parseFloat((r["COPERTURA ASS."]||"0").toString().replace(",", "."))||0;
+
+    const sy = Math.max(2024,start.getFullYear());
+    const ey = Math.min(2026,end.getFullYear());
+
+    for (let y=sy;y<=ey;y++){
+      const ms = (y===start.getFullYear()?start.getMonth()+1:1);
+      const me = (y===end.getFullYear()?end.getMonth()+1:12);
+
+      for (let m=ms;m<=me;m++){
+        const b = map.get(formatYM(y,m));
+        b.fleetSize++;
+        b.canoneImponibile += canImp;
+        b.canoneIvato += canIvato;
+        b.assicurazione += ass;
+        b.costoTotale += canImp + ass;
+      }
+    }
+  });
+
+  // ----- STATION FILTER ON FLEET -----
+  applyStationFilter(map, groups, stations);
+
+  // ----- BOOKINGS (2025) -----
+  bookingsData.forEach(r=>{
+    const g = canonicalGroup(r["cartype"] || r["gruppo"]);
+    if (!g) return;
+    if (groups.length && !groups.includes(g)) return;
+
+    const st = normalizeStationName(r.stazione);
+    if (stations.length && (!st || !stations.includes(st))) return;
+
+    const aq = cleanValue(r["acquisizione"]);
+    if (acq.length && (!aq || !acq.includes(aq))) return;
+
+    const d = parseDate(r.startDate);
+    if (!d) return;
+
+    const y = d.getFullYear();
+    const m = d.getMonth()+1;
+    if (y<2024 || y>2026) return;
+
+    const b = map.get(formatYM(y,m));
+    if (!b) return;
+
+    let days = parseFloat(r.duration||0); if (days<1) days=1;
+    const price = parseFloat((r.price||"0").toString().replace(",", "."))||0;
+
+    b.revenue += price;
+    b.revenueDays += days;
+    b.numBookings++;
+  });
+
+  // compute revenue/day + noleggiati
+  map.forEach(b=>{
+    b.revenuePerDay = b.revenueDays>0 ? b.revenue/b.revenueDays : 0;
+
+    if (b.fleetSize>0 && b.revenueDays>0){
+      const util = b.revenueDays/(b.fleetSize*30);
+      b.noleggiati = util * b.fleetSize;
+    }
+  });
+
+  // ---------- REBUILD 2024 (-5%) & 2026 BASE ----------
+  for (let m=1;m<=12;m++){
+    const mm = String(m).padStart(2,"0");
+    const b24 = map.get(`2024-${mm}`);
+    const b25 = map.get(`2025-${mm}`);
+    const b26 = map.get(`2026-${mm}`);
+
+    if (b25){
+      if (b24){
+        b24.revenue       = b25.revenue * 0.95;
+        b24.revenueDays   = b25.revenueDays * 0.95;
+        b24.numBookings   = b25.numBookings * 0.95;
+        b24.noleggiati    = b25.noleggiati * 0.95;
+        b24.revenuePerDay = b24.revenueDays>0 ? b24.revenue/b24.revenueDays : 0;
+      }
+
+      if (b26){
+        b26.revenue       = b25.revenue;
+        b26.revenueDays   = b25.revenueDays;
+        b26.numBookings   = b25.numBookings;
+        b26.noleggiati    = b25.noleggiati;
+        b26.revenuePerDay = b26.revenueDays>0 ? b26.revenue/b26.revenueDays : 0;
+      }
+    }
+  }
+
+  // apply projection factor to 2026
+  if (proj){
+    map.forEach(b=>{
+      if (b.year===2026){
+        const f = (1+proj);
+        b.fleetSize *= f;
+        b.canoneImponibile *= f;
+        b.canoneIvato *= f;
+        b.assicurazione *= f;
+        b.costoTotale *= f;
+        b.revenue *= f;
+        b.revenuePerDay *= f;
+        b.numBookings *= f;
+        b.noleggiati *= f;
+      }
+    });
+  }
+
+  return [...map.values()].sort((a,b)=>idxGlobal(a.year,a.month)-idxGlobal(b.year,b.month));
+}
+
+// =========================
+// STATION FILTER (flotta)
+// =========================
+function applyStationFilter(map, groups, stations){
+  if (!stations.length) return;
+  const stats = new Map();
+
+  fleetStationsData.forEach(r=>{
+    const g = canonicalGroup(r.group);
+    if (!g) return;
+    if (groups.length && !groups.includes(g)) return;
+
+    const st = normalizeStationName(r.station);
+    if (!st) return;
+
+    const y = +r.year;
+    const m = +r.month;
+    const key = formatYM(y,m);
+
+    const fl = parseFloat((r.fleet||0).toString().replace(",", "."))||0;
+
+    if (!stats.has(key)) stats.set(key,{all:0,selected:0});
+    const s = stats.get(key);
+    s.all += fl;
+    if (stations.includes(st)) s.selected += fl;
+  });
+
+  map.forEach((b,key)=>{
+    const s = stats.get(key);
+    if (!s || s.all<=0 || s.selected<=0) return;
+    const f = s.selected/s.all;
+    b.fleetSize *= f;
+    b.canoneImponibile *= f;
+    b.canoneIvato *= f;
+    b.assicurazione *= f;
+    b.costoTotale *= f;
   });
 }
 
-      Array.from(set).sort().forEach(a => {
-        const opt = document.createElement("option");
-        opt.value = a;
-        opt.textContent = a;
-        acquisitionSelect.appendChild(opt);
-      });
-    }
-
-    function normalizeStationName(name) {
-      if (name === null || name === undefined) return null;
-      const lower = String(name).trim().toLowerCase();
-      if (!lower) return null;
-      return lower.charAt(0).toUpperCase() + lower.slice(1);
-    }
-
-    function initStationFilter() {
-      const stationSelect = document.getElementById("stationFilter");
-      if (!stationSelect) return;
-
-      stationSelect.innerHTML = "";
-      const optAll = document.createElement("option");
-      optAll.value = "ALL";
-      optAll.textContent = "Tutti";
-      optAll.selected = true;
-      stationSelect.appendChild(optAll);
-
-      const set = new Set();
-
-      fleetStationsData.forEach(row => {
-        const raw = row["station"];
-        const norm = normalizeStationName(raw);
-        if (norm) set.add(norm);
-      });
-
-      bookingsData.forEach(row => {
-        const raw = row["stazione"];
-        const norm = normalizeStationName(raw);
-        if (norm) set.add(norm);
-      });
-
-      Array.from(set)
-        .sort()
-        .forEach(s => {
-          const opt = document.createElement("option");
-          opt.value = s;
-          opt.textContent = s;
-          stationSelect.appendChild(opt);
-        });
-    }
-
-    function initFilterEvents() {
-      const filterIds = [
-        "yearFilter",
-        "monthFilter",
-        "groupFilter",
-        "acquisitionFilter",
-        "stationFilter",
-        "projectionSelect"
-      ];
-      filterIds.forEach(id => {
-        const el = document.getElementById(id);
-        if (el) {
-          el.addEventListener("change", applyFiltersAndRender);
-        }
-      });
-    }
-
-    function getMultiSelectValues(selectId) {
-      const select = document.getElementById(selectId);
-      if (!select) return [];
-
-      const values = Array.from(select.selectedOptions).map(o => o.value);
-      if (values.includes("ALL")) {
-        return []; // nessun filtro
-      }
-      return values;
-    }
-
-    function resetFilters() {
-      ["yearFilter","monthFilter","groupFilter","acquisitionFilter","stationFilter"]
-        .forEach(id => {
-          const select = document.getElementById(id);
-          if (!select) return;
-
-          Array.from(select.options).forEach(opt => {
-            opt.selected = (opt.value === "ALL");
-          });
-        });
-
-      const proj = document.getElementById("projectionSelect");
-      if (proj) proj.value = "0.10";
-
-      applyFiltersAndRender();
-    }
-
-    // =========================
-    // DATE HELPERS
-    // =========================
-    function parseDate(value) {
-      if (value === null || value === undefined) return null;
-
-      if (typeof value === "number") {
-        const d = new Date(value);
-        return isNaN(d.getTime()) ? null : d;
-      }
-
-      let str = String(value).trim();
-      if (!str) return null;
-
-      if (/^\d+$/.test(str)) {
-        const ms = parseInt(str, 10);
-        const d = new Date(ms);
-        return isNaN(d.getTime()) ? null : d;
-      }
-
-      if (/^\d{4}-\d{2}-\d{2}/.test(str)) {
-        const d = new Date(str);
-        return isNaN(d.getTime()) ? null : d;
-      }
-
-      if (/^\d{2}\/\d{2}\/\d{4}$/.test(str)) {
-        const [dStr, mStr, yStr] = str.split("/");
-        const d = new Date(parseInt(yStr, 10), parseInt(mStr, 10) - 1, parseInt(dStr, 10));
-        return isNaN(d.getTime()) ? null : d;
-      }
-
-      const d = new Date(str);
-      return isNaN(d.getTime()) ? null : d;
-    }
-
-    function formatYearMonthKey(year, month) {
-      return year + "-" + String(month).padStart(2, "0");
-    }
-
-    function getMonthIndexGlobal(year, month) {
-      return (year - 2024) * 12 + (month - 1);
-    }
-
-    function clamp(value, min, max) {
-      return Math.min(Math.max(value, min), max);
-    }
-
-    // =========================
-    // CORE: APPLY FILTERS
-    // =========================
-    function applyFiltersAndRender() {
-      const selectedYears = getMultiSelectValues("yearFilter").map(v => parseInt(v, 10));
-      const selectedMonths = getMultiSelectValues("monthFilter").map(v => parseInt(v, 10));
-      const selectedGroups = getMultiSelectValues("groupFilter");
-      const selectedAcquisition = getMultiSelectValues("acquisitionFilter");
-      const selectedStations = getMultiSelectValues("stationFilter");
-      const projectionFactor = parseFloat(
-        (document.getElementById("projectionSelect") || {}).value || "0.10"
-      );
-
-      baseAggregates = computeMonthlyAggregatesBase({
-        groups: selectedGroups,
-        acquisitions: selectedAcquisition,
-        stations: selectedStations,
-        projectionFactor
-      });
-
-      monthlyAggregates = baseAggregates.filter(b => {
-        const yearOk = selectedYears.length === 0 || selectedYears.includes(b.year);
-        const monthOk = selectedMonths.length === 0 || selectedMonths.includes(b.month);
-        return yearOk && monthOk;
-      });
-
-      updateKpiCards();
-      updateCharts();
-    }
-
-    // =========================
-    // AGGREGATION LOGIC (BASE)
-    // =========================
-    function computeMonthlyAggregatesBase(filters) {
-      const { groups, acquisitions, stations, projectionFactor } = filters;
-
-      const monthlyMap = new Map();
-      for (let year = 2024; year <= 2026; year++) {
-        for (let month = 1; month <= 12; month++) {
-          const key = formatYearMonthKey(year, month);
-          monthlyMap.set(key, {
-            year,
-            month,
-            key,
-            label: MONTH_LABELS_IT[month - 1].slice(0, 3) + " " + year,
-            fleetSize: 0,
-            canoneImponibile: 0,
-            canoneIvato: 0,
-            assicurazione: 0,
-            costoTotale: 0,
-            revenue: 0,
-            revenueDays: 0,
-            revenuePerDay: 0,
-            numBookings: 0,
-            noleggiati: 0
-          });
-        }
-      }
-
-      // 1) Flotta
-      fleetData.forEach(row => {
-        const gruppoCanonico = canonicalGroup(row["GRUPPO"]);
-        if (!gruppoCanonico) return;
-        if (groups.length > 0 && !groups.includes(gruppoCanonico)) return;
-
-        const acquisizione = row["ACQUISIZIONE"];
-        if (
-          acquisitions.length > 0 &&
-          (!acquisizione || !acquisitions.includes(String(acquisizione).trim()))
-        ) {
-          return;
-        }
-
-        const start = parseDate(row["DATA INIZIO"]);
-        const effectiveEnd = parseDate(row["RICONSEGNA EFFETTIVA"]);
-        const plannedEnd = parseDate(row["DATA FINE"]);
-
-        const startDate = start;
-        const endDate = effectiveEnd || plannedEnd;
-        if (!startDate || !endDate) return;
-        if (endDate < startDate) return;
-
-        const canoneImp =
-          parseFloat(String(row["CANONE IMPONIBILE"] ?? "0").replace(",", ".")) || 0;
-        const canoneIvato =
-          parseFloat(String(row["CANONE IVATO"] ?? "0").replace(",", ".")) || 0;
-        const coperturaAss =
-          parseFloat(String(row["COPERTURA ASS."] ?? "0").replace(",", ".")) || 0;
-
-        const startYear = Math.max(2024, startDate.getFullYear());
-        const endYear = Math.min(2026, endDate.getFullYear());
-
-        for (let year = startYear; year <= endYear; year++) {
-          const monthStart =
-            year === startDate.getFullYear() ? startDate.getMonth() + 1 : 1;
-          const monthEnd =
-            year === endDate.getFullYear() ? endDate.getMonth() + 1 : 12;
-
-          for (let month = monthStart; month <= monthEnd; month++) {
-            const key = formatYearMonthKey(year, month);
-            const bucket = monthlyMap.get(key);
-            if (!bucket) continue;
-
-            bucket.fleetSize += 1;
-            bucket.canoneImponibile += canoneImp;
-            bucket.canoneIvato += canoneIvato;
-            bucket.assicurazione += coperturaAss;
-            bucket.costoTotale += canoneImp + coperturaAss;
-          }
-        }
-      });
-
-      // 2) Filtro stazione su flotta (per year/month/group)
-      applyStationFilterToFleet(monthlyMap, groups, stations);
-
-      // 3) Prenotazioni
-      bookingsData.forEach(row => {
-        const gruppoCanonico = canonicalGroup(row["cartype"] ?? row["gruppo"]);
-        if (!gruppoCanonico) return;
-        if (groups.length > 0 && !groups.includes(gruppoCanonico)) return;
-
-        const rawStation = row["stazione"];
-        const stationNorm = normalizeStationName(rawStation);
-        if (stations.length > 0 && (!stationNorm || !stations.includes(stationNorm))) {
-          return;
-        }
-
-        const acquisizioneBooking = row["acquisizione"];
-        if (
-          acquisitions.length > 0 &&
-          (!acquisizioneBooking ||
-            !acquisitions.includes(String(acquisizioneBooking).trim()))
-        ) {
-          return;
-        }
-
-        const fromDate = parseDate(row["startDate"]);
-        if (!fromDate) return;
-
-        let days = parseFloat(row["duration"] ?? 0);
-        if (!isFinite(days)) days = 0;
-        if (days < 1) days = 1;
-
-        const revenue =
-          parseFloat(String(row["price"] ?? "0").toString().replace(",", ".")) || 0;
-
-        const year = fromDate.getFullYear();
-        const month = fromDate.getMonth() + 1;
-        if (year < 2024 || year > 2026) return;
-
-        const key = formatYearMonthKey(year, month);
-        const bucket = monthlyMap.get(key);
-        if (!bucket) return;
-
-        bucket.revenue += revenue;
-        bucket.revenueDays += days;
-        bucket.numBookings += 1;
-      });
-
-      // 3b) revenue/day e noleggiati
-      monthlyMap.forEach(bucket => {
-        if (bucket.revenueDays > 0) {
-          bucket.revenuePerDay = bucket.revenue / bucket.revenueDays;
-        } else {
-          bucket.revenuePerDay = 0;
-        }
-
-        const fleetAvailable = bucket.fleetSize;
-        if (fleetAvailable > 0 && bucket.revenueDays > 0) {
-          const utilization = bucket.revenueDays / (fleetAvailable * 30);
-          bucket.noleggiati = utilization * fleetAvailable;
-        } else {
-          bucket.noleggiati = 0;
-        }
-      });
-// --------------------------------------------------
-// RICOSTRUZIONE VALORI PRENOTAZIONI PER 2024 e 2026
-// --------------------------------------------------
-
-for (let month = 1; month <= 12; month++) {
-  const m = String(month).padStart(2, "0");
-
-  const key2025 = `2025-${m}`;
-  const key2024 = `2024-${m}`;
-  const key2026 = `2026-${m}`;
-
-  const b2025 = monthlyMap.get(key2025);
-  const b2024 = monthlyMap.get(key2024);
-  const b2026 = monthlyMap.get(key2026);
-
-  if (!b2025) continue;
-
-  // --- 2024 = 2025 -5%
-  if (b2024) {
-    b2024.revenue       = b2025.revenue * 0.95;
-    b2024.revenueDays   = b2025.revenueDays * 0.95;
-    b2024.numBookings   = b2025.numBookings * 0.95;
-    b2024.noleggiati    = b2025.noleggiati * 0.95;
-
-    b2024.revenuePerDay =
-      b2024.revenueDays > 0 ? b2024.revenue / b2024.revenueDays : 0;
-  }
-
-  // --- 2026 = copia del 2025, prima dell’applicazione della percentuale
-  if (b2026) {
-    b2026.revenue       = b2025.revenue;
-    b2026.revenueDays   = b2025.revenueDays;
-    b2026.numBookings   = b2025.numBookings;
-    b2026.noleggiati    = b2025.noleggiati;
-
-    b2026.revenuePerDay =
-      b2026.revenueDays > 0 ? b2026.revenue / b2026.revenueDays : 0;
-  }
-}
-
-      // 4) Proiezioni 2026
-      // Copia dei valori 2025 → 2026 come base per la proiezione
-monthlyMap.forEach(bucket => {
-  if (bucket.year === 2026) {
-    const prevKey = "2025-" + String(bucket.month).padStart(2, "0");
-    const prev = monthlyMap.get(prevKey);
-    if (prev) {
-      bucket.revenue       = prev.revenue;
-      bucket.revenueDays   = prev.revenueDays;
-      bucket.numBookings   = prev.numBookings;
-      bucket.noleggiati    = prev.noleggiati;
-      bucket.revenuePerDay = prev.revenuePerDay;
-    }
-  }
-});
-
-      if (!isNaN(projectionFactor) && projectionFactor !== 0) {
-        monthlyMap.forEach(bucket => {
-          if (bucket.year === 2026) {
-            const factor = 1 + projectionFactor;
-            bucket.fleetSize *= factor;
-            bucket.canoneImponibile *= factor;
-            bucket.canoneIvato *= factor;
-            bucket.assicurazione *= factor;
-            bucket.costoTotale *= factor;
-            bucket.revenue *= factor;
-            bucket.revenuePerDay *= factor;
-            bucket.numBookings *= factor;
-            bucket.noleggiati *= factor;
-          }
-        });
-      }
-
-      const result = Array.from(monthlyMap.values()).sort((a, b) => {
-        const ia = getMonthIndexGlobal(a.year, a.month);
-        const ib = getMonthIndexGlobal(b.year, b.month);
-        return ia - ib;
-      });
-
-      return result;
-    }
-
-    // =========================
-    // STATION FILTER (flotta) via fleetStations2025
-    // =========================
-    function applyStationFilterToFleet(monthlyMap, groups, stations) {
-      if (!fleetStationsData || fleetStationsData.length === 0) return;
-      if (!stations || stations.length === 0) return;
-
-      const monthStats = new Map();
-
-      fleetStationsData.forEach(row => {
-        const gruppoCanonico = canonicalGroup(row["group"]);
-        if (!gruppoCanonico) return;
-        if (groups.length > 0 && !groups.includes(gruppoCanonico)) return;
-
-        const rawStation = row["station"];
-        const stationNorm = normalizeStationName(rawStation);
-        if (!stationNorm) return;
-
-        const year = parseInt(row["year"], 10);
-        const month = parseInt(row["month"], 10);
-        if (!year || !month) return;
-
-        const key = formatYearMonthKey(year, month);
-        const fleetCount =
-          parseFloat(String(row["fleet"] ?? 0).toString().replace(",", ".")) || 0;
-
-        if (!monthStats.has(key)) {
-          monthStats.set(key, { all: 0, selected: 0 });
-        }
-        const stats = monthStats.get(key);
-        stats.all += fleetCount;
-        if (stations.includes(stationNorm)) {
-          stats.selected += fleetCount;
-        }
-      });
-
-      monthlyMap.forEach((bucket, key) => {
-        const stats = monthStats.get(key);
-        if (!stats || stats.all <= 0 || stats.selected <= 0) return;
-
-        const factor = stats.selected / stats.all;
-        if (!isFinite(factor) || factor <= 0) return;
-
-        bucket.fleetSize *= factor;
-        bucket.canoneImponibile *= factor;
-        bucket.canoneIvato *= factor;
-        bucket.assicurazione *= factor;
-        bucket.costoTotale *= factor;
-      });
-    }
-
-    // =========================
-    // KPI
-    // =========================
-    function updateKpiCards() {
-  if (!monthlyAggregates || monthlyAggregates.length === 0) {
-    resetKpiDisplay();
+// =========================
+// KPI
+// =========================
+function updateKPI(){
+  if (!monthlyAggregates.length){
+    resetKPI();
     return;
   }
 
-  // ---- individua mesi filtrati
-  const indicesCurrent = monthlyAggregates.map(b =>
-    getMonthIndexGlobal(b.year, b.month)
-  );
-  const minIdx = Math.min(...indicesCurrent);
-  const maxIdx = Math.max(...indicesCurrent);
-  const lengthRange = maxIdx - minIdx + 1;
+  const idxs = monthlyAggregates.map(b=>idxGlobal(b.year,b.month));
+  const min = Math.min(...idxs);
+  const max = Math.max(...idxs);
+  const len = max - min + 1;
 
-  const prevEnd = minIdx - 1;
-  const prevStart = prevEnd - (lengthRange - 1);
+  const prevEnd = min - 1;
+  const prevStart = prevEnd - (len - 1);
 
-  const prevStartClamped = clamp(prevStart, 0, 35);
-  const prevEndClamped = clamp(prevEnd, 0, 35);
+  function clamp(v){return Math.min(Math.max(v,0),35);}
+  const prevS = clamp(prevStart);
+  const prevE = clamp(prevEnd);
 
-  // ---- aggregatore generico
-  function sumForIndices(indicesSet) {
-    const res = {
-      fleetSize: 0,
-      canoneImponibile: 0,
-      canoneIvato: 0,
-      assicurazione: 0,
-      costoTotale: 0,
-      revenue: 0,
-      revenuePerDay: 0,
-      numBookings: 0,
-      noleggiati: 0,
-      totalRevenueDays: 0
-    };
+  function sumRange(start,end){
+    const set = new Set();
+    for (let i=start;i<=end;i++) set.add(i);
 
-    baseAggregates.forEach(b => {
-      const idx = getMonthIndexGlobal(b.year, b.month);
-      if (indicesSet.has(idx)) {
-        res.fleetSize += b.fleetSize;
-        res.canoneImponibile += b.canoneImponibile;
-        res.canoneIvato += b.canoneIvato;
-        res.assicurazione += b.assicurazione;
-        res.costoTotale += b.costoTotale;
-        res.revenue += b.revenue;
-        res.numBookings += b.numBookings;
-        res.noleggiati += b.noleggiati;
-        res.totalRevenueDays += b.revenueDays || 0;
+    const r={fleet:0, imp:0, ivato:0, ass:0, costo:0, rev:0, rdays:0, bookings:0, nol:0};
+
+    baseAggregates.forEach(b=>{
+      const idx = idxGlobal(b.year,b.month);
+      if (set.has(idx)){
+        r.fleet += b.fleetSize;
+        r.imp += b.canoneImponibile;
+        r.ivato += b.canoneIvato;
+        r.ass += b.assicurazione;
+        r.costo += b.costoTotale;
+        r.rev += b.revenue;
+        r.rdays += b.revenueDays;
+        r.bookings += b.numBookings;
+        r.nol += b.noleggiati;
       }
     });
 
-    if (res.totalRevenueDays > 0) {
-      res.revenuePerDay = res.revenue / res.totalRevenueDays;
-    } else {
-      res.revenuePerDay = 0;
-    }
-
-    return res;
+    r.revday = (r.rdays>0 ? r.rev/r.rdays : 0);
+    return r;
   }
 
-  // ---- costruzione set mesi correnti e precedenti
-  const currentIndicesSet = new Set();
-  for (let i = minIdx; i <= maxIdx; i++) currentIndicesSet.add(i);
+  const curr = sumRange(min,max);
+  const prev = sumRange(prevS,prevE);
 
-  const prevIndicesSet = new Set();
-  for (let i = prevStartClamped; i <= prevEndClamped; i++) {
-    if (i >= 0 && i < 36) prevIndicesSet.add(i);
-  }
+  const currMonths = (max-min+1)||1;
+  const prevMonths = (prevE-prevS+1)||1;
 
-  const current = sumForIndices(currentIndicesSet);
-  const prev = sumForIndices(prevIndicesSet);
+  const fleetCurr = curr.fleet/currMonths;
+  const fleetPrev = prev.fleet/prevMonths;
 
-  // -----------------------------------------------------
-  // 🔥 MEDIA DI NOLEGGIATI (invece della somma totale)
-  // -----------------------------------------------------
-  const monthsCurrentCount = currentIndicesSet.size || 1;
-  const monthsPrevCount = prevIndicesSet.size || 1;
+  const nolCurr = curr.nol/currMonths;
+  const nolPrev = prev.nol/prevMonths;
 
-  const noleggiatiCurrAvg = current.noleggiati / monthsCurrentCount;
-  const noleggiatiPrevAvg = prev.noleggiati / monthsPrevCount;
+  function setK(id, currVal, prevVal, isCurrency=false, decimals=0){
+    const ec = document.getElementById(id+"-current");
+    const ep = document.getElementById(id+"-prev");
+    const ed = document.getElementById(id+"-diff");
+    if (!ec||!ep||!ed) return;
 
-  // ---- funzione helper per riempire KPI
-  function setKpi(idCurrent, idPrev, idDiff, currVal, prevVal, options = {}) {
-    const elCurr = document.getElementById(idCurrent);
-    const elPrev = document.getElementById(idPrev);
-    const elDiff = document.getElementById(idDiff);
-    if (!elCurr || !elPrev || !elDiff) return;
-
-    const isCurrency = options.currency === true;
-    const decimals = options.decimals ?? 0;
-
-    function formatNumber(v) {
+    const fmt = v => {
       if (!isFinite(v)) return "–";
-      if (isCurrency) {
-        return (
-          "€ " +
-          v.toLocaleString("it-IT", {
-            minimumFractionDigits: decimals,
-            maximumFractionDigits: decimals
-          })
-        );
-      }
-      return v.toLocaleString("it-IT", {
-        minimumFractionDigits: decimals,
-        maximumFractionDigits: decimals
-      });
-    }
+      return isCurrency
+        ? "€ "+ v.toLocaleString("it-IT",{minimumFractionDigits:decimals, maximumFractionDigits:decimals})
+        : v.toLocaleString("it-IT",{minimumFractionDigits:decimals, maximumFractionDigits:decimals});
+    };
 
-    elCurr.textContent = formatNumber(currVal);
-    elPrev.textContent = prevVal && prevVal !== 0 ? formatNumber(prevVal) : "–";
+    ec.textContent = fmt(currVal);
+    ep.textContent = prevVal ? fmt(prevVal) : "–";
 
-    let diffPerc = null;
-    if (prevVal && prevVal !== 0) {
-      diffPerc = ((currVal - prevVal) / prevVal) * 100;
-    }
+    let diff = null;
+    if (prevVal && prevVal!==0) diff = ((currVal-prevVal)/prevVal)*100;
 
-    elDiff.classList.remove("positive", "negative", "neutral");
-    if (diffPerc === null) {
-      elDiff.textContent = "↔︎ 0%";
-      elDiff.classList.add("neutral");
-    } else if (diffPerc > 0) {
-      elDiff.textContent = "📈 +" + diffPerc.toFixed(1) + "%";
-      elDiff.classList.add("positive");
-    } else if (diffPerc < 0) {
-      elDiff.textContent = "📉 " + diffPerc.toFixed(1) + "%";
-      elDiff.classList.add("negative");
+    ed.classList.remove("positive","negative","neutral");
+
+    if (diff===null){
+      ed.textContent = "↔︎ 0%";
+      ed.classList.add("neutral");
+    } else if (diff>0){
+      ed.textContent = "📈 "+diff.toFixed(1)+"%";
+      ed.classList.add("positive");
+    } else if (diff<0){
+      ed.textContent = "📉 "+diff.toFixed(1)+"%";
+      ed.classList.add("negative");
     } else {
-      elDiff.textContent = "↔︎ 0%";
-      elDiff.classList.add("neutral");
+      ed.textContent = "↔︎ 0%";
+      ed.classList.add("neutral");
     }
   }
 
-  // ---- KPI veri e propri
+  // KPI
+  setK("kpi-fleet", fleetCurr, fleetPrev, false, 1);
+  setK("kpi-canone", curr.imp, prev.imp, true, 0);
 
-  // flotta (media)
-  const monthsCountCurrent = currentIndicesSet.size || 1;
-  const monthsCountPrev = prevIndicesSet.size || 1;
-  const fleetCurrAvg = current.fleetSize / monthsCountCurrent;
-  const fleetPrevAvg = prev.fleetSize / monthsCountPrev;
+  document.getElementById("kpi-canone-ivato-current").textContent =
+    curr.ivato ? "€ "+curr.ivato.toLocaleString("it-IT") : "–";
 
-  setKpi(
-    "kpi-fleet-current",
-    "kpi-fleet-prev",
-    "kpi-fleet-diff",
-    fleetCurrAvg,
-    fleetPrevAvg,
-    { currency: false, decimals: 1 }
-  );
-
-  setKpi(
-    "kpi-canone-current",
-    "kpi-canone-prev",
-    "kpi-canone-diff",
-    current.canoneImponibile,
-    prev.canoneImponibile,
-    { currency: true, decimals: 0 }
-  );
-
-  const elCanIvato = document.getElementById("kpi-canone-ivato-current");
-  if (elCanIvato) {
-    elCanIvato.textContent =
-      current.canoneIvato > 0
-        ? "€ " +
-          current.canoneIvato.toLocaleString("it-IT", {
-            minimumFractionDigits: 0,
-            maximumFractionDigits: 0
-          })
-        : "–";
-  }
-
-  setKpi(
-    "kpi-assicurazione-current",
-    "kpi-assicurazione-prev",
-    "kpi-assicurazione-diff",
-    current.assicurazione,
-    prev.assicurazione,
-    { currency: true, decimals: 0 }
-  );
-
-  setKpi(
-    "kpi-costo-current",
-    "kpi-costo-prev",
-    "kpi-costo-diff",
-    current.costoTotale,
-    prev.costoTotale,
-    { currency: true, decimals: 0 }
-  );
-
-  setKpi(
-    "kpi-revenue-current",
-    "kpi-revenue-prev",
-    "kpi-revenue-diff",
-    current.revenue,
-    prev.revenue,
-    { currency: true, decimals: 0 }
-  );
-
-  setKpi(
-    "kpi-revday-current",
-    "kpi-revday-prev",
-    "kpi-revday-diff",
-    current.revenuePerDay,
-    prev.revenuePerDay,
-    { currency: true, decimals: 2 }
-  );
-
-  setKpi(
-    "kpi-bookings-current",
-    "kpi-bookings-prev",
-    "kpi-bookings-diff",
-    current.numBookings,
-    prev.numBookings,
-    { currency: false, decimals: 0 }
-  );
-
-  // -----------------------------------------------------
-  // KPI NOLEGGIATI (MEDIA)
-  // -----------------------------------------------------
-  setKpi(
-    "kpi-noleggiati-current",
-    "kpi-noleggiati-prev",
-    "kpi-noleggiati-diff",
-    noleggiatiCurrAvg,
-    noleggiatiPrevAvg,
-    { currency: false, decimals: 1 }
-  );
+  setK("kpi-assicurazione", curr.ass, prev.ass, true, 0);
+  setK("kpi-costo", curr.costo, prev.costo, true, 0);
+  setK("kpi-revenue", curr.rev, prev.rev, true, 0);
+  setK("kpi-revday", curr.revday, prev.revday, true, 2);
+  setK("kpi-bookings", curr.bookings, prev.bookings, false, 0);
+  setK("kpi-noleggiati", nolCurr, nolPrev, false, 1);
 }
 
-    function resetKpiDisplay() {
-      const ids = [
-        "kpi-fleet-current","kpi-fleet-prev","kpi-fleet-diff",
-        "kpi-canone-current","kpi-canone-prev","kpi-canone-diff",
-        "kpi-canone-ivato-current",
-        "kpi-assicurazione-current","kpi-assicurazione-prev","kpi-assicurazione-diff",
-        "kpi-costo-current","kpi-costo-prev","kpi-costo-diff",
-        "kpi-revenue-current","kpi-revenue-prev","kpi-revenue-diff",
-        "kpi-revday-current","kpi-revday-prev","kpi-revday-diff",
-        "kpi-bookings-current","kpi-bookings-prev","kpi-bookings-diff",
-        "kpi-noleggiati-current","kpi-noleggiati-prev","kpi-noleggiati-diff"
-      ];
-      ids.forEach(id => {
-        const el = document.getElementById(id);
-        if (!el) return;
-        el.textContent = "–";
-        if (el.classList) {
-          el.classList.remove("positive","negative");
-          el.classList.add("neutral");
-        }
-      });
+function resetKPI(){
+  [
+    "kpi-fleet","kpi-canone","kpi-assicurazione","kpi-costo",
+    "kpi-revenue","kpi-revday","kpi-bookings","kpi-noleggiati"
+  ].forEach(id=>{
+    document.getElementById(id+"-current").textContent="–";
+    document.getElementById(id+"-prev").textContent="–";
+    let d = document.getElementById(id+"-diff");
+    if (d){
+      d.textContent="–";
+      d.classList.add("neutral");
     }
+  });
+}
 
-    // =========================
-    // CHARTS
-    // =========================
-   function updateCharts() {
-  const lineCanvas = document.getElementById("lineChart");
-  const barCanvas  = document.getElementById("barChart");
-  if (!lineCanvas || !barCanvas) return;
+// =========================
+// CHARTS
+// =========================
+function updateCharts(){
+  const lc = document.getElementById("lineChart");
+  const bc = document.getElementById("barChart");
+  if (!lc || !bc) return;
 
-  // nessun dato → distruggo eventuali grafici e esco
-  if (!monthlyAggregates || monthlyAggregates.length === 0) {
-    if (lineChart) { lineChart.destroy(); lineChart = null; }
-    if (barChart)  { barChart.destroy();  barChart  = null; }
+  if (!monthlyAggregates.length){
+    lineChart && lineChart.destroy();
+    barChart && barChart.destroy();
     return;
   }
 
-  // ============================
-  // Serie filtrate da disegnare
-  // ============================
-  const labels        = monthlyAggregates.map(b => b.label);
-  const fleetSeries   = monthlyAggregates.map(b => safeNumber(b.fleetSize));
-  const costSeries    = monthlyAggregates.map(b => safeNumber(b.costoTotale));
-  const revenueSeries = monthlyAggregates.map(b => safeNumber(b.revenue));
+  const labels = monthlyAggregates.map(b=>b.label);
+  const fleet  = monthlyAggregates.map(b=>safeNumber(b.fleetSize));
+  const cost   = monthlyAggregates.map(b=>safeNumber(b.costoTotale));
+  const rev    = monthlyAggregates.map(b=>safeNumber(b.revenue));
 
-  const allValues = [...fleetSeries, ...costSeries, ...revenueSeries];
-  const maxAbs = Math.max(...allValues.map(v => Math.abs(v)));
-  if (!Number.isFinite(maxAbs) || maxAbs === 0) {
-    if (lineChart) { lineChart.destroy(); lineChart = null; }
-    if (barChart)  { barChart.destroy();  barChart  = null; }
-    return;
-  }
+  const maxY1 = Math.max(...fleet)*1.2 || 1;
+  const maxY2 = Math.max(...cost, ...rev)*1.2 || 1;
 
-  // ============================
-  // Scala assi calcolata SOLO sui dati filtrati
-  // ============================
-  function percentileMax(arr, percentile) {
-    const filtered = arr
-      .filter(v => Number.isFinite(v) && v > 0)
-      .sort((a, b) => a - b);
-    if (filtered.length === 0) return 1;
-    const idx = Math.floor((filtered.length - 1) * percentile);
-    return filtered[idx];
-  }
+  lineChart && lineChart.destroy();
+  barChart && barChart.destroy();
 
-  const fleetMax = percentileMax(fleetSeries, 0.95) * 1.2 || 1;
-  const moneyMax = percentileMax([...costSeries, ...revenueSeries], 0.95) * 1.2 || 1;
-
-  // ============================
-  // LINE CHART: flotta + costi + revenue
-  // ============================
-  if (lineChart) { lineChart.destroy(); lineChart = null; }
-
-  lineChart = new Chart(lineCanvas.getContext("2d"), {
-    type: "line",
-    data: {
+  // LINE CHART
+  lineChart = new Chart(lc.getContext("2d"),{
+    type:"line",
+    data:{
       labels,
-      datasets: [
-        {
-          label: "Dimensione flotta",
-          data: fleetSeries,
-          yAxisID: "y",
-          borderWidth: 2,
-          tension: 0.3,
-          spanGaps: true
-        },
-        {
-          label: "Costo totale",
-          data: costSeries,
-          yAxisID: "y1",
-          borderWidth: 2,
-          tension: 0.3,
-          spanGaps: true
-        },
-        {
-          label: "Revenue",
-          data: revenueSeries,
-          yAxisID: "y1",
-          borderWidth: 2,
-          tension: 0.3,
-          spanGaps: true
-        }
+      datasets:[
+        { label:"Flotta", data:fleet, borderColor:"#3b82f6", yAxisID:"y" },
+        { label:"Costo totale", data:cost, borderColor:"#f87171", yAxisID:"y1" },
+        { label:"Revenue", data:rev, borderColor:"#22c55e", yAxisID:"y1" }
       ]
     },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      interaction: { mode: "index", intersect: false },
-      stacked: false,
-      animation: false,
-      scales: {
-        x: {
-          ticks: { color: "#e5e7eb", maxRotation: 0, autoSkip: true },
-          grid: { color: "rgba(148,163,184,0.15)" }
+    options:{
+      responsive:true,
+      maintainAspectRatio:false,
+      interaction:{mode:"index",intersect:false},
+      scales:{
+        x:{grid:{color:"rgba(148,163,184,0.1)"}},
+        y:{
+          beginAtZero:true,
+          max:maxY1,
+          ticks:{color:"#e5e7eb"},
+          grid:{color:"rgba(148,163,184,0.1)"}
         },
-        y: {
-          type: "linear",
-          position: "left",
-          beginAtZero: true,
-          max: fleetMax,
-          title: { display: true, text: "Flotta", color: "#e5e7eb" },
-          ticks: { color: "#e5e7eb" },
-          grid: { color: "rgba(148,163,184,0.15)" }
-        },
-        y1: {
-          type: "linear",
-          position: "right",
-          beginAtZero: true,
-          max: moneyMax,
-          title: { display: true, text: "€", color: "#e5e7eb" },
-          ticks: { color: "#e5e7eb" },
-          grid: { drawOnChartArea: false }
+        y1:{
+          beginAtZero:true,
+          max:maxY2,
+          position:"right",
+          grid:{drawOnChartArea:false},
+          ticks:{color:"#e5e7eb"}
         }
-      },
-      plugins: {
-        legend: { labels: { color: "#e5e7eb" } },
-        tooltip: { callbacks: { footer: () => "" } }
       }
     }
   });
 
-  // ============================
-  // BAR CHART: costi vs revenue
-  // ============================
-  if (barChart) { barChart.destroy(); barChart = null; }
-
-  barChart = new Chart(barCanvas.getContext("2d"), {
-    type: "bar",
-    data: {
+  // BAR CHART
+  barChart = new Chart(bc.getContext("2d"),{
+    type:"bar",
+    data:{
       labels,
-      datasets: [
-        {
-          label: "Costo totale",
-          data: costSeries,
-          borderWidth: 1,
-          yAxisID: "y"
-        },
-        {
-          label: "Revenue",
-          data: revenueSeries,
-          borderWidth: 1,
-          yAxisID: "y"
-        }
+      datasets:[
+        { label:"Costo totale", data:cost, backgroundColor:"rgba(248,113,113,0.5)" },
+        { label:"Revenue", data:rev, backgroundColor:"rgba(34,197,94,0.5)" }
       ]
     },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      interaction: { mode: "index", intersect: false },
-      animation: false,
-      scales: {
-        x: {
-          ticks: { color: "#e5e7eb", maxRotation: 0, autoSkip: true },
-          grid: { color: "rgba(148,163,184,0.15)" }
-        },
-        y: {
-          type: "linear",
-          position: "left",
-          beginAtZero: true,
-          max: moneyMax,
-          title: { display: true, text: "€", color: "#e5e7eb" },
-          ticks: { color: "#e5e7eb" },
-          grid: { color: "rgba(148,163,184,0.15)" }
+    options:{
+      responsive:true,
+      maintainAspectRatio:false,
+      interaction:{mode:"index",intersect:false},
+      scales:{
+        x:{grid:{color:"rgba(148,163,184,0.1)"}},
+        y:{
+          beginAtZero:true,
+          max:maxY2,
+          ticks:{color:"#e5e7eb"},
+          grid:{color:"rgba(148,163,184,0.1)"}
         }
-      },
-      plugins: {
-        legend: { labels: { color: "#e5e7eb" } },
-        tooltip: { callbacks: { footer: () => "" } }
       }
     }
   });
 }
 
-    // =========================
-    // EXPORT CSV
-    // =========================
-    function exportCsv() {
-      if (!monthlyAggregates || monthlyAggregates.length === 0) {
-        alert("Nessun dato da esportare.");
-        return;
-      }
+// =========================
+// EXPORT CSV
+// =========================
+function exportCsv(){
+  if (!monthlyAggregates.length){
+    alert("Nessun dato da esportare.");
+    return;
+  }
+  const header = [
+    "Anno","Mese","Label","FleetSize","CanoneImponibile","CanoneIvato",
+    "Assicurazione","CostoTotale","Revenue","RevenuePerDay",
+    "NumBookings","Noleggiati"
+  ];
 
-      const header = [
-        "Anno","Mese","Label","FleetSize","CanoneImponibile","CanoneIvato",
-        "Assicurazione","CostoTotale","Revenue","RevenuePerDay","NumBookings","Noleggiati"
-      ];
+  const rows = monthlyAggregates.map(b=>[
+    b.year,b.month,b.label,b.fleetSize,b.canoneImponibile,b.canoneIvato,
+    b.assicurazione,b.costoTotale,b.revenue,b.revenuePerDay,
+    b.numBookings,b.noleggiati
+  ]);
 
-      const rows = monthlyAggregates.map(b => [
-        b.year,
-        b.month,
-        b.label,
-        b.fleetSize,
-        b.canoneImponibile,
-        b.canoneIvato,
-        b.assicurazione,
-        b.costoTotale,
-        b.revenue,
-        b.revenuePerDay,
-        b.numBookings,
-        b.noleggiati
-      ]);
+  let csv = header.join(";")+"\n";
+  rows.forEach(r=> csv+=r.join(";")+"\n");
 
-      let csvContent = header.join(";") + "\n";
-      rows.forEach(r => {
-        csvContent += r.join(";") + "\n";
-      });
-
-      const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement("a");
-      link.href = url;
-      link.download = "dashboard_fleet_bookings.csv";
-      link.click();
-      URL.revokeObjectURL(url);
-    }
-  </script>
-</body>
-</html>
+  const blob = new Blob([csv], {type:"text/csv;charset=utf-8;"});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href=url;
+  a.download="dashboard_fleet_bookings.csv";
+  a.click();
+  URL.revokeObjectURL(url);
+}
+</script>
