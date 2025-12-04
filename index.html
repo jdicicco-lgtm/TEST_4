@@ -617,17 +617,29 @@
     // =========================
     // FILTER INIT
     // =========================
-    function initMonthsFilter() {
-      const monthSelect = document.getElementById("monthFilter");
-      if (!monthSelect) return;
 
-      MONTH_LABELS_IT.forEach((label, idx) => {
-        const opt = document.createElement("option");
-        opt.value = String(idx + 1).padStart(2, "0");
-        opt.textContent = label;
-        monthSelect.appendChild(opt);
-      });
-    }
+  function initMonthsFilter() {
+  // prova che la funzione parte
+  console.log("initMonthsFilter chiamata");
+
+  const monthSelect = document.getElementById("monthFilter");
+
+  // se l'elemento non esiste, esco SUBITO
+  if (!monthSelect) {
+    console.warn("monthFilter non trovato nel DOM");
+    return;
+  }
+
+  // svuoto, nel caso venisse richiamata più volte
+  monthSelect.innerHTML = "";
+
+  MONTH_LABELS_IT.forEach((label, idx) => {
+    const opt = document.createElement("option");
+    opt.value = String(idx + 1).padStart(2, "0");
+    opt.textContent = label;
+    monthSelect.appendChild(opt);
+  });
+}
 
     function initGroupFilter() {
       const groupSelect = document.getElementById("groupFilter");
