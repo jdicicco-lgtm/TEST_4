@@ -1054,6 +1054,45 @@ function initAcquisitionFilter() {
           bucket.noleggiati = 0;
         }
       });
+// --------------------------------------------------
+// RICOSTRUZIONE VALORI PRENOTAZIONI PER 2024 e 2026
+// --------------------------------------------------
+
+for (let month = 1; month <= 12; month++) {
+  const m = String(month).padStart(2, "0");
+
+  const key2025 = `2025-${m}`;
+  const key2024 = `2024-${m}`;
+  const key2026 = `2026-${m}`;
+
+  const b2025 = monthlyMap.get(key2025);
+  const b2024 = monthlyMap.get(key2024);
+  const b2026 = monthlyMap.get(key2026);
+
+  if (!b2025) continue;
+
+  // --- 2024 = 2025 -5%
+  if (b2024) {
+    b2024.revenue       = b2025.revenue * 0.95;
+    b2024.revenueDays   = b2025.revenueDays * 0.95;
+    b2024.numBookings   = b2025.numBookings * 0.95;
+    b2024.noleggiati    = b2025.noleggiati * 0.95;
+
+    b2024.revenuePerDay =
+      b2024.revenueDays > 0 ? b2024.revenue / b2024.revenueDays : 0;
+  }
+
+  // --- 2026 = copia del 2025, prima dell’applicazione della percentuale
+  if (b2026) {
+    b2026.revenue       = b2025.revenue;
+    b2026.revenueDays   = b2025.revenueDays;
+    b2026.numBookings   = b2025.numBookings;
+    b2026.noleggiati    = b2025.noleggiati;
+
+    b2026.revenuePerDay =
+      b2026.revenueDays > 0 ? b2026.revenue / b2026.revenueDays : 0;
+  }
+}
 
       // 4) Proiezioni 2026
       // Copia dei valori 2025 → 2026 come base per la proiezione
