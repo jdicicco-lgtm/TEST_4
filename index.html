@@ -803,12 +803,13 @@ function computeMonthlyAggregates({groups,acq,stations,proj}) {
 // =========================
 // STATION FILTER (flotta)
 // =========================
-function applyStationFilter(map, groups, stations) {
-  // Se non ci sono filtri stazione → NON modificare nulla
+function applyStationFilterToFleet(monthlyMap, groups, stations) {
+  // se non filtriamo stazioni → non facciamo nulla
   if (!stations || stations.length === 0) return;
 
-  // Prepara una mappa esatta flotta/stazione/mese
-  const stationFleet = new Map();
+  // Costruisco una mappa precisa dei veicoli presenti per mese e stazione
+  // key: "2025-05::Economy" → Set di targhe presenti in quella stazione
+  const stationPresence = new Map();
 
   fleetStationsData.forEach(row => {
     const g = canonicalGroup(row.group);
@@ -818,39 +819,39 @@ function applyStationFilter(map, groups, stations) {
     const st = normalizeStationName(row.station);
     if (!st) return;
 
-    const y = parseInt(row.year, 10);
-    const m = parseInt(row.month, 10);
-    if (!y || !m) return;
+    const year = parseInt(row.year, 10);
+    const month = parseInt(row.month, 10);
+    const key = `${year}-${String(month).padStart(2,"0")}::${g}`;
 
-    const key = `${y}-${String(m).padStart(2, "0")}`;
-    const fleetVal = parseFloat(row.fleet || 0);
-
-    if (!stationFleet.has(key)) {
-      stationFleet.set(key, { total: 0, match: 0 });
-    }
-
-    const bucket = stationFleet.get(key);
-    bucket.total += fleetVal;
-    if (stations.includes(st)) {
-      bucket.match += fleetVal;
-    }
+    if (!stationPresence.has(key)) stationPresence.set(key, new Set());
+    stationPresence.get(key).add(st);
   });
 
-  // Sovrascrivi il valore flotta secondo la logica PRECEDENTE
-  map.forEach((bucket, key) => {
-    const info = stationFleet.get(key);
-    if (!info) return;
+  // Ora applico il filtro:
+  // se un mese-gruppo NON contiene una delle stazioni selezionate → flotta = 0
+  monthlyMap.forEach(bucket => {
+    const key = `${bucket.year}-${String(bucket.month).padStart(2,"0")}::ALL`;
 
-    // Se nel vecchio codice la stazione dava flotta esatta, NON scalavamo
-    if (info.match > 0) {
-      bucket.fleetSize = info.match;
-    } else {
-      // Nessun veicolo nella stazione selezionata → flotta = 0
+    let match = false;
+
+    // cerco per OGNI gruppo filtrato
+    VEHICLE_GROUPS.forEach(g => {
+      const gpkey = `${bucket.year}-${String(bucket.month).padStart(2,"0")}::${g}`;
+      const sts = stationPresence.get(gpkey);
+      if (!sts) return;
+
+      // se almeno una stazione coincide → quel gruppo esiste in quella stazione
+      if (sts && stations.some(s => sts.has(s))) {
+        match = true;
+      }
+    });
+
+    if (!match) {
+      // Nessun gruppo presente in quelle stazioni → flotta zero
       bucket.fleetSize = 0;
     }
   });
 }
-
 
 // =========================
 // KPI
