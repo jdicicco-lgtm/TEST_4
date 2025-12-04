@@ -1320,57 +1320,94 @@
 // =========================
 //     GRAFICI OTTIMIZZATI
 // =========================
-function updateCharts() {
-  const lineCanvas = document.getElementById("lineChart");
-  const barCanvas  = document.getElementById("barChart");
-  if (!lineCanvas || !barCanvas) return;
+function updateChart() {
+  const canvas = document.getElementById("mainChart");
+  if (!canvas) return;
+  const ctx = canvas.getContext("2d");
 
-  const lineCtx = lineCanvas.getContext("2d");
-  const barCtx  = barCanvas.getContext("2d");
-
+  // Se non ci sono dati filtrati, pulisco il grafico
   if (!monthlyAggregates || monthlyAggregates.length === 0) {
-    if (lineChart) { lineChart.destroy(); lineChart = null; }
-    if (barChart)  { barChart.destroy();  barChart  = null; }
+    if (mainChart) {
+      mainChart.destroy();
+      mainChart = null;
+    }
     return;
   }
 
-  // funzione per normalizzare
+  // helper per avere SEMPRE un numero finito
   function safeNumber(v) {
     if (!Number.isFinite(v) || isNaN(v)) return 0;
     return v;
   }
 
-  const labels        = monthlyAggregates.map(b => b.label);
-  const fleetSeries   = monthlyAggregates.map(b => safeNumber(b.fleetSize));
-  const costSeries    = monthlyAggregates.map(b => safeNumber(b.costoTotale));
-  const revenueSeries = monthlyAggregates.map(b => safeNumber(b.revenue));
+  // --- 1) Serie da DISEGNARE (solo mesi filtrati) ---
+  const labels           = monthlyAggregates.map(b => b.label);
+  const fleetSeries      = monthlyAggregates.map(b => safeNumber(b.fleetSize));
+  const costSeries       = monthlyAggregates.map(b => safeNumber(b.costoTotale));
+  const revenueSeries    = monthlyAggregates.map(b => safeNumber(b.revenue));
+  const noleggiatiSeries = monthlyAggregates.map(b => safeNumber(b.noleggiati));
 
-  // funzione percentile per evitare scale "esplose"
-  function percentileMax(arr, percentile = 0.95) {
-    const filtered = arr.filter(v => Number.isFinite(v) && v > 0).sort((a,b) => a - b);
-    if (filtered.length === 0) return 1;
-    const idx = Math.floor((filtered.length - 1) * percentile);
-    return filtered[idx];
+  // Se davvero è tutto zero → non disegno nulla
+  const allValues = [...fleetSeries, ...costSeries, ...revenueSeries, ...noleggiatiSeries];
+  const maxAbs = Math.max(...allValues.map(v => Math.abs(v)));
+  if (!Number.isFinite(maxAbs) || maxAbs === 0) {
+    if (mainChart) {
+      mainChart.destroy();
+      mainChart = null;
+    }
+    return;
   }
 
-  // =========================
-  //        LINE CHART
-  // =========================
-  const leftValues  = [...fleetSeries];
-  const rightValues = [...costSeries, ...revenueSeries];
+  // --- 2) Scala degli assi calcolata su TUTTI i mesi (baseAggregates) ---
+  //     così anno/mese non fanno "esplodere" il grafico
+  function getAxisMaxFromBase() {
+    if (!baseAggregates || baseAggregates.length === 0) {
+      return { left: 1, right: 1 };
+    }
 
-  const maxLeft  = percentileMax(leftValues, 0.95) * 1.2;
-  const maxRight = percentileMax(rightValues, 0.95) * 1.2;
+    const leftVals = [];
+    const rightVals = [];
 
-  if (lineChart) lineChart.destroy();
+    baseAggregates.forEach(b => {
+      leftVals.push(safeNumber(b.fleetSize));
+      leftVals.push(safeNumber(b.noleggiati));
+      rightVals.push(safeNumber(b.costoTotale));
+      rightVals.push(safeNumber(b.revenue));
+    });
 
-  lineChart = new Chart(lineCtx, {
+    const validLeft  = leftVals.filter(v => v > 0);
+    const validRight = rightVals.filter(v => v > 0);
+
+    // funzione per un "quasi massimo" (tipo 95° percentile) robusto
+    function percentileMax(arr, percentile = 0.95) {
+      const sorted = arr.slice().sort((a, b) => a - b);
+      if (sorted.length === 0) return 1;
+      const idx = Math.floor((sorted.length - 1) * percentile);
+      return sorted[idx];
+    }
+
+    const baseLeft  = validLeft.length  ? percentileMax(validLeft, 0.95)  : 1;
+    const baseRight = validRight.length ? percentileMax(validRight, 0.95) : 1;
+
+    return {
+      left:  baseLeft  * 1.2, // margine +20%
+      right: baseRight * 1.2
+    };
+  }
+
+  const axisMax = getAxisMaxFromBase();
+  const maxLeft  = axisMax.left  || 1;
+  const maxRight = axisMax.right || 1;
+
+  if (mainChart) mainChart.destroy();
+
+  mainChart = new Chart(ctx, {
     type: "line",
     data: {
       labels,
       datasets: [
         {
-          label: "Flotta media",
+          label: "Dimensione flotta",
           data: fleetSeries,
           yAxisID: "y",
           borderWidth: 2,
@@ -1392,6 +1429,14 @@ function updateCharts() {
           borderWidth: 2,
           tension: 0.3,
           spanGaps: true
+        },
+        {
+          label: "Noleggiati",
+          data: noleggiatiSeries,
+          yAxisID: "y",
+          borderWidth: 2,
+          tension: 0.3,
+          spanGaps: true
         }
       ]
     },
@@ -1403,94 +1448,32 @@ function updateCharts() {
       animation: false,
       scales: {
         x: {
-          ticks: { color: "#e5e7eb", autoSkip: true, maxRotation: 0 },
+          ticks: { color: "#e5e7eb", maxRotation: 0, autoSkip: true },
           grid: { color: "rgba(148,163,184,0.15)" }
         },
-        y: {
-          beginAtZero: true,
-          max: maxLeft,
-          title: { display: true, text: "Flotta media", color: "#e5e7eb" },
-          ticks: { color: "#e5e7eb" },
-          grid: { color: "rgba(148,163,184,0.15)" }
-        },
+       y: {
+  type: "linear",
+  position: "left",
+  min: 0,
+  max: 500, // 👈 flotta/noleggiati al massimo ~500, scala fissa
+  title: { display: true, text: "Flotta / Noleggiati", color: "#e5e7eb" },
+  ticks: { color: "#e5e7eb" },
+  grid: { color: "rgba(148,163,184,0.15)" }
+},
+
         y1: {
-          beginAtZero: true,
-          max: maxRight,
-          position: "right",
-          title: { display: true, text: "€", color: "#e5e7eb" },
-          ticks: { color: "#e5e7eb" },
-          grid: { drawOnChartArea: false }
-        }
-      },
-      plugins: {
-        legend: { labels: { color: "#e5e7eb" } }
-      }
-    }
-  });
+  type: "linear",
+  position: "right",
+  min: 0,
+  max: 800000, // 👈 fino a 800k €, più che sufficiente per i tuoi dati
+  title: { display: true, text: "€", color: "#e5e7eb" },
+  ticks: { color: "#e5e7eb" },
+  grid: { drawOnChartArea: false }
+},
 
-  // =========================
-  //       BAR CHART
-  // =========================
-  const euroValues = [...costSeries, ...revenueSeries];
-  const maxEuro    = percentileMax(euroValues, 0.95) * 1.2;
-
-  if (barChart) barChart.destroy();
-
-  barChart = new Chart(barCtx, {
-    type: "bar",
-    data: {
-      labels,
-      datasets: [
-        {
-          label: "Costo totale",
-          data: costSeries,
-          borderWidth: 1,
-          yAxisID: "y"
-        },
-        {
-          label: "Revenue",
-          data: revenueSeries,
-          borderWidth: 1,
-          yAxisID: "y"
-        }
-      ]
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      interaction: { mode: "index", intersect: false },
-      animation: false,
-      scales: {
-        x: {
-          ticks: { color: "#e5e7eb", autoSkip: true },
-          grid: { color: "rgba(148,163,184,0.1)" }
-        },
-        y: {
-          beginAtZero: true,
-          max: maxEuro,
-          title: { display: true, text: "€", color: "#e5e7eb" },
-          ticks: { color: "#e5e7eb" },
-          grid: { color: "rgba(148,163,184,0.15)" }
-        }
-      },
       plugins: {
         legend: { labels: { color: "#e5e7eb" } },
-        tooltip: {
-          callbacks: {
-            label: (ctx) => {
-              const v = ctx.raw;
-              if (!Number.isFinite(v)) return ctx.dataset.label + ": –";
-              return (
-                ctx.dataset.label +
-                ": € " +
-                v.toLocaleString("it-IT", {
-                  minimumFractionDigits: 0,
-                  maximumFractionDigits: 0
-                })
-              );
-            }
-          }
-        }
+        tooltip: { callbacks: { footer: () => "" } }
       }
     }
   });
