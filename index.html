@@ -803,53 +803,56 @@ function computeMonthlyAggregates({groups,acq,stations,proj}) {
 // =========================
 // STATION FILTER (flotta)
 // =========================
-function applyStationFilter(map, groups, stations) {
-  // Se non filtriamo per stazione → non modificare nulla
+function applyStationFilter(monthlyMap, groups, stations) {
+  // Se non si filtrano stazioni → non modificare nulla
   if (!stations || stations.length === 0) return;
 
-  // Mappa presenza veicoli per mese/stazione
-  // Chiave: "2025-05::Economy"  → Set(stazioni presenti)
-  const stationPresence = new Map();
+  const monthStats = new Map();
 
+  // COSTRUIAMO LA STATISTICA SOLO PER IL FATTORE PERCENTUALE
   fleetStationsData.forEach(row => {
-    const g = canonicalGroup(row.group);
-    if (!g) return;
-    if (groups.length && !groups.includes(g)) return;
+    const gruppoCanonico = canonicalGroup(row["group"]);
+    if (!gruppoCanonico) return;
+    if (groups.length > 0 && !groups.includes(gruppoCanonico)) return;
 
-    const st = normalizeStationName(row.station);
-    if (!st) return;
+    const stationNorm = normalizeStationName(row["station"]);
+    if (!stationNorm) return;
 
-    const year = parseInt(row.year, 10);
-    const month = parseInt(row.month, 10);
+    const year = parseInt(row["year"], 10);
+    const month = parseInt(row["month"], 10);
     if (!year || !month) return;
 
-    const key = `${year}-${String(month).padStart(2,"0")}::${g}`;
+    const key = `${year}-${String(month).padStart(2, "0")}`;
+    const fleet = parseFloat(row["fleet"]) || 0;
 
-    if (!stationPresence.has(key)) {
-      stationPresence.set(key, new Set());
+    if (!monthStats.has(key)) {
+      monthStats.set(key, { all: 0, selected: 0 });
     }
-    stationPresence.get(key).add(st);
+
+    const stats = monthStats.get(key);
+    stats.all += fleet;
+
+    if (stations.includes(stationNorm)) {
+      stats.selected += fleet;
+    }
   });
 
-  // Applico il filtro stazioni SENZA toccare la logica di calcolo flotta
-  map.forEach(bucket => {
-    let hasMatch = false;
+  // APPLICHIAMO SOLO LA SCALATURA PERCENTUALE
+  monthlyMap.forEach((bucket, key) => {
+    const stats = monthStats.get(key);
+    if (!stats || stats.all <= 0) return;
 
-    VEHICLE_GROUPS.forEach(g => {
-      const k = `${bucket.year}-${String(bucket.month).padStart(2,"0")}::${g}`;
-      const sts = stationPresence.get(k);
+    const factor = stats.selected / stats.all;
+    if (!isFinite(factor) || factor <= 0) return;
 
-      if (sts && stations.some(sel => sts.has(sel))) {
-        hasMatch = true;
-      }
-    });
-
-    if (!hasMatch) {
-      bucket.fleetSize = 0;
-    }
+    // Flotta e costi vengono solo ridotti proporzionalmente
+    bucket.fleetSize *= factor;
+    bucket.canoneImponibile *= factor;
+    bucket.canoneIvato *= factor;
+    bucket.assicurazione *= factor;
+    bucket.costoTotale *= factor;
   });
 }
-
 
 // =========================
 // KPI
