@@ -1256,6 +1256,12 @@ monthlyMap.forEach(bucket => {
 
       const current = sumForIndices(currentIndicesSet);
       const prev = sumForIndices(prevIndicesSet);
+// --- MEDIA dei noleggiati invece della somma ---
+const monthsCurrentCount = currentIndicesSet.size || 1;
+const monthsPrevCount    = prevIndicesSet.size || 1;
+
+const noleggiatiCurrAvg = current.noleggiati / monthsCurrentCount;
+const noleggiatiPrevAvg = prev.noleggiati / monthsPrevCount;
 
       function setKpi(idCurrent, idPrev, idDiff, currVal, prevVal, options = {}) {
         const elCurr = document.getElementById(idCurrent);
@@ -1388,14 +1394,13 @@ monthlyMap.forEach(bucket => {
       );
 
       setKpi(
-        "kpi-noleggiati-current",
-        "kpi-noleggiati-prev",
-        "kpi-noleggiati-diff",
-        current.noleggiati,
-        prev.noleggiati,
-        { currency: false, decimals: 1 }
-      );
-    }
+  "kpi-noleggiati-current",
+  "kpi-noleggiati-prev",
+  "kpi-noleggiati-diff",
+  noleggiatiCurrAvg,
+  noleggiatiPrevAvg,
+  { currency: false, decimals: 1 }
+);
 
     function resetKpiDisplay() {
       const ids = [
