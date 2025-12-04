@@ -1317,129 +1317,100 @@
     // =========================
     // CHART
     // =========================
-// =========================
-//     GRAFICI OTTIMIZZATI
-// =========================
-function updateChart() {
-  const canvas = document.getElementById("mainChart");
-  if (!canvas) return;
-  const ctx = canvas.getContext("2d");
+    function updateChart() {
+      const canvas = document.getElementById("mainChart");
+      if (!canvas) return;
+      const ctx = canvas.getContext("2d");
 
-  // Se non ci sono dati filtrati, pulisco il grafico
-  if (!monthlyAggregates || monthlyAggregates.length === 0) {
-    if (mainChart) {
-      mainChart.destroy();
-      mainChart = null;
-    }
-    return;
-  }
-
-  // helper per avere SEMPRE un numero finito
-  function safeNumber(v) {
-    if (!Number.isFinite(v) || isNaN(v)) return 0;
-    return v;
-  }
-
-  // Serie da disegnare (solo mesi filtrati)
-  const labels           = monthlyAggregates.map(b => b.label);
-  const fleetSeries      = monthlyAggregates.map(b => safeNumber(b.fleetSize));
-  const costSeries       = monthlyAggregates.map(b => safeNumber(b.costoTotale));
-  const revenueSeries    = monthlyAggregates.map(b => safeNumber(b.revenue));
-  const noleggiatiSeries = monthlyAggregates.map(b => safeNumber(b.noleggiati));
-
-  // se è tutto zero → non disegno nulla
-  const allValues = [...fleetSeries, ...costSeries, ...revenueSeries, ...noleggiatiSeries];
-  const maxAbs = Math.max(...allValues.map(v => Math.abs(v)));
-  if (!Number.isFinite(maxAbs) || maxAbs === 0) {
-    if (mainChart) {
-      mainChart.destroy();
-      mainChart = null;
-    }
-    return;
-  }
-
-  if (mainChart) {
-    mainChart.destroy();
-    mainChart = null;
-  }
-
-  mainChart = new Chart(ctx, {
-    type: "line",
-    data: {
-      labels,
-      datasets: [
-        {
-          label: "Dimensione flotta",
-          data: fleetSeries,
-          yAxisID: "y",
-          borderWidth: 2,
-          tension: 0.3,
-          spanGaps: true
-        },
-        {
-          label: "Costo totale",
-          data: costSeries,
-          yAxisID: "y1",
-          borderWidth: 2,
-          tension: 0.3,
-          spanGaps: true
-        },
-        {
-          label: "Revenue",
-          data: revenueSeries,
-          yAxisID: "y1",
-          borderWidth: 2,
-          tension: 0.3,
-          spanGaps: true
-        },
-        {
-          label: "Noleggiati",
-          data: noleggiatiSeries,
-          yAxisID: "y",
-          borderWidth: 2,
-          tension: 0.3,
-          spanGaps: true
+      if (!monthlyAggregates || monthlyAggregates.length === 0) {
+        if (mainChart) {
+          mainChart.destroy();
+          mainChart = null;
         }
-      ]
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      interaction: { mode: "index", intersect: false },
-      stacked: false,
-      animation: false,
-      scales: {
-        x: {
-          ticks: { color: "#e5e7eb", maxRotation: 0, autoSkip: true },
-          grid: { color: "rgba(148,163,184,0.15)" }
-        },
-        y: {
-          type: "linear",
-          position: "left",
-          min: 0,
-          max: 500, // scala fissa per flotta/noleggiati
-          title: { display: true, text: "Flotta / Noleggiati", color: "#e5e7eb" },
-          ticks: { color: "#e5e7eb" },
-          grid: { color: "rgba(148,163,184,0.15)" }
-        },
-        y1: {
-          type: "linear",
-          position: "right",
-          min: 0,
-          max: 800000, // scala fissa per costi / revenue
-          title: { display: true, text: "€", color: "#e5e7eb" },
-          ticks: { color: "#e5e7eb" },
-          grid: { drawOnChartArea: false }
-        }
-      },
-      plugins: {
-        legend: { labels: { color: "#e5e7eb" } },
-        tooltip: { callbacks: { footer: () => "" } }
+        return;
       }
-    }
-  });
-}
 
+      function safeNumber(v) {
+        return Number.isFinite(v) ? v : 0;
+      }
+
+      const labels           = monthlyAggregates.map(b => b.label);
+      const fleetSeries      = monthlyAggregates.map(b => safeNumber(b.fleetSize));
+      const costSeries       = monthlyAggregates.map(b => safeNumber(b.costoTotale));
+      const revenueSeries    = monthlyAggregates.map(b => safeNumber(b.revenue));
+      const noleggiatiSeries = monthlyAggregates.map(b => safeNumber(b.noleggiati));
+
+      if (mainChart) mainChart.destroy();
+
+      mainChart = new Chart(ctx, {
+        type: "line",
+        data: {
+          labels,
+          datasets: [
+            {
+              label: "Dimensione flotta",
+              data: fleetSeries,
+              yAxisID: "y",
+              borderWidth: 2,
+              tension: 0.3
+            },
+            {
+              label: "Costo totale",
+              data: costSeries,
+              yAxisID: "y1",
+              borderWidth: 2,
+              tension: 0.3
+            },
+            {
+              label: "Revenue",
+              data: revenueSeries,
+              yAxisID: "y1",
+              borderWidth: 2,
+              tension: 0.3
+            },
+            {
+              label: "Noleggiati",
+              data: noleggiatiSeries,
+              yAxisID: "y",
+              borderWidth: 2,
+              tension: 0.3
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          interaction: { mode: "index", intersect: false },
+          stacked: false,
+          scales: {
+            x: {
+              ticks: { color: "#e5e7eb", maxRotation: 0, autoSkip: true },
+              grid: { color: "rgba(148,163,184,0.15)" }
+            },
+            y: {
+              type: "linear",
+              position: "left",
+              beginAtZero: true,
+              title: { display: true, text: "Flotta / Noleggiati", color: "#e5e7eb" },
+              ticks: { color: "#e5e7eb" },
+              grid: { color: "rgba(148,163,184,0.15)" }
+            },
+            y1: {
+              type: "linear",
+              position: "right",
+              beginAtZero: true,
+              title: { display: true, text: "€", color: "#e5e7eb" },
+              ticks: { color: "#e5e7eb" },
+              grid: { drawOnChartArea: false }
+            }
+          },
+          plugins: {
+            legend: { labels: { color: "#e5e7eb" } },
+            tooltip: { callbacks: { footer: () => "" } }
+          }
+        }
+      });
+    }
 
     // =========================
     // EXPORT CSV
