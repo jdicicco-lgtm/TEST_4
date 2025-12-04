@@ -1340,14 +1340,14 @@ function updateChart() {
     return v;
   }
 
-  // --- 1) Serie da DISEGNARE (solo mesi filtrati) ---
+  // Serie da disegnare (solo mesi filtrati)
   const labels           = monthlyAggregates.map(b => b.label);
   const fleetSeries      = monthlyAggregates.map(b => safeNumber(b.fleetSize));
   const costSeries       = monthlyAggregates.map(b => safeNumber(b.costoTotale));
   const revenueSeries    = monthlyAggregates.map(b => safeNumber(b.revenue));
   const noleggiatiSeries = monthlyAggregates.map(b => safeNumber(b.noleggiati));
 
-  // Se davvero è tutto zero → non disegno nulla
+  // se è tutto zero → non disegno nulla
   const allValues = [...fleetSeries, ...costSeries, ...revenueSeries, ...noleggiatiSeries];
   const maxAbs = Math.max(...allValues.map(v => Math.abs(v)));
   if (!Number.isFinite(maxAbs) || maxAbs === 0) {
@@ -1358,48 +1358,10 @@ function updateChart() {
     return;
   }
 
-  // --- 2) Scala degli assi calcolata su TUTTI i mesi (baseAggregates) ---
-  //     così anno/mese non fanno "esplodere" il grafico
-  function getAxisMaxFromBase() {
-    if (!baseAggregates || baseAggregates.length === 0) {
-      return { left: 1, right: 1 };
-    }
-
-    const leftVals = [];
-    const rightVals = [];
-
-    baseAggregates.forEach(b => {
-      leftVals.push(safeNumber(b.fleetSize));
-      leftVals.push(safeNumber(b.noleggiati));
-      rightVals.push(safeNumber(b.costoTotale));
-      rightVals.push(safeNumber(b.revenue));
-    });
-
-    const validLeft  = leftVals.filter(v => v > 0);
-    const validRight = rightVals.filter(v => v > 0);
-
-    // funzione per un "quasi massimo" (tipo 95° percentile) robusto
-    function percentileMax(arr, percentile = 0.95) {
-      const sorted = arr.slice().sort((a, b) => a - b);
-      if (sorted.length === 0) return 1;
-      const idx = Math.floor((sorted.length - 1) * percentile);
-      return sorted[idx];
-    }
-
-    const baseLeft  = validLeft.length  ? percentileMax(validLeft, 0.95)  : 1;
-    const baseRight = validRight.length ? percentileMax(validRight, 0.95) : 1;
-
-    return {
-      left:  baseLeft  * 1.2, // margine +20%
-      right: baseRight * 1.2
-    };
+  if (mainChart) {
+    mainChart.destroy();
+    mainChart = null;
   }
-
-  const axisMax = getAxisMaxFromBase();
-  const maxLeft  = axisMax.left  || 1;
-  const maxRight = axisMax.right || 1;
-
-  if (mainChart) mainChart.destroy();
 
   mainChart = new Chart(ctx, {
     type: "line",
@@ -1451,26 +1413,25 @@ function updateChart() {
           ticks: { color: "#e5e7eb", maxRotation: 0, autoSkip: true },
           grid: { color: "rgba(148,163,184,0.15)" }
         },
-       y: {
-  type: "linear",
-  position: "left",
-  min: 0,
-  max: 500, // 👈 flotta/noleggiati al massimo ~500, scala fissa
-  title: { display: true, text: "Flotta / Noleggiati", color: "#e5e7eb" },
-  ticks: { color: "#e5e7eb" },
-  grid: { color: "rgba(148,163,184,0.15)" }
-},
-
+        y: {
+          type: "linear",
+          position: "left",
+          min: 0,
+          max: 500, // scala fissa per flotta/noleggiati
+          title: { display: true, text: "Flotta / Noleggiati", color: "#e5e7eb" },
+          ticks: { color: "#e5e7eb" },
+          grid: { color: "rgba(148,163,184,0.15)" }
+        },
         y1: {
-  type: "linear",
-  position: "right",
-  min: 0,
-  max: 800000, // 👈 fino a 800k €, più che sufficiente per i tuoi dati
-  title: { display: true, text: "€", color: "#e5e7eb" },
-  ticks: { color: "#e5e7eb" },
-  grid: { drawOnChartArea: false }
-},
-
+          type: "linear",
+          position: "right",
+          min: 0,
+          max: 800000, // scala fissa per costi / revenue
+          title: { display: true, text: "€", color: "#e5e7eb" },
+          ticks: { color: "#e5e7eb" },
+          grid: { drawOnChartArea: false }
+        }
+      },
       plugins: {
         legend: { labels: { color: "#e5e7eb" } },
         tooltip: { callbacks: { footer: () => "" } }
