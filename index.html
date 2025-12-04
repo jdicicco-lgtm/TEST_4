@@ -698,18 +698,44 @@
       acquisitionSelect.appendChild(optAll);
 
       const set = new Set();
-      fleetData.forEach(row => {
-        const val = row["ACQUISIZIONE"];
-        if (val !== null && val !== undefined && String(val).trim() !== "") {
-          set.add(String(val).trim());
-        }
-      });
-      bookingsData.forEach(row => {
-        const val = row["acquisizione"];
-        if (val !== null && val !== undefined && String(val).trim() !== "") {
-          set.add(String(val).trim());
-        }
-      });
+      function cleanValue(v) {
+  if (v === null || v === undefined) return null;
+  const s = String(v).trim();
+  if (!s || s.toLowerCase() === "nan") return null;
+  return s;
+}
+
+function initAcquisitionFilter() {
+  const acquisitionSelect = document.getElementById("acquisitionFilter");
+  if (!acquisitionSelect) return;
+
+  acquisitionSelect.innerHTML = "";
+
+  const optAll = document.createElement("option");
+  optAll.value = "ALL";
+  optAll.textContent = "Tutti";
+  optAll.selected = true;
+  acquisitionSelect.appendChild(optAll);
+
+  const set = new Set();
+
+  fleetData.forEach(row => {
+    const val = cleanValue(row["ACQUISIZIONE"]);
+    if (val) set.add(val);
+  });
+
+  bookingsData.forEach(row => {
+    const val = cleanValue(row["acquisizione"]);
+    if (val) set.add(val);
+  });
+
+  Array.from(set).sort().forEach(a => {
+    const opt = document.createElement("option");
+    opt.value = a;
+    opt.textContent = a;
+    acquisitionSelect.appendChild(opt);
+  });
+}
 
       Array.from(set).sort().forEach(a => {
         const opt = document.createElement("option");
@@ -1030,6 +1056,21 @@
       });
 
       // 4) Proiezioni 2026
+      // Copia dei valori 2025 → 2026 come base per la proiezione
+monthlyMap.forEach(bucket => {
+  if (bucket.year === 2026) {
+    const prevKey = "2025-" + String(bucket.month).padStart(2, "0");
+    const prev = monthlyMap.get(prevKey);
+    if (prev) {
+      bucket.revenue       = prev.revenue;
+      bucket.revenueDays   = prev.revenueDays;
+      bucket.numBookings   = prev.numBookings;
+      bucket.noleggiati    = prev.noleggiati;
+      bucket.revenuePerDay = prev.revenuePerDay;
+    }
+  }
+});
+
       if (!isNaN(projectionFactor) && projectionFactor !== 0) {
         monthlyMap.forEach(bucket => {
           if (bucket.year === 2026) {
