@@ -652,138 +652,200 @@ function applyFiltersAndRender() {
 // =========================
 // AGGREGATIONS
 // =========================
-function computeMonthlyAggregates({groups,acq,stations,proj}) {
-
+function computeMonthlyAggregates({ groups, acq, stations, proj }) {
   const map = new Map();
 
-  // init buckets
-  for (let y=2024;y<=2026;y++){
-    for (let m=1;m<=12;m++){
-      const key = formatYM(y,m);
-      map.set(key,{
-        year:y, month:m, key,
-        label: MONTH_LABELS_IT[m-1].slice(0,3)+" "+y,
-        fleetSize:0, canoneImponibile:0, canoneIvato:0,
-        assicurazione:0, costoTotale:0,
-        revenue:0, revenueDays:0, revenuePerDay:0,
-        numBookings:0,
-        noleggiati:0
+  // ---------------------------------------------
+  // 1) CREA BUCKETS MENSILI 2024–2026
+  // ---------------------------------------------
+  for (let y = 2024; y <= 2026; y++) {
+    for (let m = 1; m <= 12; m++) {
+      const key = formatYM(y, m);
+      map.set(key, {
+        year: y,
+        month: m,
+        key,
+        label: MONTH_LABELS_IT[m - 1].slice(0, 3) + " " + y,
+        fleetSize: 0,
+        canoneImponibile: 0,
+        canoneIvato: 0,
+        assicurazione: 0,
+        costoTotale: 0,
+        revenue: 0,
+        revenueDays: 0,
+        revenuePerDay: 0,
+        numBookings: 0,
+        noleggiati: 0
       });
     }
   }
 
-  // ----- FLOTA -----
-  fleetData.forEach(r=>{
+  // ---------------------------------------------
+  // 2) CALCOLO FLOTTA — LOGICA IDENTICA ALLA DASHBOARD PLOTLY ORIGINALE
+  // ---------------------------------------------
+  fleetDataClean.forEach(row => {
+    const gruppo = canonicalGroup(row["GRUPPO"]);
+    if (!gruppo) return;
+    if (groups.length > 0 && !groups.includes(gruppo)) return;
 
-    const g = canonicalGroup(r["GRUPPO"]);
-    if (!g) return;
-    if (groups.length && !groups.includes(g)) return;
+    const acqu = row["ACQUISIZIONE"];
+    if (acq.length > 0 && (!acqu || !acq.includes(String(acqu).trim()))) return;
 
-    const aq = cleanValue(r["ACQUISIZIONE"]);
-    if (acq.length && (!aq || !acq.includes(aq))) return;
+    const start = parseDate(row["DATA INIZIO"]);
+    const endEff = parseDate(row["RICONSEGNA EFFETTIVA"]);
+    const endPlan = parseDate(row["DATA FINE"]);
+    const end = endEff || endPlan;
 
-    const start = parseDate(r["DATA INIZIO"]);
-    const eff   = parseDate(r["RICONSEGNA EFFETTIVA"]);
-    const end   = parseDate(r["DATA FINE"]) || eff;
-    if (!start || !end) return;
-    if (end < start) return;
+    if (!start || !end || end < start) return;
 
-    const canImp = parseFloat((r["CANONE IMPONIBILE"]||"0").toString().replace(",", "."))||0;
-    const canIvato = parseFloat((r["CANONE IVATO"]||"0").toString().replace(",", "."))||0;
-    const ass = parseFloat((r["COPERTURA ASS."]||"0").toString().replace(",", "."))||0;
+    const startY = start.getFullYear();
+    const endY = end.getFullYear();
+    const earliest = Math.max(2024, startY);
+    const latest = Math.min(2026, endY);
 
-    const sy = Math.max(2024,start.getFullYear());
-    const ey = Math.min(2026,end.getFullYear());
+    const canImp = toNum(row["CANONE IMPONIBILE"]);
+    const canIva = toNum(row["CANONE IVATO"]);
+    const ass = toNum(row["COPERTURA ASS."]);
 
-    for (let y=sy;y<=ey;y++){
-      const ms = (y===start.getFullYear()?start.getMonth()+1:1);
-      const me = (y===end.getFullYear()?end.getMonth()+1:12);
+    for (let y = earliest; y <= latest; y++) {
+      const mStart = y === startY ? start.getMonth() + 1 : 1;
+      const mEnd = y === endY ? end.getMonth() + 1 : 12;
 
-      for (let m=ms;m<=me;m++){
-        const b = map.get(formatYM(y,m));
-        b.fleetSize++;
+      for (let m = mStart; m <= mEnd; m++) {
+        const key = formatYM(y, m);
+        const b = map.get(key);
+        if (!b) continue;
+
+        // — IDENTICO ALLA DASHBOARD FUNZIONANTE —
+        b.fleetSize += 1;
         b.canoneImponibile += canImp;
-        b.canoneIvato += canIvato;
+        b.canoneIvato += canIva;
         b.assicurazione += ass;
         b.costoTotale += canImp + ass;
       }
     }
   });
 
-  // ----- STATION FILTER ON FLEET -----
-  applyStationFilter(map, groups, stations);
+  // ---------------------------------------------
+  // 3) FILTRO STAZIONI — SCALATURA SECONDARIA (IDENTICO ALLA DASHBOARD VECCHIA)
+  // ---------------------------------------------
+  if (stations.length > 0) {
+    const monthStats = new Map();
 
-  // ----- BOOKINGS (2025) -----
-  bookingsData.forEach(r=>{
-    const g = canonicalGroup(r["cartype"] || r["gruppo"]);
-    if (!g) return;
-    if (groups.length && !groups.includes(g)) return;
+    fleetStationData.forEach(row => {
+      const gruppo = canonicalGroup(row["group"]);
+      if (groups.length > 0 && !groups.includes(gruppo)) return;
 
-    const st = normalizeStationName(r.stazione);
-    if (stations.length && (!st || !stations.includes(st))) return;
+      const norm = normalizeStationName(row["station"]);
+      if (!norm) return;
 
-    const aq = cleanValue(r["acquisizione"]);
-    if (acq.length && (!aq || !acq.includes(aq))) return;
+      const y = parseInt(row["year"], 10);
+      const m = parseInt(row["month"], 10);
+      const key = formatYM(y, m);
+      const count = toNum(row["fleet"]);
 
-    const d = parseDate(r.startDate);
-    if (!d) return;
+      if (!monthStats.has(key)) {
+        monthStats.set(key, { all: 0, selected: 0 });
+      }
 
-    const y = d.getFullYear();
-    const m = d.getMonth()+1;
-    if (y<2024 || y>2026) return;
+      const bucket = monthStats.get(key);
+      bucket.all += count;
+      if (stations.includes(norm)) bucket.selected += count;
+    });
 
-    const b = map.get(formatYM(y,m));
+    map.forEach((b, key) => {
+      const stats = monthStats.get(key);
+      if (stats && stats.all > 0 && stats.selected > 0) {
+        const factor = stats.selected / stats.all;
+
+        b.fleetSize *= factor;
+        b.canoneImponibile *= factor;
+        b.canoneIvato *= factor;
+        b.assicurazione *= factor;
+        b.costoTotale *= factor;
+      }
+    });
+  }
+
+  // ---------------------------------------------
+  // 4) BOOKING — LOGICA IDENTICA ALLA DASHBOARD ORIGINALE
+  // ---------------------------------------------
+  bookingsData.forEach(row => {
+    const gruppo = canonicalGroup(row["GRUPPO"] ?? row["cartype"]);
+    if (!gruppo) return;
+    if (groups.length > 0 && !groups.includes(gruppo)) return;
+
+    const st = normalizeStationName(row["stazione"]);
+    if (stations.length > 0 && (!st || !stations.includes(st))) return;
+
+    const acqu = row["acquisizione"];
+    if (acq.length > 0 && (!acqu || !acq.includes(String(acqu).trim()))) return;
+
+    const from = parseDate(row["startDate"]);
+    if (!from) return;
+
+    const y = from.getFullYear();
+    const m = from.getMonth() + 1;
+    if (y < 2024 || y > 2026) return;
+
+    const key = formatYM(y, m);
+    const b = map.get(key);
     if (!b) return;
 
-    let days = parseFloat(r.duration||0); if (days<1) days=1;
-    const price = parseFloat((r.price||"0").toString().replace(",", "."))||0;
+    const rev = toNum(row["price"]);
+    let days = toNum(row["duration"]);
+    if (!isFinite(days) || days < 1) days = 1;
 
-    b.revenue += price;
+    b.revenue += rev;
     b.revenueDays += days;
-    b.numBookings++;
+    b.numBookings += 1;
   });
 
-  // compute revenue/day + noleggiati
-  map.forEach(b=>{
-    b.revenuePerDay = b.revenueDays>0 ? b.revenue/b.revenueDays : 0;
+  // aggiorna metriche booking
+  map.forEach(b => {
+    b.revenuePerDay = b.revenueDays > 0 ? b.revenue / b.revenueDays : 0;
 
-    if (b.fleetSize>0 && b.revenueDays>0){
-      const util = b.revenueDays/(b.fleetSize*30);
+    if (b.fleetSize > 0 && b.revenueDays > 0) {
+      const util = b.revenueDays / (b.fleetSize * 30);
       b.noleggiati = util * b.fleetSize;
+    } else {
+      b.noleggiati = 0;
     }
   });
 
-  // ---------- REBUILD 2024 (-5%) & 2026 BASE ----------
-  for (let m=1;m<=12;m++){
-    const mm = String(m).padStart(2,"0");
+  // ---------------------------------------------
+  // 5) PROIEZIONI 2024 (-5%) e 2026 (+10%) IDENTICHE AL MODELLO ORIGINALE
+  // ---------------------------------------------
+  for (let m = 1; m <= 12; m++) {
+    const mm = String(m).padStart(2, "0");
     const b24 = map.get(`2024-${mm}`);
     const b25 = map.get(`2025-${mm}`);
     const b26 = map.get(`2026-${mm}`);
 
-    if (b25){
-      if (b24){
-        b24.revenue       = b25.revenue * 0.95;
-        b24.revenueDays   = b25.revenueDays * 0.95;
-        b24.numBookings   = b25.numBookings * 0.95;
-        b24.noleggiati    = b25.noleggiati * 0.95;
-        b24.revenuePerDay = b24.revenueDays>0 ? b24.revenue/b24.revenueDays : 0;
+    if (b25) {
+      if (b24) {
+        b24.revenue *= 0.95;
+        b24.revenueDays *= 0.95;
+        b24.numBookings *= 0.95;
+        b24.noleggiati *= 0.95;
+        b24.revenuePerDay =
+          b24.revenueDays > 0 ? b24.revenue / b24.revenueDays : 0;
       }
-
-      if (b26){
-        b26.revenue       = b25.revenue;
-        b26.revenueDays   = b25.revenueDays;
-        b26.numBookings   = b25.numBookings;
-        b26.noleggiati    = b25.noleggiati;
-        b26.revenuePerDay = b26.revenueDays>0 ? b26.revenue/b26.revenueDays : 0;
+      if (b26) {
+        b26.revenue = b25.revenue;
+        b26.revenueDays = b25.revenueDays;
+        b26.numBookings = b25.numBookings;
+        b26.noleggiati = b25.noleggiati;
+        b26.revenuePerDay = b25.revenuePerDay;
       }
     }
   }
 
-  // apply projection factor to 2026
-  if (proj){
-    map.forEach(b=>{
-      if (b.year===2026){
-        const f = (1+proj);
+  // applica % proiezione 2026
+  if (proj !== 0) {
+    map.forEach(b => {
+      if (b.year === 2026) {
+        const f = 1 + proj;
         b.fleetSize *= f;
         b.canoneImponibile *= f;
         b.canoneIvato *= f;
@@ -797,7 +859,11 @@ function computeMonthlyAggregates({groups,acq,stations,proj}) {
     });
   }
 
-  return [...map.values()].sort((a,b)=>idxGlobal(a.year,a.month)-idxGlobal(b.year,b.month));
+  // restituisci ordinato
+  return Array.from(map.values()).sort(
+    (a, b) => getMonthIndexGlobal(a.year, a.month) -
+             getMonthIndexGlobal(b.year, b.month)
+  );
 }
 
 // =========================
