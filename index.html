@@ -16,32 +16,34 @@
   ];
 
   // Mappa tutti i codici possibili → 10 gruppi canonici
-  const RAW_GROUP_MAP = {
-    "COMMERCIAL VAN": "Commercial Van",
-    "COMM VAN": "Commercial Van",
-    "COMMERCIALVAN": "Commercial Van",
+const RAW_GROUP_MAP = {
+  "COMMERCIAL VAN": "Commercial Van",
+  "COMM VAN": "Commercial Van",
+  "COMMERCIALVAN": "Commercial Van",
+  "COMMERCIAL PEOPLE MOVER": "Commercial Van",   // 👈 CAMBIATO: ora mappa su Commercial Van
 
-    "LARGE": "Large",
+  "LARGE": "Large",
 
-    "ECONOMY": "Economy",
+  "ECONOMY": "Economy",
 
-    "SMALL": "Small",
+  "SMALL": "Small",
 
-    "MINI": "Mini",
+  "MINI": "Mini",
 
-    "PREMIUM": "Premium",
+  "PREMIUM": "Premium",
 
-    "SUV": "Suv",
+  "SUV": "Suv",
 
-    "PEOPLE MOVER": "People Mover",
-    "COMMERCIAL PEOPLE MOVER": "People Mover",
+  "PEOPLE MOVER": "People Mover",               // 👈 resta distinto
+  "PEOPLEMOVER": "People Mover",
 
-    "STATION": "Station Wagon",
-    "STATION WAGON": "Station Wagon",
+  "STATION": "Station Wagon",
+  "STATION WAGON": "Station Wagon",
 
-    "CABRIOLET": "Cabriolet",
-    "CABRIO": "Cabriolet"
-  };
+  "CABRIOLET": "Cabriolet",
+  "CABRIO": "Cabriolet"
+};
+
 
   function canonicalGroup(raw) {
     if (raw === null || raw === undefined) return null;
@@ -341,6 +343,59 @@
         });
       }
     }
+    
+// =========================
+// STATION FILTER (FLOTTA) PER ANNO/MESE via fleetStations2025
+// =========================
+function applyStationFilterToFleet(monthlyMap, groups, stations) {
+  if (!fleetStationsData || fleetStationsData.length === 0) return;
+  if (!stations || stations.length === 0) return;
+
+  // costruiamo una mappa: key = "YYYY-MM" -> { all, selected }
+  const monthStats = new Map();
+
+  fleetStationsData.forEach(row => {
+    const gruppoCanonico = canonicalGroup(row["group"]);
+    if (!gruppoCanonico) return;
+    if (groups.length > 0 && !groups.includes(gruppoCanonico)) return;
+
+    const rawStation = row["station"];
+    const stationNorm = normalizeStationName(rawStation);
+    if (!stationNorm) return;
+
+    const year = parseInt(row["year"], 10);
+    const month = parseInt(row["month"], 10);
+    if (!year || !month) return;
+
+    const key = formatYearMonthKey(year, month);
+    const fleetCount =
+      parseFloat(String(row["fleet"] ?? 0).replace(",", ".")) || 0;
+
+    if (!monthStats.has(key)) {
+      monthStats.set(key, { all: 0, selected: 0 });
+    }
+    const stats = monthStats.get(key);
+    stats.all += fleetCount;
+    if (stations.includes(stationNorm)) {
+      stats.selected += fleetCount;
+    }
+  });
+
+  // Applichiamo il fattore mese per mese alla flotta e ai costi
+  monthlyMap.forEach((bucket, key) => {
+    const stats = monthStats.get(key);
+    if (!stats || stats.all <= 0 || stats.selected <= 0) return;
+
+    const factor = stats.selected / stats.all;
+    if (!isFinite(factor) || factor <= 0) return;
+
+    bucket.fleetSize *= factor;
+    bucket.canoneImponibile *= factor;
+    bucket.canoneIvato *= factor;
+    bucket.assicurazione *= factor;
+    bucket.costoTotale *= factor;
+  });
+}
 
     // ---- 1) Flotta (fleetData_clean) -> chiave GRUPPO ----
     fleetData.forEach(row => {
@@ -396,16 +451,8 @@
     });
 
     // ---- 2) Filtro stazione sulla flotta tramite fleetStations2025 (chiave group) ----
-    const stationFactor = computeStationFactorForFleet({ stations, groups });
-    if (stationFactor !== null) {
-      monthlyMap.forEach(bucket => {
-        bucket.fleetSize *= stationFactor;
-        bucket.canoneImponibile *= stationFactor;
-        bucket.canoneIvato *= stationFactor;
-        bucket.assicurazione *= stationFactor;
-        bucket.costoTotale *= stationFactor;
-      });
-    }
+   // ---- 2) Filtro stazione sulla flotta tramite fleetStations2025 (per anno/mese/gruppo) ----
+applyStationFilterToFleet(monthlyMap, groups, stations);
 
     // ---- 3) Prenotazioni (bookings2025) -> chiave gruppo/cartype ----
     bookingsData.forEach(row => {
@@ -498,38 +545,7 @@
   // =========================
   // STATION FACTOR (FLOTTA) via fleetStations2025 (chiave group)
   // =========================
-  function computeStationFactorForFleet(filters) {
-    const { stations, groups } = filters;
-    if (!fleetStationsData || fleetStationsData.length === 0) return null;
-    if (!stations || stations.length === 0) return null;
-
-    let totalAll = 0;
-    let totalSelected = 0;
-
-    fleetStationsData.forEach(row => {
-      const gruppoCanonico = canonicalGroup(row["group"]);
-      if (!gruppoCanonico) return;
-      if (groups.length > 0 && !groups.includes(gruppoCanonico)) return;
-
-      const rawStation = row["station"];
-      const stationNorm = normalizeStationName(rawStation);
-      if (!stationNorm) return;
-
-      const count =
-        parseFloat(String(row["fleet"] ?? 0).replace(",", ".")) || 0;
-
-      totalAll += count;
-      if (stations.includes(stationNorm)) {
-        totalSelected += count;
-      }
-    });
-
-    if (totalAll <= 0) return null;
-    const factor = totalSelected / totalAll;
-    if (!isFinite(factor) || factor <= 0) return null;
-    return factor;
-  }
-
+  
   // =========================
   // KPI CALCULATION (current + previous)
   // =========================
