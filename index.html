@@ -1191,216 +1191,231 @@ monthlyMap.forEach(bucket => {
     // KPI
     // =========================
     function updateKpiCards() {
-      if (!monthlyAggregates || monthlyAggregates.length === 0) {
-        resetKpiDisplay();
-        return;
+  if (!monthlyAggregates || monthlyAggregates.length === 0) {
+    resetKpiDisplay();
+    return;
+  }
+
+  // ---- individua mesi filtrati
+  const indicesCurrent = monthlyAggregates.map(b =>
+    getMonthIndexGlobal(b.year, b.month)
+  );
+  const minIdx = Math.min(...indicesCurrent);
+  const maxIdx = Math.max(...indicesCurrent);
+  const lengthRange = maxIdx - minIdx + 1;
+
+  const prevEnd = minIdx - 1;
+  const prevStart = prevEnd - (lengthRange - 1);
+
+  const prevStartClamped = clamp(prevStart, 0, 35);
+  const prevEndClamped = clamp(prevEnd, 0, 35);
+
+  // ---- aggregatore generico
+  function sumForIndices(indicesSet) {
+    const res = {
+      fleetSize: 0,
+      canoneImponibile: 0,
+      canoneIvato: 0,
+      assicurazione: 0,
+      costoTotale: 0,
+      revenue: 0,
+      revenuePerDay: 0,
+      numBookings: 0,
+      noleggiati: 0,
+      totalRevenueDays: 0
+    };
+
+    baseAggregates.forEach(b => {
+      const idx = getMonthIndexGlobal(b.year, b.month);
+      if (indicesSet.has(idx)) {
+        res.fleetSize += b.fleetSize;
+        res.canoneImponibile += b.canoneImponibile;
+        res.canoneIvato += b.canoneIvato;
+        res.assicurazione += b.assicurazione;
+        res.costoTotale += b.costoTotale;
+        res.revenue += b.revenue;
+        res.numBookings += b.numBookings;
+        res.noleggiati += b.noleggiati;
+        res.totalRevenueDays += b.revenueDays || 0;
       }
+    });
 
-      const indicesCurrent = monthlyAggregates.map(b =>
-        getMonthIndexGlobal(b.year, b.month)
-      );
-      const minIdx = Math.min(...indicesCurrent);
-      const maxIdx = Math.max(...indicesCurrent);
-      const lengthRange = maxIdx - minIdx + 1;
+    if (res.totalRevenueDays > 0) {
+      res.revenuePerDay = res.revenue / res.totalRevenueDays;
+    } else {
+      res.revenuePerDay = 0;
+    }
 
-      const prevEnd = minIdx - 1;
-      const prevStart = prevEnd - (lengthRange - 1);
+    return res;
+  }
 
-      const prevStartClamped = clamp(prevStart, 0, 35);
-      const prevEndClamped = clamp(prevEnd, 0, 35);
+  // ---- costruzione set mesi correnti e precedenti
+  const currentIndicesSet = new Set();
+  for (let i = minIdx; i <= maxIdx; i++) currentIndicesSet.add(i);
 
-      function sumForIndices(indicesSet) {
-        const res = {
-          fleetSize: 0,
-          canoneImponibile: 0,
-          canoneIvato: 0,
-          assicurazione: 0,
-          costoTotale: 0,
-          revenue: 0,
-          revenuePerDay: 0,
-          numBookings: 0,
-          noleggiati: 0,
-          totalRevenueDays: 0
-        };
+  const prevIndicesSet = new Set();
+  for (let i = prevStartClamped; i <= prevEndClamped; i++) {
+    if (i >= 0 && i < 36) prevIndicesSet.add(i);
+  }
 
-        baseAggregates.forEach(b => {
-          const idx = getMonthIndexGlobal(b.year, b.month);
-          if (indicesSet.has(idx)) {
-            res.fleetSize += b.fleetSize;
-            res.canoneImponibile += b.canoneImponibile;
-            res.canoneIvato += b.canoneIvato;
-            res.assicurazione += b.assicurazione;
-            res.costoTotale += b.costoTotale;
-            res.revenue += b.revenue;
-            res.numBookings += b.numBookings;
-            res.noleggiati += b.noleggiati;
-            res.totalRevenueDays += b.revenueDays || 0;
-          }
-        });
+  const current = sumForIndices(currentIndicesSet);
+  const prev = sumForIndices(prevIndicesSet);
 
-        if (res.totalRevenueDays > 0) {
-          res.revenuePerDay = res.revenue / res.totalRevenueDays;
-        } else {
-          res.revenuePerDay = 0;
-        }
-        return res;
-      }
+  // -----------------------------------------------------
+  // 🔥 MEDIA DI NOLEGGIATI (invece della somma totale)
+  // -----------------------------------------------------
+  const monthsCurrentCount = currentIndicesSet.size || 1;
+  const monthsPrevCount = prevIndicesSet.size || 1;
 
-      const currentIndicesSet = new Set();
-      for (let i = minIdx; i <= maxIdx; i++) currentIndicesSet.add(i);
+  const noleggiatiCurrAvg = current.noleggiati / monthsCurrentCount;
+  const noleggiatiPrevAvg = prev.noleggiati / monthsPrevCount;
 
-      const prevIndicesSet = new Set();
-      for (let i = prevStartClamped; i <= prevEndClamped; i++) {
-        if (i >= 0 && i < 36) prevIndicesSet.add(i);
-      }
+  // ---- funzione helper per riempire KPI
+  function setKpi(idCurrent, idPrev, idDiff, currVal, prevVal, options = {}) {
+    const elCurr = document.getElementById(idCurrent);
+    const elPrev = document.getElementById(idPrev);
+    const elDiff = document.getElementById(idDiff);
+    if (!elCurr || !elPrev || !elDiff) return;
 
-      const current = sumForIndices(currentIndicesSet);
-      const prev = sumForIndices(prevIndicesSet);
-// --- MEDIA dei noleggiati invece della somma ---
-const monthsCurrentCount = currentIndicesSet.size || 1;
-const monthsPrevCount    = prevIndicesSet.size || 1;
+    const isCurrency = options.currency === true;
+    const decimals = options.decimals ?? 0;
 
-const noleggiatiCurrAvg = current.noleggiati / monthsCurrentCount;
-const noleggiatiPrevAvg = prev.noleggiati / monthsPrevCount;
-
-      function setKpi(idCurrent, idPrev, idDiff, currVal, prevVal, options = {}) {
-        const elCurr = document.getElementById(idCurrent);
-        const elPrev = document.getElementById(idPrev);
-        const elDiff = document.getElementById(idDiff);
-        if (!elCurr || !elPrev || !elDiff) return;
-
-        const isCurrency = options.currency === true;
-        const decimals = options.decimals ?? 0;
-
-        function formatNumber(v) {
-          if (!isFinite(v)) return "–";
-          if (isCurrency) {
-            return (
-              "€ " +
-              v.toLocaleString("it-IT", {
-                minimumFractionDigits: decimals,
-                maximumFractionDigits: decimals
-              })
-            );
-          }
-          return v.toLocaleString("it-IT", {
+    function formatNumber(v) {
+      if (!isFinite(v)) return "–";
+      if (isCurrency) {
+        return (
+          "€ " +
+          v.toLocaleString("it-IT", {
             minimumFractionDigits: decimals,
             maximumFractionDigits: decimals
-          });
-        }
-
-        elCurr.textContent = formatNumber(currVal);
-        elPrev.textContent = prevVal && prevVal !== 0 ? formatNumber(prevVal) : "–";
-
-        let diffPerc = null;
-        if (prevVal && prevVal !== 0) {
-          diffPerc = ((currVal - prevVal) / prevVal) * 100;
-        }
-
-        elDiff.classList.remove("positive","negative","neutral");
-        if (diffPerc === null) {
-          elDiff.textContent = "↔︎ 0%";
-          elDiff.classList.add("neutral");
-        } else if (diffPerc > 0) {
-          elDiff.textContent = "📈 +" + diffPerc.toFixed(1) + "%";
-          elDiff.classList.add("positive");
-        } else if (diffPerc < 0) {
-          elDiff.textContent = "📉 " + diffPerc.toFixed(1) + "%";
-          elDiff.classList.add("negative");
-        } else {
-          elDiff.textContent = "↔︎ 0%";
-          elDiff.classList.add("neutral");
-        }
+          })
+        );
       }
+      return v.toLocaleString("it-IT", {
+        minimumFractionDigits: decimals,
+        maximumFractionDigits: decimals
+      });
+    }
 
-      const monthsCountCurrent = currentIndicesSet.size || 1;
-      const monthsCountPrev = prevIndicesSet.size || 1;
-      const fleetCurrAvg = current.fleetSize / monthsCountCurrent;
-      const fleetPrevAvg = prev.fleetSize / monthsCountPrev;
+    elCurr.textContent = formatNumber(currVal);
+    elPrev.textContent = prevVal && prevVal !== 0 ? formatNumber(prevVal) : "–";
 
-      setKpi(
-        "kpi-fleet-current",
-        "kpi-fleet-prev",
-        "kpi-fleet-diff",
-        fleetCurrAvg,
-        fleetPrevAvg,
-        { currency: false, decimals: 1 }
-      );
+    let diffPerc = null;
+    if (prevVal && prevVal !== 0) {
+      diffPerc = ((currVal - prevVal) / prevVal) * 100;
+    }
 
-      setKpi(
-        "kpi-canone-current",
-        "kpi-canone-prev",
-        "kpi-canone-diff",
-        current.canoneImponibile,
-        prev.canoneImponibile,
-        { currency: true, decimals: 0 }
-      );
+    elDiff.classList.remove("positive", "negative", "neutral");
+    if (diffPerc === null) {
+      elDiff.textContent = "↔︎ 0%";
+      elDiff.classList.add("neutral");
+    } else if (diffPerc > 0) {
+      elDiff.textContent = "📈 +" + diffPerc.toFixed(1) + "%";
+      elDiff.classList.add("positive");
+    } else if (diffPerc < 0) {
+      elDiff.textContent = "📉 " + diffPerc.toFixed(1) + "%";
+      elDiff.classList.add("negative");
+    } else {
+      elDiff.textContent = "↔︎ 0%";
+      elDiff.classList.add("neutral");
+    }
+  }
 
-      const elCanIvato = document.getElementById("kpi-canone-ivato-current");
-      if (elCanIvato) {
-        elCanIvato.textContent =
-          current.canoneIvato > 0
-            ? "€ " +
-              current.canoneIvato.toLocaleString("it-IT", {
-                minimumFractionDigits: 0,
-                maximumFractionDigits: 0
-              })
-            : "–";
-      }
+  // ---- KPI veri e propri
 
-      setKpi(
-        "kpi-assicurazione-current",
-        "kpi-assicurazione-prev",
-        "kpi-assicurazione-diff",
-        current.assicurazione,
-        prev.assicurazione,
-        { currency: true, decimals: 0 }
-      );
+  // flotta (media)
+  const monthsCountCurrent = currentIndicesSet.size || 1;
+  const monthsCountPrev = prevIndicesSet.size || 1;
+  const fleetCurrAvg = current.fleetSize / monthsCountCurrent;
+  const fleetPrevAvg = prev.fleetSize / monthsCountPrev;
 
-      setKpi(
-        "kpi-costo-current",
-        "kpi-costo-prev",
-        "kpi-costo-diff",
-        current.costoTotale,
-        prev.costoTotale,
-        { currency: true, decimals: 0 }
-      );
+  setKpi(
+    "kpi-fleet-current",
+    "kpi-fleet-prev",
+    "kpi-fleet-diff",
+    fleetCurrAvg,
+    fleetPrevAvg,
+    { currency: false, decimals: 1 }
+  );
 
-      setKpi(
-        "kpi-revenue-current",
-        "kpi-revenue-prev",
-        "kpi-revenue-diff",
-        current.revenue,
-        prev.revenue,
-        { currency: true, decimals: 0 }
-      );
+  setKpi(
+    "kpi-canone-current",
+    "kpi-canone-prev",
+    "kpi-canone-diff",
+    current.canoneImponibile,
+    prev.canoneImponibile,
+    { currency: true, decimals: 0 }
+  );
 
-      setKpi(
-        "kpi-revday-current",
-        "kpi-revday-prev",
-        "kpi-revday-diff",
-        current.revenuePerDay,
-        prev.revenuePerDay,
-        { currency: true, decimals: 2 }
-      );
+  const elCanIvato = document.getElementById("kpi-canone-ivato-current");
+  if (elCanIvato) {
+    elCanIvato.textContent =
+      current.canoneIvato > 0
+        ? "€ " +
+          current.canoneIvato.toLocaleString("it-IT", {
+            minimumFractionDigits: 0,
+            maximumFractionDigits: 0
+          })
+        : "–";
+  }
 
-      setKpi(
-        "kpi-bookings-current",
-        "kpi-bookings-prev",
-        "kpi-bookings-diff",
-        current.numBookings,
-        prev.numBookings,
-        { currency: false, decimals: 0 }
-      );
+  setKpi(
+    "kpi-assicurazione-current",
+    "kpi-assicurazione-prev",
+    "kpi-assicurazione-diff",
+    current.assicurazione,
+    prev.assicurazione,
+    { currency: true, decimals: 0 }
+  );
 
-      setKpi(
-  "kpi-noleggiati-current",
-  "kpi-noleggiati-prev",
-  "kpi-noleggiati-diff",
-  noleggiatiCurrAvg,
-  noleggiatiPrevAvg,
-  { currency: false, decimals: 1 }
-);
+  setKpi(
+    "kpi-costo-current",
+    "kpi-costo-prev",
+    "kpi-costo-diff",
+    current.costoTotale,
+    prev.costoTotale,
+    { currency: true, decimals: 0 }
+  );
+
+  setKpi(
+    "kpi-revenue-current",
+    "kpi-revenue-prev",
+    "kpi-revenue-diff",
+    current.revenue,
+    prev.revenue,
+    { currency: true, decimals: 0 }
+  );
+
+  setKpi(
+    "kpi-revday-current",
+    "kpi-revday-prev",
+    "kpi-revday-diff",
+    current.revenuePerDay,
+    prev.revenuePerDay,
+    { currency: true, decimals: 2 }
+  );
+
+  setKpi(
+    "kpi-bookings-current",
+    "kpi-bookings-prev",
+    "kpi-bookings-diff",
+    current.numBookings,
+    prev.numBookings,
+    { currency: false, decimals: 0 }
+  );
+
+  // -----------------------------------------------------
+  // KPI NOLEGGIATI (MEDIA)
+  // -----------------------------------------------------
+  setKpi(
+    "kpi-noleggiati-current",
+    "kpi-noleggiati-prev",
+    "kpi-noleggiati-diff",
+    noleggiatiCurrAvg,
+    noleggiatiPrevAvg,
+    { currency: false, decimals: 1 }
+  );
+}
 
     function resetKpiDisplay() {
       const ids = [
