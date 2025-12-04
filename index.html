@@ -1343,185 +1343,173 @@
     // =========================
     // CHARTS
     // =========================
-    function updateCharts() {
-      const lineCanvas = document.getElementById("lineChart");
-      const barCanvas  = document.getElementById("barChart");
-      if (!lineCanvas || !barCanvas) return;
+   function updateCharts() {
+  const lineCanvas = document.getElementById("lineChart");
+  const barCanvas  = document.getElementById("barChart");
+  if (!lineCanvas || !barCanvas) return;
 
-      if (!monthlyAggregates || monthlyAggregates.length === 0) {
-        if (lineChart) { lineChart.destroy(); lineChart = null; }
-        if (barChart)  { barChart.destroy();  barChart  = null; }
-        return;
-      }
+  // nessun dato → distruggo eventuali grafici e esco
+  if (!monthlyAggregates || monthlyAggregates.length === 0) {
+    if (lineChart) { lineChart.destroy(); lineChart = null; }
+    if (barChart)  { barChart.destroy();  barChart  = null; }
+    return;
+  }
 
-      const labels        = monthlyAggregates.map(b => b.label);
-      const fleetSeries   = monthlyAggregates.map(b => safeNumber(b.fleetSize));
-      const costSeries    = monthlyAggregates.map(b => safeNumber(b.costoTotale));
-      const revenueSeries = monthlyAggregates.map(b => safeNumber(b.revenue));
+  // ============================
+  // Serie filtrate da disegnare
+  // ============================
+  const labels        = monthlyAggregates.map(b => b.label);
+  const fleetSeries   = monthlyAggregates.map(b => safeNumber(b.fleetSize));
+  const costSeries    = monthlyAggregates.map(b => safeNumber(b.costoTotale));
+  const revenueSeries = monthlyAggregates.map(b => safeNumber(b.revenue));
 
-      const allValues = [...fleetSeries, ...costSeries, ...revenueSeries];
-      const maxAbs = Math.max(...allValues.map(v => Math.abs(v)));
-      if (!Number.isFinite(maxAbs) || maxAbs === 0) {
-        if (lineChart) { lineChart.destroy(); lineChart = null; }
-        if (barChart)  { barChart.destroy();  barChart  = null; }
-        return;
-      }
+  const allValues = [...fleetSeries, ...costSeries, ...revenueSeries];
+  const maxAbs = Math.max(...allValues.map(v => Math.abs(v)));
+  if (!Number.isFinite(maxAbs) || maxAbs === 0) {
+    if (lineChart) { lineChart.destroy(); lineChart = null; }
+    if (barChart)  { barChart.destroy();  barChart  = null; }
+    return;
+  }
 
-      function getAxisMaxValues() {
-        if (!baseAggregates || baseAggregates.length === 0) {
-          return { fleet: 1, money: 1 };
-        }
+  // ============================
+  // Scala assi calcolata SOLO sui dati filtrati
+  // ============================
+  function percentileMax(arr, percentile) {
+    const filtered = arr
+      .filter(v => Number.isFinite(v) && v > 0)
+      .sort((a, b) => a - b);
+    if (filtered.length === 0) return 1;
+    const idx = Math.floor((filtered.length - 1) * percentile);
+    return filtered[idx];
+  }
 
-        const fleetVals  = [];
-        const moneyVals  = [];
+  const fleetMax = percentileMax(fleetSeries, 0.95) * 1.2 || 1;
+  const moneyMax = percentileMax([...costSeries, ...revenueSeries], 0.95) * 1.2 || 1;
 
-        baseAggregates.forEach(b => {
-          fleetVals.push(safeNumber(b.fleetSize));
-          moneyVals.push(safeNumber(b.costoTotale));
-          moneyVals.push(safeNumber(b.revenue));
-        });
+  // ============================
+  // LINE CHART: flotta + costi + revenue
+  // ============================
+  if (lineChart) { lineChart.destroy(); lineChart = null; }
 
-        const validFleet = fleetVals.filter(v => v > 0);
-        const validMoney = moneyVals.filter(v => v > 0);
-
-        function percentileMax(arr, percentile) {
-          const sorted = arr.slice().sort((a, b) => a - b);
-          if (sorted.length === 0) return 1;
-          const idx = Math.floor((sorted.length - 1) * percentile);
-          return sorted[idx];
-        }
-
-        const baseFleet = validFleet.length ? percentileMax(validFleet, 0.95) : 1;
-        const baseMoney = validMoney.length ? percentileMax(validMoney, 0.95) : 1;
-
-        return {
-          fleet: baseFleet * 1.2,
-          money: baseMoney * 1.2
-        };
-      }
-
-      const axisMax = getAxisMaxValues();
-      const maxFleet = axisMax.fleet || 1;
-      const maxMoney = axisMax.money || 1;
-
-      if (lineChart) { lineChart.destroy(); lineChart = null; }
-
-      lineChart = new Chart(lineCanvas.getContext("2d"), {
-        type: "line",
-        data: {
-          labels,
-          datasets: [
-            {
-              label: "Dimensione flotta",
-              data: fleetSeries,
-              yAxisID: "y",
-              borderWidth: 2,
-              tension: 0.3,
-              spanGaps: true
-            },
-            {
-              label: "Costo totale",
-              data: costSeries,
-              yAxisID: "y1",
-              borderWidth: 2,
-              tension: 0.3,
-              spanGaps: true
-            },
-            {
-              label: "Revenue",
-              data: revenueSeries,
-              yAxisID: "y1",
-              borderWidth: 2,
-              tension: 0.3,
-              spanGaps: true
-            }
-          ]
+  lineChart = new Chart(lineCanvas.getContext("2d"), {
+    type: "line",
+    data: {
+      labels,
+      datasets: [
+        {
+          label: "Dimensione flotta",
+          data: fleetSeries,
+          yAxisID: "y",
+          borderWidth: 2,
+          tension: 0.3,
+          spanGaps: true
         },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          interaction: { mode: "index", intersect: false },
-          stacked: false,
-          animation: false,
-          scales: {
-            x: {
-              ticks: { color: "#e5e7eb", maxRotation: 0, autoSkip: true },
-              grid: { color: "rgba(148,163,184,0.15)" }
-            },
-            y: {
-              type: "linear",
-              position: "left",
-              beginAtZero: true,
-              max: maxFleet,
-              title: { display: true, text: "Flotta", color: "#e5e7eb" },
-              ticks: { color: "#e5e7eb" },
-              grid: { color: "rgba(148,163,184,0.15)" }
-            },
-            y1: {
-              type: "linear",
-              position: "right",
-              beginAtZero: true,
-              max: maxMoney,
-              title: { display: true, text: "€", color: "#e5e7eb" },
-              ticks: { color: "#e5e7eb" },
-              grid: { drawOnChartArea: false }
-            }
-          },
-          plugins: {
-            legend: { labels: { color: "#e5e7eb" } },
-            tooltip: { callbacks: { footer: () => "" } }
-          }
-        }
-      });
-
-      if (barChart) { barChart.destroy(); barChart = null; }
-
-      barChart = new Chart(barCanvas.getContext("2d"), {
-        type: "bar",
-        data: {
-          labels,
-          datasets: [
-            {
-              label: "Costo totale",
-              data: costSeries,
-              borderWidth: 1,
-              yAxisID: "y"
-            },
-            {
-              label: "Revenue",
-              data: revenueSeries,
-              borderWidth: 1,
-              yAxisID: "y"
-            }
-          ]
+        {
+          label: "Costo totale",
+          data: costSeries,
+          yAxisID: "y1",
+          borderWidth: 2,
+          tension: 0.3,
+          spanGaps: true
         },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          interaction: { mode: "index", intersect: false },
-          animation: false,
-          scales: {
-            x: {
-              ticks: { color: "#e5e7eb", maxRotation: 0, autoSkip: true },
-              grid: { color: "rgba(148,163,184,0.15)" }
-            },
-            y: {
-              type: "linear",
-              position: "left",
-              beginAtZero: true,
-              max: maxMoney,
-              title: { display: true, text: "€", color: "#e5e7eb" },
-              ticks: { color: "#e5e7eb" },
-              grid: { color: "rgba(148,163,184,0.15)" }
-            }
-          },
-          plugins: {
-            legend: { labels: { color: "#e5e7eb" } },
-            tooltip: { callbacks: { footer: () => "" } }
-          }
+        {
+          label: "Revenue",
+          data: revenueSeries,
+          yAxisID: "y1",
+          borderWidth: 2,
+          tension: 0.3,
+          spanGaps: true
         }
-      });
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: { mode: "index", intersect: false },
+      stacked: false,
+      animation: false,
+      scales: {
+        x: {
+          ticks: { color: "#e5e7eb", maxRotation: 0, autoSkip: true },
+          grid: { color: "rgba(148,163,184,0.15)" }
+        },
+        y: {
+          type: "linear",
+          position: "left",
+          beginAtZero: true,
+          max: fleetMax,
+          title: { display: true, text: "Flotta", color: "#e5e7eb" },
+          ticks: { color: "#e5e7eb" },
+          grid: { color: "rgba(148,163,184,0.15)" }
+        },
+        y1: {
+          type: "linear",
+          position: "right",
+          beginAtZero: true,
+          max: moneyMax,
+          title: { display: true, text: "€", color: "#e5e7eb" },
+          ticks: { color: "#e5e7eb" },
+          grid: { drawOnChartArea: false }
+        }
+      },
+      plugins: {
+        legend: { labels: { color: "#e5e7eb" } },
+        tooltip: { callbacks: { footer: () => "" } }
+      }
     }
+  });
+
+  // ============================
+  // BAR CHART: costi vs revenue
+  // ============================
+  if (barChart) { barChart.destroy(); barChart = null; }
+
+  barChart = new Chart(barCanvas.getContext("2d"), {
+    type: "bar",
+    data: {
+      labels,
+      datasets: [
+        {
+          label: "Costo totale",
+          data: costSeries,
+          borderWidth: 1,
+          yAxisID: "y"
+        },
+        {
+          label: "Revenue",
+          data: revenueSeries,
+          borderWidth: 1,
+          yAxisID: "y"
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: { mode: "index", intersect: false },
+      animation: false,
+      scales: {
+        x: {
+          ticks: { color: "#e5e7eb", maxRotation: 0, autoSkip: true },
+          grid: { color: "rgba(148,163,184,0.15)" }
+        },
+        y: {
+          type: "linear",
+          position: "left",
+          beginAtZero: true,
+          max: moneyMax,
+          title: { display: true, text: "€", color: "#e5e7eb" },
+          ticks: { color: "#e5e7eb" },
+          grid: { color: "rgba(148,163,184,0.15)" }
+        }
+      },
+      plugins: {
+        legend: { labels: { color: "#e5e7eb" } },
+        tooltip: { callbacks: { footer: () => "" } }
+      }
+    }
+  });
+}
 
     // =========================
     // EXPORT CSV
