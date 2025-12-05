@@ -1549,7 +1549,10 @@ function renderBookingsChart() {
   const ctx = document.getElementById("chartBookings");
   if (!ctx) return;
 
-  if (window.chartBookings) window.chartBookings.destroy();
+  // 🔥 FIX: distruggi solo se esiste ED è un grafico Chart.js
+  if (window.chartBookings && typeof window.chartBookings.destroy === "function") {
+    window.chartBookings.destroy();
+  }
 
   const labels = monthlyAggregates.map(m => m.label);
   const values = monthlyAggregates.map(m => m.numBookings);
