@@ -1448,10 +1448,10 @@ let chartRevDay = null;
 function renderMoreCharts() {
   if (!monthlyAggregates || monthlyAggregates.length === 0) return;
 
-  // 1️⃣ Leggo le label originali
+  // 1️⃣ Creo le label originali
   let labels = monthlyAggregates.map(b => b.label);
 
-  // 2️⃣ Le accorcio: "Gennaio 2024" → "Gen 24"
+  // 2️⃣ Accorcio i mesi → "Gennaio 2024" → "Gen 24"
   labels = labels.map(l => {
     const [mese, anno] = l.split(" ");
     return mese.substring(0, 3) + " " + anno.substring(2);
@@ -1469,7 +1469,11 @@ function renderMoreCharts() {
     return (b.noleggiati / b.fleetSize) * 100;
   });
 
-  // ... il resto del codice grafici ...
+  // 🔥 IMPORTANTE:
+  // Usa “labels” quando costruisci i grafici (non b.label!)
+  // Esempio:
+  //
+  // new Chart(ctx, { data: { labels, datasets: [...] } })
 }
 
   // =======================
