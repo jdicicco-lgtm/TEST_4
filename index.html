@@ -603,22 +603,24 @@
     // =========================
     // DATA LOADING
     // =========================
-    async function loadData() {
-      try {
-        const [fleetRes, fleetStationsRes, bookingsRes] = await Promise.all([
-          fetch("fleetDataclean.json"),
-          fetch("fleetStations2025.json"),
-          fetch("bookings2025.json")
-        ]);
+async function loadData() {
+  try {
+    const [fleetRes, fleetStationsRes, bookingsRes] = await Promise.all([
+      fetch("json/fleetData_clean.json"),
+      fetch("json/fleetStations2025.json"),
+      fetch("json/bookings2025.json")
+    ]);
 
-        fleetData = await fleetRes.json();
-        fleetStationsData = await fleetStationsRes.json();
-        bookingsData = await bookingsRes.json();
-      } catch (err) {
-        console.error("Errore nel caricamento dei JSON:", err);
-        alert("Errore nel caricamento dei dati. Controlla i file JSON nella root del repo.");
-      }
-    }
+    fleetData = await fleetRes.json();
+    fleetStationsData = await fleetStationsRes.json();
+    bookingsData = await bookingsRes.json();
+
+  } catch (err) {
+    console.error("Errore nel caricamento dei JSON:", err);
+    alert("Errore nel caricamento dei dati. Controlla i file JSON nella cartella /json.");
+  }
+}
+
 
     // =========================
     // FILTER INIT
