@@ -1562,7 +1562,8 @@ function renderMainChart() {
     window.mainChartInstance.destroy();
   }
 
-  const labels = monthlyAggregates.map(b => b.label);
+  const labels = monthlyAggregates.map(b => MONTH_LABELS_IT[b.month - 1]);
+
   const fleet = monthlyAggregates.map(b => b.fleetSize);
   const costoTot = monthlyAggregates.map(b => b.costoTotale);
   const revenue = monthlyAggregates.map(b => b.revenue);
@@ -1577,21 +1578,24 @@ function renderMainChart() {
           data: fleet,
           borderColor: "#3b82f6",
           tension: 0.3,
-          borderWidth: 2
+          borderWidth: 2,
+          yAxisID: "yFleet"
         },
         {
           label: "Costo Totale",
           data: costoTot,
           borderColor: "#06b6d4",
           tension: 0.3,
-          borderWidth: 2
+          borderWidth: 2,
+          yAxisID: "yMoney"
         },
         {
           label: "Revenue",
           data: revenue,
           borderColor: "#22c55e",
           tension: 0.3,
-          borderWidth: 2
+          borderWidth: 2,
+          yAxisID: "yMoney"
         }
       ]
     },
@@ -1603,17 +1607,30 @@ function renderMainChart() {
           labels: { color: "#fff" }
         },
         tooltip: {
-          enabled: false,              // disabilita tooltip default
-          external: customTooltip      // usa quello personalizzato
+          enabled: false,
+          external: customTooltip
         }
       },
       scales: {
-        x: { ticks: { color: "#fff" } },
-        y: { ticks: { color: "#fff" } }
+        x: {
+          ticks: { color: "#fff" }
+        },
+        yFleet: {
+          type: "linear",
+          position: "left",
+          ticks: { color: "#fff" }
+        },
+        yMoney: {
+          type: "linear",
+          position: "right",
+          ticks: { color: "#fff" },
+          grid: { drawOnChartArea: false }
+        }
       }
     }
   });
 }
+
 
  function customTooltip(context) {
   let tooltipEl = document.getElementById("chartjs-tooltip");
