@@ -606,9 +606,9 @@
 async function loadData() {
   try {
     const [fleetRes, fleetStationsRes, bookingsRes] = await Promise.all([
-      fetch("json/fleetData_clean.json"),
-      fetch("json/fleetStations2025.json"),
-      fetch("json/bookings2025.json")
+      fetch("fleetData_clean.json"),
+fetch("fleetStations2025.json"),
+fetch("bookings2025.json")
     ]);
 
     fleetData = await fleetRes.json();
