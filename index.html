@@ -575,6 +575,7 @@ function fmtEuro(x) {
 // - computeMonthlyAggregatesBase()
 // - renderMainChart()
 // - updateKpiCards()
+ // - renderMainChart();
 // ecc.
 //
     // =========================
@@ -1645,6 +1646,78 @@ new Chart(ctxFleet, {
   }
 });
 
+// ===============================
+// ⭐ RENDER MAIN CHART
+// ===============================
+function renderMainChart() {
+  const ctx = document.getElementById("mainChart");
+  if (!ctx) return;
+
+  // Se non ci sono dati, non disegnare niente
+  if (!monthlyAggregates || monthlyAggregates.length === 0) return;
+
+  const labels = monthlyAggregates.map(b => b.label);
+  const fleet = monthlyAggregates.map(b => b.fleetSize);
+  const costi = monthlyAggregates.map(b => b.costoTotale);
+  const revenue = monthlyAggregates.map(b => b.revenue);
+  const noleggiati = monthlyAggregates.map(b => b.noleggiati);
+
+  // Cancella eventuale grafico precedente
+  if (mainChart) mainChart.destroy();
+
+  mainChart = new Chart(ctx, {
+    type: "line",
+    data: {
+      labels,
+      datasets: [
+        {
+          label: "Flotta",
+          data: fleet,
+          borderColor: "#3b82f6",
+          backgroundColor: "rgba(59,130,246,0.2)",
+          borderWidth: 2,
+          tension: 0.3
+        },
+        {
+          label: "Costi",
+          data: costi,
+          borderColor: "#ef4444",
+          backgroundColor: "rgba(239,68,68,0.2)",
+          borderWidth: 2,
+          tension: 0.3
+        },
+        {
+          label: "Revenue",
+          data: revenue,
+          borderColor: "#22c55e",
+          backgroundColor: "rgba(34,197,94,0.2)",
+          borderWidth: 2,
+          tension: 0.3
+        },
+        {
+          label: "Noleggiati",
+          data: noleggiati,
+          borderColor: "#facc15",
+          backgroundColor: "rgba(250,204,21,0.3)",
+          borderWidth: 2,
+          tension: 0.3
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: { mode: "index", intersect: false },
+      scales: {
+        x: { ticks: { color: "#fff" } },
+        y: { ticks: { color: "#fff" } }
+      },
+      plugins: {
+        legend: { labels: { color: "#fff" } }
+      }
+    }
+  });
+}
 
 </script>
         
