@@ -184,12 +184,12 @@
 /* Versione speciale solo per il grafico principale */
 /* Versione speciale solo per il grafico principale */
 .chart-container.main-chart {
-  height: 560px !important;
-  max-height: 560px !important;
-  padding-bottom: 5rem !important;
+  height: 600px !important;
+  max-height: 600px !important;
+  padding-bottom: 6rem !important;
   overflow: visible !important;
-  width: 100% !important;      /* RESET alla larghezza reale */
-  margin-left: 0 !important;   /* Niente spostamenti */
+  width: 1020% !important;      /* RESET alla larghezza reale */
+  margin-left: -20% !important;   /* Niente spostamenti */
 }
 
 .chart-container.main-chart canvas {
@@ -1636,26 +1636,30 @@ function renderMainChart() {
           external: customTooltip
         }
       },
-      scales: {
-        x: {
-          ticks: { color: "#fff", maxRotation: 40,
-    minRotation: 40,
-    padding: 8 }
-        },
-        yFleet: {
-          type: "linear",
-          position: "left",
-          ticks: { color: "#fff" }
-        },
-        yMoney: {
-          type: "linear",
-          position: "right",
-          ticks: { color: "#fff" },
-          grid: { drawOnChartArea: false }
-        }
-      }
-    }
-  });
+     scales: {
+  x: {
+    ticks: {
+      color: "#fff",
+      maxRotation: 25,
+      minRotation: 25,
+      font: { size: 11 },
+      padding: 12
+    },
+    grid: { display: false }   // ✅ CORRETTO: dentro x
+  },
+
+  yFleet: {
+    type: "linear",
+    position: "left",
+    ticks: { color: "#fff" }
+  },
+
+  yMoney: {
+    type: "linear",
+    position: "right",
+    ticks: { color: "#fff" },
+    grid: { drawOnChartArea: false }
+  }
 }
 
 
