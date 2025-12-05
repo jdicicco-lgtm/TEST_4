@@ -497,7 +497,7 @@
                 <h6 class="mb-0">Andamento mensile</h6>
                 <small class="text-muted">Dimensione flotta, costo totale, revenue, noleggiati</small>
               </div>
-              <canvas id="mainChart" height="90"></canvas>
+              <canvas id="mainChart" style="min-height: 300px;"></canvas>
             </div>
           </div>
         </div>
@@ -1706,52 +1706,50 @@ function renderMainChart() {
   const ctx = document.getElementById("mainChart");
   if (!ctx) return;
 
-  // Se non ci sono dati, non disegnare niente
-  if (!monthlyAggregates || monthlyAggregates.length === 0) return;
+  // distruggi grafico precedente
+  if (mainChart) {
+    mainChart.destroy();
+  }
 
-  const labels = monthlyAggregates.map(b => b.label);
-  const fleet = monthlyAggregates.map(b => b.fleetSize);
-  const costi = monthlyAggregates.map(b => b.costoTotale);
-  const revenue = monthlyAggregates.map(b => b.revenue);
-  const noleggiati = monthlyAggregates.map(b => b.noleggiati);
-
-  // Cancella eventuale grafico precedente
-  if (mainChart) mainChart.destroy();
+  // labels esatte dai tuoi dati
+  const labels = monthlyAggregates.map(m => m.label);
 
   mainChart = new Chart(ctx, {
     type: "line",
     data: {
-      labels,
+      labels: labels,
       datasets: [
         {
-          label: "Flotta",
-          data: fleet,
+          label: "Fleet Size",
+          data: monthlyAggregates.map(m => m.fleetSize),
           borderColor: "#3b82f6",
           backgroundColor: "rgba(59,130,246,0.2)",
           borderWidth: 2,
           tension: 0.3
         },
         {
-          label: "Costi",
-          data: costi,
+          label: "Costo Totale (€)",
+          data: monthlyAggregates.map(m => m.costoTotale),
           borderColor: "#ef4444",
           backgroundColor: "rgba(239,68,68,0.2)",
           borderWidth: 2,
-          tension: 0.3
+          tension: 0.3,
+          yAxisID: 'y1'
         },
         {
-          label: "Revenue",
-          data: revenue,
+          label: "Revenue (€)",
+          data: monthlyAggregates.map(m => m.revenue),
           borderColor: "#22c55e",
           backgroundColor: "rgba(34,197,94,0.2)",
           borderWidth: 2,
-          tension: 0.3
+          tension: 0.3,
+          yAxisID: 'y1'
         },
         {
           label: "Noleggiati",
-          data: noleggiati,
+          data: monthlyAggregates.map(m => m.noleggiati),
           borderColor: "#facc15",
-          backgroundColor: "rgba(250,204,21,0.3)",
+          backgroundColor: "rgba(250,204,21,0.2)",
           borderWidth: 2,
           tension: 0.3
         }
@@ -1762,11 +1760,37 @@ function renderMainChart() {
       maintainAspectRatio: false,
       interaction: { mode: "index", intersect: false },
       scales: {
-        x: { ticks: { color: "#fff" } },
-        y: { ticks: { color: "#fff" } }
+        x: { ticks: { color: "#e5e7eb" } },
+        y: {
+          type: "linear",
+          position: "left",
+          ticks: { color: "#e5e7eb" }
+        },
+        y1: {
+          type: "linear",
+          position: "right",
+          ticks: {
+            color: "#e5e7eb",
+            callback: v => "€ " + v.toLocaleString("it-IT")
+          },
+          grid: { drawOnChartArea: false }
+        }
       },
       plugins: {
-        legend: { labels: { color: "#fff" } }
+        legend: { labels: { color: "#fff" } },
+        tooltip: {
+          callbacks: {
+            label: ctx => {
+              const label = ctx.dataset.label;
+              const value = ctx.parsed.y;
+
+              if (label.includes("€")) {
+                return `${label}: € ${value.toLocaleString("it-IT")}`;
+              }
+              return `${label}: ${value.toLocaleString("it-IT")}`;
+            }
+          }
+        }
       }
     }
   });
