@@ -1448,8 +1448,16 @@ let chartRevDay = null;
 function renderMoreCharts() {
   if (!monthlyAggregates || monthlyAggregates.length === 0) return;
 
-  const labels = monthlyAggregates.map(b => b.label);
+  // 1️⃣ Leggo le label originali
+  let labels = monthlyAggregates.map(b => b.label);
 
+  // 2️⃣ Le accorcio: "Gennaio 2024" → "Gen 24"
+  labels = labels.map(l => {
+    const [mese, anno] = l.split(" ");
+    return mese.substring(0, 3) + " " + anno.substring(2);
+  });
+
+  // 3️⃣ Dataset
   const fleet = monthlyAggregates.map(b => b.fleetSize);
   const noleggiati = monthlyAggregates.map(b => b.noleggiati);
   const revenue = monthlyAggregates.map(b => b.revenue);
@@ -1460,6 +1468,9 @@ function renderMoreCharts() {
     if (!b.fleetSize) return 0;
     return (b.noleggiati / b.fleetSize) * 100;
   });
+
+  // ... il resto del codice grafici ...
+}
 
   // =======================
   // GRAFICO OCCUPANCY
@@ -1637,16 +1648,22 @@ function renderMainChart() {
         }
       },
      scales: {
-  x: {
-    ticks: {
-      color: "#fff",
-      maxRotation: 25,
-      minRotation: 25,
-      font: { size: 11 },
-      padding: 12
-    },
-    grid: { display: false }   // ✅ CORRETTO: dentro x
+ x: {
+  ticks: {
+    color: "#fff",
+    maxRotation: 45,   // ruota un po' di più
+    minRotation: 45,
+    font: { size: 10 },
+    padding: 20        // più spazio sopra e sotto
   },
+
+  // Aggiunge spazio verticale PER DAVVERO
+  afterFit: (scale) => {
+    scale.height = scale.height + 40; // aumenta lo spazio dell'asse X
+  },
+
+  grid: { display: false }
+},
 
   yFleet: {
     type: "linear",
