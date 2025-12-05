@@ -1416,6 +1416,57 @@ fetch("bookings2025.json")
         }
       });
     }
+function renderMainChart() {
+  const ctx = document.getElementById("mainChart").getContext("2d");
+
+  // se già esiste il grafico, lo distruggiamo
+  if (mainChart) {
+    mainChart.destroy();
+  }
+
+  const labels = monthlyAggregates.map(b => b.label);
+  const fleet = monthlyAggregates.map(b => b.fleetSize);
+  const costi = monthlyAggregates.map(b => b.costoTotale);
+  const revenue = monthlyAggregates.map(b => b.revenue);
+  const noleggiati = monthlyAggregates.map(b => b.noleggiati);
+
+  mainChart = new Chart(ctx, {
+    type: "line",
+    data: {
+      labels,
+      datasets: [
+        {
+          label: "Flotta",
+          data: fleet,
+          borderColor: "#3b82f6",
+          tension: 0.3
+        },
+        {
+          label: "Costi",
+          data: costi,
+          borderColor: "#ef4444",
+          tension: 0.3
+        },
+        {
+          label: "Revenue",
+          data: revenue,
+          borderColor: "#22c55e",
+          tension: 0.3
+        },
+        {
+          label: "Noleggiati",
+          data: noleggiati,
+          borderColor: "#eab308",
+          tension: 0.3
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false
+    }
+  });
+}
 
   
     // =========================
