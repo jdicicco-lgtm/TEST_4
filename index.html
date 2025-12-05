@@ -184,9 +184,9 @@
 }
 
 canvas {
-  height: 100% !important;      /* il canvas si adatta al contenitore */
-  width: 100% !important;
-}
+  height: 330px !important;      /* altezza fissa, NON si espande */
+  max-height: 330px !important;  /* limite massimo */
+  width: 100% !important;        /* ok a farlo allargare orizzontalmente */
 
     }
 
@@ -877,31 +877,35 @@ fetch("bookings2025.json")
     // =========================
     // CORE: APPLY FILTERS
     // =========================
-    function applyFiltersAndRender() {
-      const selectedYears = getMultiSelectValues("yearFilter").map(v => parseInt(v, 10));
-      const selectedMonths = getMultiSelectValues("monthFilter").map(v => parseInt(v, 10));
-      const selectedGroups = getMultiSelectValues("groupFilter");
-      const selectedAcquisition = getMultiSelectValues("acquisitionFilter");
-      const selectedStations = getMultiSelectValues("stationFilter");
-      const projectionFactor = parseFloat(
-        (document.getElementById("projectionSelect") || {}).value || "0.10"
-      );
+   function applyFiltersAndRender() {
+  const selectedYears = getMultiSelectValues("yearFilter").map(v => parseInt(v, 10));
+  const selectedMonths = getMultiSelectValues("monthFilter").map(v => parseInt(v, 10));
+  const selectedGroups = getMultiSelectValues("groupFilter");
+  const selectedAcquisition = getMultiSelectValues("acquisitionFilter");
+  const selectedStations = getMultiSelectValues("stationFilter");
+  const projectionFactor = parseFloat(
+    (document.getElementById("projectionSelect") || {}).value || "0.10"
+  );
 
-      baseAggregates = computeMonthlyAggregatesBase({
-        groups: selectedGroups,
-        acquisitions: selectedAcquisition,
-        stations: selectedStations,
-        projectionFactor
-      });
+  baseAggregates = computeMonthlyAggregatesBase({
+    groups: selectedGroups,
+    acquisitions: selectedAcquisition,
+    stations: selectedStations,
+    projectionFactor
+  });
 
-      monthlyAggregates = baseAggregates.filter(b => {
-        const yearOk = selectedYears.length === 0 || selectedYears.includes(b.year);
-        const monthOk = selectedMonths.length === 0 || selectedMonths.includes(b.month);
-        return yearOk && monthOk;
-      });
+  monthlyAggregates = baseAggregates.filter(b => {
+    const yearOk = selectedYears.length === 0 || selectedYears.includes(b.year);
+    const monthOk = selectedMonths.length === 0 || selectedMonths.includes(b.month);
+    return yearOk && monthOk;
+  });
 
-      updateKpiCards();
-    }
+  updateKpiCards();   // già presente
+
+  renderMainChart();  // <--- AGGIUNGILO QUI
+
+}
+
 
     // =========================
     // AGGREGATION LOGIC (BASE)
@@ -1525,6 +1529,70 @@ applyFiltersAndRender = function () {
   oldApply2();
   renderMoreCharts();
 };
+  //
+// ---------------------------------------------------------
+//  GRAFICO PRINCIPALE (line chart flotta / costi / revenue)
+// ---------------------------------------------------------
+//
+function renderMainChart() {
+  const ctx = document.getElementById("mainChart").getContext("2d");
+
+  // se esiste già un grafico precedente → lo distruggiamo
+  if (window.mainChartInstance) {
+    window.mainChartInstance.destroy();
+  }
+
+  const labels = monthlyAggregates.map(b => b.label);
+  const fleet = monthlyAggregates.map(b => b.fleetSize);
+  const costoTot = monthlyAggregates.map(b => b.costoTotale);
+  const revenue = monthlyAggregates.map(b => b.revenue);
+
+  window.mainChartInstance = new Chart(ctx, {
+    type: "line",
+    data: {
+      labels,
+      datasets: [
+        {
+          label: "Flotta",
+          data: fleet,
+          borderColor: "#3b82f6",
+          tension: 0.3,
+          borderWidth: 2
+        },
+        {
+          label: "Costo Totale",
+          data: costoTot,
+          borderColor: "#06b6d4",
+          tension: 0.3,
+          borderWidth: 2
+        },
+        {
+          label: "Revenue",
+          data: revenue,
+          borderColor: "#22c55e",
+          tension: 0.3,
+          borderWidth: 2
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: {
+          labels: {
+            color: "#fff"
+          }
+        }
+      },
+      scales: {
+        x: { ticks: { color: "#fff" } },
+        y: { ticks: { color: "#fff" } }
+      }
+    }
+  });
+}
+  
   </script>
 </body>
 </html>
