@@ -907,31 +907,35 @@ fetch("bookings2025.json")
     // =========================
     // CORE: APPLY FILTERS
     // =========================
-    function applyFiltersAndRender() {
-      const selectedYears = getMultiSelectValues("yearFilter").map(v => parseInt(v, 10));
-      const selectedMonths = getMultiSelectValues("monthFilter").map(v => parseInt(v, 10));
-      const selectedGroups = getMultiSelectValues("groupFilter");
-      const selectedAcquisition = getMultiSelectValues("acquisitionFilter");
-      const selectedStations = getMultiSelectValues("stationFilter");
-      const projectionFactor = parseFloat(
-        (document.getElementById("projectionSelect") || {}).value || "0.10"
-      );
+  function applyFiltersAndRender() {
+  const selectedYears = getMultiSelectValues("yearFilter").map(v => parseInt(v, 10));
+  const selectedMonths = getMultiSelectValues("monthFilter").map(v => parseInt(v, 10));
+  const selectedGroups = getMultiSelectValues("groupFilter");
+  const selectedAcquisition = getMultiSelectValues("acquisitionFilter");
+  const selectedStations = getMultiSelectValues("stationFilter");
+  const projectionFactor = parseFloat(
+    (document.getElementById("projectionSelect") || {}).value || "0.10"
+  );
 
-      baseAggregates = computeMonthlyAggregatesBase({
-        groups: selectedGroups,
-        acquisitions: selectedAcquisition,
-        stations: selectedStations,
-        projectionFactor
-      });
+  baseAggregates = computeMonthlyAggregatesBase({
+    groups: selectedGroups,
+    acquisitions: selectedAcquisition,
+    stations: selectedStations,
+    projectionFactor
+  });
 
-      monthlyAggregates = baseAggregates.filter(b => {
-        const yearOk = selectedYears.length === 0 || selectedYears.includes(b.year);
-        const monthOk = selectedMonths.length === 0 || selectedMonths.includes(b.month);
-        return yearOk && monthOk;
-      });
+  monthlyAggregates = baseAggregates.filter(b => {
+    const yearOk = selectedYears.length === 0 || selectedYears.includes(b.year);
+    const monthOk = selectedMonths.length === 0 || selectedMonths.includes(b.month);
+    return yearOk && monthOk;
+  });
 
-      updateKpiCards();
-    }
+  updateKpiCards();
+
+  // ⬇️⬇️⬇️ **AGGIUNGERE QUESTA RIGA!!!**
+  renderMainChart();
+}
+
 
     // =========================
     // AGGREGATION LOGIC (BASE)
@@ -1703,17 +1707,30 @@ new Chart(ctxFleet, {
 // ⭐ RENDER MAIN CHART
 // ===============================
 function renderMainChart() {
-  const ctx = document.getElementById("mainChart");
-  if (!ctx) return;
 
-  // distruggi grafico precedente
+  const ctxElement = document.getElementById("mainChart");
+  if (!ctxElement) {
+    console.warn("mainChart non trovato");
+    return;
+  }
+
+  const ctx = ctxElement.getContext("2d");
+
+  // se non ho aggregati non posso disegnare
+  if (!monthlyAggregates || monthlyAggregates.length === 0) {
+    console.warn("monthlyAggregates vuoto");
+    return;
+  }
+
+  // distruggi eventuale grafico precedente
   if (mainChart) {
     mainChart.destroy();
   }
 
-  // labels esatte dai tuoi dati
+  // labels
   const labels = monthlyAggregates.map(m => m.label);
 
+  // crea il grafico
   mainChart = new Chart(ctx, {
     type: "line",
     data: {
@@ -1734,7 +1751,7 @@ function renderMainChart() {
           backgroundColor: "rgba(239,68,68,0.2)",
           borderWidth: 2,
           tension: 0.3,
-          yAxisID: 'y1'
+          yAxisID: "y1"
         },
         {
           label: "Revenue (€)",
@@ -1743,15 +1760,7 @@ function renderMainChart() {
           backgroundColor: "rgba(34,197,94,0.2)",
           borderWidth: 2,
           tension: 0.3,
-          yAxisID: 'y1'
-        },
-        {
-          label: "Noleggiati",
-          data: monthlyAggregates.map(m => m.noleggiati),
-          borderColor: "#facc15",
-          backgroundColor: "rgba(250,204,21,0.2)",
-          borderWidth: 2,
-          tension: 0.3
+          yAxisID: "y1"
         }
       ]
     },
@@ -1760,36 +1769,17 @@ function renderMainChart() {
       maintainAspectRatio: false,
       interaction: { mode: "index", intersect: false },
       scales: {
-        x: { ticks: { color: "#e5e7eb" } },
         y: {
           type: "linear",
           position: "left",
-          ticks: { color: "#e5e7eb" }
+          ticks: { color: "#aaa" },
+          grid: { color: "rgba(255,255,255,0.05)" }
         },
         y1: {
           type: "linear",
           position: "right",
-          ticks: {
-            color: "#e5e7eb",
-            callback: v => "€ " + v.toLocaleString("it-IT")
-          },
-          grid: { drawOnChartArea: false }
-        }
-      },
-      plugins: {
-        legend: { labels: { color: "#fff" } },
-        tooltip: {
-          callbacks: {
-            label: ctx => {
-              const label = ctx.dataset.label;
-              const value = ctx.parsed.y;
-
-              if (label.includes("€")) {
-                return `${label}: € ${value.toLocaleString("it-IT")}`;
-              }
-              return `${label}: ${value.toLocaleString("it-IT")}`;
-            }
-          }
+          ticks: { color: "#aaa" },
+          grid: { display: false }
         }
       }
     }
