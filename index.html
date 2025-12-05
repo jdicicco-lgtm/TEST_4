@@ -657,7 +657,12 @@ let donutChart = null;
         initAcquisitionFilter();
         initStationFilter();
         initFilterEvents();
-        applyFiltersAndRender();
+       applyFiltersAndRender();
+renderLineRC();
+renderBookingsChart();
+renderNoleggiatiChart();
+renderFleetDonut();
+
         console.log("Aggregati:", monthlyAggregates);
 
       });
@@ -933,9 +938,13 @@ fetch("bookings2025.json")
   });
 
   updateKpiCards();
+  renderMainChart();            // già presente
 
-  // ⬇️⬇️⬇️ **AGGIUNGERE QUESTA RIGA!!!**
-  renderMainChart();
+  // ⭐ AGGIUNGILI QUI ⭐
+  renderLineRC();
+  renderBookingsChart();
+  renderNoleggiatiChart();
+  renderFleetDonut();
 }
 
 
@@ -1422,58 +1431,6 @@ fetch("bookings2025.json")
         }
       });
     }
-function renderMainChart() {
-  const ctx = document.getElementById("mainChart").getContext("2d");
-
-  // se già esiste il grafico, lo distruggiamo
-  if (mainChart) {
-    mainChart.destroy();
-  }
-
-  const labels = monthlyAggregates.map(b => b.label);
-  const fleet = monthlyAggregates.map(b => b.fleetSize);
-  const costi = monthlyAggregates.map(b => b.costoTotale);
-  const revenue = monthlyAggregates.map(b => b.revenue);
-  const noleggiati = monthlyAggregates.map(b => b.noleggiati);
-
-  mainChart = new Chart(ctx, {
-    type: "line",
-    data: {
-      labels,
-      datasets: [
-        {
-          label: "Flotta",
-          data: fleet,
-          borderColor: "#3b82f6",
-          tension: 0.3
-        },
-        {
-          label: "Costi",
-          data: costi,
-          borderColor: "#ef4444",
-          tension: 0.3
-        },
-        {
-          label: "Revenue",
-          data: revenue,
-          borderColor: "#22c55e",
-          tension: 0.3
-        },
-        {
-          label: "Noleggiati",
-          data: noleggiati,
-          borderColor: "#eab308",
-          tension: 0.3
-        }
-      ]
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false
-    }
-  });
-}
-
   
     // =========================
     // EXPORT CSV
@@ -1528,149 +1485,135 @@ Chart.defaults.font.family = "system-ui";
 // -------------------------------------------
 // 📌 1) LINE CHART — Revenue & Costo Totale
 // -------------------------------------------
-const ctxRC = document.getElementById("chartLineRC");
-new Chart(ctxRC, {
-  type: "line",
-  data: {
-    labels: ["Gen", "Feb", "Mar", "Apr", "Mag", "Giu", "Lug", "Ago", "Set", "Ott", "Nov", "Dic"],
-    datasets: [
-      {
-        label: "Revenue (€)",
-        data: [1800000, 2100000, 2500000, 2200000, 2800000, 3200000],
-        borderColor: "#3b82f6",
-        backgroundColor: "rgba(59, 130, 246, 0.2)",
-        borderWidth: 2,
-        tension: 0.3,
-        fill: false
-      },
-      {
-        label: "Costo Totale (€)",
-        data: [800000, 900000, 1100000, 1000000, 1200000, 1400000],
-        borderColor: "#ef4444",
-        backgroundColor: "rgba(239, 68, 68, 0.2)",
-        borderWidth: 2,
-        tension: 0.3,
-        fill: false
-      }
-    ]
-  },
-  options: {
-    responsive: true,
-    maintainAspectRatio: false,
-    interaction: { mode: "index", intersect: false },
-    scales: {
-      x: { ticks: { color: "#e5e7eb" } },
-      y: {
-        ticks: {
-          color: "#e5e7eb",
-          callback: (v) => "€ " + v.toLocaleString("it-IT")
+function renderLineRC() {
+  const ctxRC = document.getElementById("chartLineRC");
+  if (!ctxRC) return;
+
+  // Distruggi grafico precedente
+  if (window.chartRC) window.chartRC.destroy();
+
+  // labels dinamiche
+  const labels = monthlyAggregates.map(m => m.label);
+
+  // dati reali
+  const revenue = monthlyAggregates.map(m => m.revenue);
+  const costi = monthlyAggregates.map(m => m.costoTotale);
+
+  window.chartRC = new Chart(ctxRC, {
+    type: "line",
+    data: {
+      labels,
+      datasets: [
+        {
+          label: "Revenue (€)",
+          data: revenue,
+          borderColor: "#3b82f6",
+          backgroundColor: "rgba(59, 130, 246, 0.2)",
+          borderWidth: 2,
+          tension: 0.3
+        },
+        {
+          label: "Costo Totale (€)",
+          data: costi,
+          borderColor: "#ef4444",
+          backgroundColor: "rgba(239, 68, 68, 0.2)",
+          borderWidth: 2,
+          tension: 0.3
         }
-      }
+      ]
     },
-    plugins: {
-      legend: { labels: { color: "#fff" } },
-      tooltip: {
-        callbacks: {
-          label: (ctx) =>
-            `${ctx.dataset.label}: € ${ctx.parsed.y.toLocaleString("it-IT")}`
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: { mode: "index", intersect: false },
+      scales: {
+        x: { ticks: { color: "#e5e7eb" } },
+        y: {
+          ticks: {
+            color: "#e5e7eb",
+            callback: v => "€ " + v.toLocaleString("it-IT")
+          }
+        }
+      },
+      plugins: {
+        legend: { labels: { color: "#fff" } },
+        tooltip: {
+          callbacks: {
+            label: ctx =>
+              `${ctx.dataset.label}: € ${ctx.parsed.y.toLocaleString("it-IT")}`
+          }
         }
       }
     }
-  }
-});
+  });
+}
 
 // -------------------------------------------
 // 📌 2) BAR CHART — Prenotazioni Mensili
 // -------------------------------------------
-const ctxBookings = document.getElementById("chartBookings");
-new Chart(ctxBookings, {
-  type: "bar",
-  data: {
-    labels: ["Gen", "Feb", "Mar", "Apr", "Mag", "Giu", "Lug", "Ago", "Set", "Ott", "Nov", "Dic"],
-    datasets: [
-      {
-        label: "Prenotazioni",
-        data: [5500, 6200, 7800, 7000, 8500, 9500],
-        backgroundColor: "rgba(34, 197, 94, 0.6)",
-        borderColor: "#22c55e",
-        borderWidth: 1
-      }
-    ]
-  },
-  options: {
-    responsive: true,
-    maintainAspectRatio: false,
-    interaction: { mode: "index", intersect: false },
-    scales: {
-      x: { ticks: { color: "#e5e7eb" } },
-      y: {
-        ticks: {
-          color: "#e5e7eb",
-          callback: (v) => v.toLocaleString("it-IT")
+function renderBookingsChart() {
+  const ctx = document.getElementById("chartBookings");
+  if (!ctx) return;
+
+  if (window.chartBookings) window.chartBookings.destroy();
+
+  const labels = monthlyAggregates.map(m => m.label);
+  const values = monthlyAggregates.map(m => m.numBookings);
+
+  window.chartBookings = new Chart(ctx, {
+    type: "bar",
+    data: {
+      labels,
+      datasets: [
+        {
+          label: "Prenotazioni",
+          data: values,
+          backgroundColor: "rgba(34,197,94,0.6)",
+          borderColor: "#22c55e"
         }
-      }
+      ]
     },
-    plugins: {
-      legend: { labels: { color: "#fff" } },
-      tooltip: {
-        callbacks: {
-          label: (ctx) =>
-            `${ctx.dataset.label}: ${ctx.parsed.y.toLocaleString("it-IT")}`
-        }
-      }
-    }
-  }
-});
+    options: { responsive: true, maintainAspectRatio: false }
+  });
+}
 
 // -------------------------------------------
 // 📌 3) AREA CHART — Noleggiati Totali
 // -------------------------------------------
-const ctxNoleggiati = document.getElementById("chartNoleggiati");
-new Chart(ctxNoleggiati, {
-  type: "line",
-  data: {
-    labels: ["Gen", "Feb", "Mar", "Apr", "Mag", "Giu", "Lug", "Ago", "Set", "Ott", "Nov", "Dic"],
-    datasets: [
-      {
-        label: "Noleggiati Totali",
-        data: [1200, 1500, 1800, 1600, 1900, 2200],
-        borderColor: "#facc15",
-        backgroundColor: "rgba(250, 204, 21, 0.3)",
-        borderWidth: 2,
-        tension: 0.3,
-        fill: true
-      }
-    ]
-  },
-  options: {
-    responsive: true,
-    maintainAspectRatio: false,
-    interaction: { mode: "index", intersect: false },
-    scales: {
-      x: { ticks: { color: "#e5e7eb" } },
-      y: {
-        ticks: {
-          color: "#e5e7eb",
-          callback: (v) => v.toLocaleString("it-IT")
+function renderNoleggiatiChart() {
+  const ctx = document.getElementById("chartNoleggiati");
+  if (!ctx) return;
+
+  if (window.chartNoleggiati) window.chartNoleggiati.destroy();
+
+  const labels = monthlyAggregates.map(m => m.label);
+  const values = monthlyAggregates.map(m => m.noleggiati);
+
+  window.chartNoleggiati = new Chart(ctx, {
+    type: "line",
+    data: {
+      labels,
+      datasets: [
+        {
+          label: "Noleggiati Totali",
+          data: values,
+          borderColor: "#facc15",
+          backgroundColor: "rgba(250, 204, 21, 0.3)",
+          fill: true,
+          tension: 0.3,
+          borderWidth: 2
         }
-      }
+      ]
     },
-    plugins: {
-      legend: { labels: { color: "#fff" } },
-      tooltip: {
-        callbacks: {
-          label: (ctx) =>
-            `${ctx.dataset.label}: ${ctx.parsed.y.toLocaleString("it-IT")}`
-        }
-      }
-    }
-  }
-});
+    options: { responsive: true, maintainAspectRatio: false }
+  });
+}
 
 // -------------------------------------------
 // 📌 4) DONUT CHART — Composizione Flotta
 // -------------------------------------------
-function renderFleetDonut() {
+let donutChart = null;
+  function renderFleetDonut() {
   const ctx = document.getElementById("chartFleetDonut");
   if (!ctx) return;
 
