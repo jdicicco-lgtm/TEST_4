@@ -504,6 +504,31 @@
       </div>
     </div>
   </div>
+<!-- GRAFICO 3: Occupancy rate + Noleggiati -->
+<div class="row mb-4">
+  <div class="col-12">
+    <div class="chart-container" style="min-height: 320px;">
+      <div class="d-flex justify-content-between align-items-center mb-2">
+        <h6 class="mb-0">Occupancy Rate & Noleggiati</h6>
+        <small class="text-muted">Utilizzo reale della flotta</small>
+      </div>
+      <canvas id="chartOccupancy" height="90"></canvas>
+    </div>
+  </div>
+</div>
+
+<!-- GRAFICO 4: Revenue per Day + Numero Prenotazioni -->
+<div class="row mb-4">
+  <div class="col-12">
+    <div class="chart-container" style="min-height: 320px;">
+      <div class="d-flex justify-content-between align-items-center mb-2">
+        <h6 class="mb-0">Revenue/day & Prenotazioni</h6>
+        <small class="text-muted">Rendimento medio e domanda</small>
+      </div>
+      <canvas id="chartRevDay" height="90"></canvas>
+    </div>
+  </div>
+</div>
 
   <!-- Bootstrap JS -->
   <script
@@ -1392,6 +1417,101 @@ fetch("bookings2025.json")
       link.click();
       URL.revokeObjectURL(url);
     }
+    // ===============================
+// GRAFICI 3 e 4
+// ===============================
+let chartOccupancy = null;
+let chartRevDay = null;
+
+function renderMoreCharts() {
+  if (!monthlyAggregates || monthlyAggregates.length === 0) return;
+
+  const labels = monthlyAggregates.map(b => b.label);
+
+  const fleet = monthlyAggregates.map(b => b.fleetSize);
+  const noleggiati = monthlyAggregates.map(b => b.noleggiati);
+  const revenue = monthlyAggregates.map(b => b.revenue);
+  const revDay = monthlyAggregates.map(b => b.revenuePerDay);
+  const bookings = monthlyAggregates.map(b => b.numBookings);
+
+  const occupancy = monthlyAggregates.map(b => {
+    if (!b.fleetSize) return 0;
+    return (b.noleggiati / b.fleetSize) * 100;
+  });
+
+  if (chartOccupancy) chartOccupancy.destroy();
+  chartOccupancy = new Chart(document.getElementById("chartOccupancy"), {
+    type: "line",
+    data: {
+      labels,
+      datasets: [
+        {
+          label: "Occupancy (%)",
+          data: occupancy,
+          borderColor: "#facc15",
+          backgroundColor: "rgba(250, 204, 21, 0.25)",
+          tension: 0.3
+        },
+        {
+          label: "Noleggiati",
+          data: noleggiati,
+          borderColor: "#3b82f6",
+          backgroundColor: "rgba(59, 130, 246, 0.25)",
+          tension: 0.3
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { legend: { labels: { color: "#e5e7eb" } } },
+      scales: {
+        x: { ticks: { color: "#e5e7eb" } },
+        y: { beginAtZero: true, ticks: { color: "#e5e7eb" } }
+      }
+    }
+  });
+
+  if (chartRevDay) chartRevDay.destroy();
+  chartRevDay = new Chart(document.getElementById("chartRevDay"), {
+    type: "line",
+    data: {
+      labels,
+      datasets: [
+        {
+          label: "Revenue/day",
+          data: revDay,
+          borderColor: "#22c55e",
+          backgroundColor: "rgba(34, 197, 94, 0.25)",
+          tension: 0.3
+        },
+        {
+          label: "Prenotazioni",
+          data: bookings,
+          borderColor: "#f87171",
+          backgroundColor: "rgba(248, 113, 113, 0.25)",
+          tension: 0.3
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { legend: { labels: { color: "#e5e7eb" } } },
+      scales: {
+        x: { ticks: { color: "#e5e7eb" } },
+        y: { beginAtZero: true, ticks: { color: "#e5e7eb" } }
+      }
+    }
+  });
+}
+
+// ASSICURIAMO CHE I NUOVI GRAFICI SI AGGIORNINO SEMPRE
+const oldApply2 = applyFiltersAndRender;
+applyFiltersAndRender = function () {
+  oldApply2();
+  renderMoreCharts();
+};
   </script>
 </body>
 </html>
