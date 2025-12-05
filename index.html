@@ -168,15 +168,15 @@
       background-color: #020617;
     }
 
-    .chart-container {
-      background: radial-gradient(circle at top, #111827 0, #020617 55%);
-      border-radius: 1.2rem;
-      border: 1px solid rgba(148, 163, 184, 0.4);
-      box-shadow: 0 20px 50px rgba(15, 23, 42, 0.9);
-      padding: 1rem 1.2rem 1.5rem;
-      height: 100%;
-/* BLOCCO ANTI-ESPLOSIONE */
+/* Contenitore dei grafici – versione corretta */
 .chart-container {
+  background: radial-gradient(circle at top, #111827 0, #020617 55%);
+  border-radius: 1.2rem;
+  border: 1px solid rgba(148, 163, 184, 0.4);
+  box-shadow: 0 20px 50px rgba(15, 23, 42, 0.9);
+  padding: 1rem 1.2rem 1.5rem;
+
+  /* BLOCCO ANTI-ESPLOSIONE */
   height: 350px !important;
   max-height: 350px !important;
   overflow: hidden;
@@ -877,7 +877,7 @@ fetch("bookings2025.json")
     // =========================
     // CORE: APPLY FILTERS
     // =========================
-   function applyFiltersAndRender() {
+ function applyFiltersAndRender() {
   const selectedYears = getMultiSelectValues("yearFilter").map(v => parseInt(v, 10));
   const selectedMonths = getMultiSelectValues("monthFilter").map(v => parseInt(v, 10));
   const selectedGroups = getMultiSelectValues("groupFilter");
@@ -900,12 +900,11 @@ fetch("bookings2025.json")
     return yearOk && monthOk;
   });
 
-  updateKpiCards();   // già presente
+  updateKpiCards();   // aggiorna i KPI
 
-  renderMainChart();  // <--- AGGIUNGILO QUI
+  renderMainChart();  // <--- QUI! genera/aggiorna il grafico
 
 }
-
 
     // =========================
     // AGGREGATION LOGIC (BASE)
@@ -1456,39 +1455,56 @@ function renderMoreCharts() {
     return (b.noleggiati / b.fleetSize) * 100;
   });
 
-  if (chartOccupancy) chartOccupancy.destroy();
-  chartOccupancy = new Chart(document.getElementById("chartOccupancy"), {
-    type: "line",
-    data: {
-      labels,
-      datasets: [
-        {
-          label: "Occupancy (%)",
-          data: occupancy,
-          borderColor: "#facc15",
-          backgroundColor: "rgba(250, 204, 21, 0.25)",
-          tension: 0.3
-        },
-        {
-          label: "Noleggiati",
-          data: noleggiati,
-          borderColor: "#3b82f6",
-          backgroundColor: "rgba(59, 130, 246, 0.25)",
-          tension: 0.3
-        }
-      ]
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      plugins: { legend: { labels: { color: "#e5e7eb" } } },
-      scales: {
-        x: { ticks: { color: "#e5e7eb" } },
-        y: { beginAtZero: true, ticks: { color: "#e5e7eb" } }
+  // =======================
+  // GRAFICO OCCUPANCY
+  // =======================
+ // =======================
+// GRAFICO OCCUPANCY
+// =======================
+if (chartOccupancy) chartOccupancy.destroy();
+chartOccupancy = new Chart(document.getElementById("chartOccupancy"), {
+  type: "line",
+  data: {
+    labels,
+    datasets: [
+      {
+        label: "Occupancy (%)",
+        data: occupancy,
+        borderColor: "#facc15",
+        backgroundColor: "rgba(250, 204, 21, 0.25)",
+        tension: 0.3
+      },
+      {
+        label: "Noleggiati",
+        data: noleggiati,
+        borderColor: "#3b82f6",
+        backgroundColor: "rgba(59, 130, 246, 0.25)",
+        tension: 0.3
       }
+    ]
+  },
+  options: {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: {
+        labels: { color: "#fff" }
+      },
+      tooltip: {
+        enabled: false,
+        external: customTooltip
+      }
+    },
+    scales: {
+      x: { ticks: { color: "#fff" } },
+      y: { ticks: { color: "#fff" } }
     }
-  });
+  }
+});
 
+  // =======================
+  // GRAFICO REVENUE/DAY + BOOKINGS
+  // =======================
   if (chartRevDay) chartRevDay.destroy();
   chartRevDay = new Chart(document.getElementById("chartRevDay"), {
     type: "line",
@@ -1514,14 +1530,20 @@ function renderMoreCharts() {
     options: {
       responsive: true,
       maintainAspectRatio: false,
-      plugins: { legend: { labels: { color: "#e5e7eb" } } },
+      plugins: {
+        legend: { labels: { color: "#e5e7eb" } }
+      },
       scales: {
         x: { ticks: { color: "#e5e7eb" } },
-        y: { beginAtZero: true, ticks: { color: "#e5e7eb" } }
+        y: {
+          beginAtZero: true,
+          ticks: { color: "#e5e7eb" }
+        }
       }
     }
   });
 }
+
 
 // ASSICURIAMO CHE I NUOVI GRAFICI SI AGGIORNINO SEMPRE
 const oldApply2 = applyFiltersAndRender;
@@ -1537,7 +1559,6 @@ applyFiltersAndRender = function () {
 function renderMainChart() {
   const ctx = document.getElementById("mainChart").getContext("2d");
 
-  // se esiste già un grafico precedente → lo distruggiamo
   if (window.mainChartInstance) {
     window.mainChartInstance.destroy();
   }
@@ -1580,9 +1601,11 @@ function renderMainChart() {
       maintainAspectRatio: false,
       plugins: {
         legend: {
-          labels: {
-            color: "#fff"
-          }
+          labels: { color: "#fff" }
+        },
+        tooltip: {
+          enabled: false,              // disabilita tooltip default
+          external: customTooltip      // usa quello personalizzato
         }
       },
       scales: {
@@ -1592,7 +1615,51 @@ function renderMainChart() {
     }
   });
 }
-  
+
+ function customTooltip(context) {
+  let tooltipEl = document.getElementById("chartjs-tooltip");
+
+  if (!tooltipEl) {
+    tooltipEl = document.createElement("div");
+    tooltipEl.id = "chartjs-tooltip";
+    tooltipEl.style.position = "absolute";
+    tooltipEl.style.background = "rgba(0,0,0,0.85)";
+    tooltipEl.style.color = "white";
+    tooltipEl.style.padding = "10px 14px";
+    tooltipEl.style.borderRadius = "10px";
+    tooltipEl.style.fontSize = "0.85rem";
+    tooltipEl.style.pointerEvents = "none";
+    tooltipEl.style.transition = "0.1s ease";
+    document.body.appendChild(tooltipEl);
+  }
+
+  const { chart, tooltip } = context;
+
+  if (!tooltip || tooltip.opacity === 0) {
+    tooltipEl.style.opacity = 0;
+    return;
+  }
+
+  const index = tooltip.dataPoints[0].dataIndex;
+  const row = monthlyAggregates[index];
+
+  tooltipEl.innerHTML = `
+    <div><strong>${row.label}</strong></div>
+    <div>🚗 Flotta: <strong>${row.fleetSize.toLocaleString("it-IT")}</strong></div>
+    <div>💶 Costo Totale: <strong>€ ${row.costoTotale.toLocaleString("it-IT")}</strong></div>
+    <div>💰 Revenue: <strong>€ ${row.revenue.toLocaleString("it-IT")}</strong></div>
+    <div>📅 Revenue/day: <strong>€ ${row.revenuePerDay.toFixed(2)}</strong></div>
+    <div>📝 Bookings: <strong>${row.numBookings}</strong></div>
+    <div>🚙 Noleggiati: <strong>${row.noleggiati.toFixed(1)}</strong></div>
+  `;
+
+  const rect = chart.canvas.getBoundingClientRect();
+  tooltipEl.style.opacity = 1;
+  tooltipEl.style.left = rect.left + window.pageXOffset + tooltip.caretX + 15 + "px";
+  tooltipEl.style.top = rect.top + window.pageYOffset + tooltip.caretY + 15 + "px";
+}
+
+
   </script>
 </body>
 </html>
