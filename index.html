@@ -861,7 +861,7 @@ extendedBookings.forEach(row => {
     // =========================
     // AGGREGATION LOGIC (BASE)
     // =========================
-   function computeMonthlyAggregatesBase(filters) {
+  function computeMonthlyAggregatesBase(filters) {
   const { groups, acquisitions, stations, projectionFactor } = filters;
 
   const monthlyMap = new Map();
@@ -887,7 +887,7 @@ extendedBookings.forEach(row => {
     }
   }
 
-  // 1) Flotta
+  // 1) FLOTT A
   fleetData.forEach(row => {
     const gruppoCanonico = canonicalGroup(row["GRUPPO"]);
     if (!gruppoCanonico) return;
@@ -906,7 +906,6 @@ extendedBookings.forEach(row => {
     const plannedEnd = parseDate(row["DATA FINE"]);
     const startDate = start;
     const endDate = effectiveEnd || plannedEnd;
-
     if (!startDate || !endDate) return;
     if (endDate < startDate) return;
 
@@ -935,14 +934,11 @@ extendedBookings.forEach(row => {
     }
   });
 
-  // 2) Station filter sulla flotta
+  // 2) Filtri stazione
   applyStationFilterToFleet(monthlyMap, groups, stations);
 
 
-  // ----------------------------------------------------------
-  //  ✨ 3) CLONAZIONE PRENOTAZIONI 2024 / 2026
-  // ----------------------------------------------------------
-
+  // 3) CLONAZIONE PRENOTAZIONI
   let extendedBookings = [];
 
   bookingsData.forEach(row => {
@@ -997,10 +993,7 @@ extendedBookings.forEach(row => {
   });
 
 
-  // ----------------------------------------------------------
-  // 4) PRENOTAZIONI (ora basate su extendedBookings)
-  // ----------------------------------------------------------
-
+  // 4) Aggregazione prenotazioni
   extendedBookings.forEach(row => {
     const gruppoCanonico = canonicalGroup(row["cartype"] ?? row["gruppo"]);
     if (!gruppoCanonico) return;
@@ -1035,65 +1028,50 @@ extendedBookings.forEach(row => {
     bucket.numBookings += 1;
   });
 
-  // → Calcolo revenue/day + noleggiati
+
+  // 5) Metriche aggiuntive
   monthlyMap.forEach(bucket => {
     if (bucket.revenueDays > 0) {
       bucket.revenuePerDay = bucket.revenue / bucket.revenueDays;
+    } else {
+      bucket.revenuePerDay = 0;
     }
 
     const fleetAvail = bucket.fleetSize;
     if (fleetAvail > 0 && bucket.revenueDays > 0) {
       const util = bucket.revenueDays / (fleetAvail * 30);
       bucket.noleggiati = util * fleetAvail;
+    } else {
+      bucket.noleggiati = 0;
     }
   });
 
-  return Array.from(monthlyMap.values());
+
+  // 6) Proiezione 2026
+  if (!isNaN(projectionFactor) && projectionFactor !== 0) {
+    monthlyMap.forEach(bucket => {
+      if (bucket.year === 2026) {
+        const factor = 1 + projectionFactor;
+        bucket.fleetSize *= factor;
+        bucket.canoneImponibile *= factor;
+        bucket.canoneIvato *= factor;
+        bucket.assicurazione *= factor;
+        bucket.costoTotale *= factor;
+        bucket.revenue *= factor;
+        bucket.revenuePerDay *= factor;
+        bucket.numBookings *= factor;
+        bucket.noleggiati *= factor;
+      }
+    });
+  }
+
+  return Array.from(monthlyMap.values()).sort((a, b) => {
+    const ia = getMonthIndexGlobal(a.year, a.month);
+    const ib = getMonthIndexGlobal(b.year, b.month);
+    return ia - ib;
+  });
 }
 
-      // 3b) revenue/day e noleggiati
-      monthlyMap.forEach(bucket => {
-        if (bucket.revenueDays > 0) {
-          bucket.revenuePerDay = bucket.revenue / bucket.revenueDays;
-        } else {
-          bucket.revenuePerDay = 0;
-        }
-
-        const fleetAvailable = bucket.fleetSize;
-        if (fleetAvailable > 0 && bucket.revenueDays > 0) {
-          const utilization = bucket.revenueDays / (fleetAvailable * 30);
-          bucket.noleggiati = utilization * fleetAvailable;
-        } else {
-          bucket.noleggiati = 0;
-        }
-      });
-
-      // 4) Proiezioni 2026
-      if (!isNaN(projectionFactor) && projectionFactor !== 0) {
-        monthlyMap.forEach(bucket => {
-          if (bucket.year === 2026) {
-            const factor = 1 + projectionFactor;
-            bucket.fleetSize *= factor;
-            bucket.canoneImponibile *= factor;
-            bucket.canoneIvato *= factor;
-            bucket.assicurazione *= factor;
-            bucket.costoTotale *= factor;
-            bucket.revenue *= factor;
-            bucket.revenuePerDay *= factor;
-            bucket.numBookings *= factor;
-            bucket.noleggiati *= factor;
-          }
-        });
-      }
-
-      const result = Array.from(monthlyMap.values()).sort((a, b) => {
-        const ia = getMonthIndexGlobal(a.year, a.month);
-        const ib = getMonthIndexGlobal(b.year, b.month);
-        return ia - ib;
-      });
-
-      return result;
-    }
 
     // =========================
     // STATION FILTER (flotta) via fleetStations2025
