@@ -645,6 +645,7 @@ let extendedBookings = [];   // <--- aggiunta necessaria
 let baseAggregates = [];
 let monthlyAggregates = [];
 let mainChart = null;
+let donutChart = null;
 
     // =========================
     // INIT
@@ -1531,7 +1532,7 @@ const ctxRC = document.getElementById("chartLineRC");
 new Chart(ctxRC, {
   type: "line",
   data: {
-    labels: ["Gen", "Feb", "Mar", "Apr", "Mag", "Giu"],
+    labels: ["Gen", "Feb", "Mar", "Apr", "Mag", "Giu", "Lug", "Ago", "Set", "Ott", "Nov", "Dic"],
     datasets: [
       {
         label: "Revenue (€)",
@@ -1585,7 +1586,7 @@ const ctxBookings = document.getElementById("chartBookings");
 new Chart(ctxBookings, {
   type: "bar",
   data: {
-    labels: ["Gen", "Feb", "Mar", "Apr", "Mag", "Giu"],
+    labels: ["Gen", "Feb", "Mar", "Apr", "Mag", "Giu", "Lug", "Ago", "Set", "Ott", "Nov", "Dic"],
     datasets: [
       {
         label: "Prenotazioni",
@@ -1628,7 +1629,7 @@ const ctxNoleggiati = document.getElementById("chartNoleggiati");
 new Chart(ctxNoleggiati, {
   type: "line",
   data: {
-    labels: ["Gen", "Feb", "Mar", "Apr", "Mag", "Giu"],
+    labels: ["Gen", "Feb", "Mar", "Apr", "Mag", "Giu", "Lug", "Ago", "Set", "Ott", "Nov", "Dic"],
     datasets: [
       {
         label: "Noleggiati Totali",
@@ -1669,40 +1670,105 @@ new Chart(ctxNoleggiati, {
 // -------------------------------------------
 // 📌 4) DONUT CHART — Composizione Flotta
 // -------------------------------------------
-const ctxFleet = document.getElementById("chartFleetDonut");
-new Chart(ctxFleet, {
-  type: "doughnut",
-  data: {
-    labels: ["City Car", "SUV", "Furgone", "Lusso"],
-    datasets: [
-      {
-        data: [150, 80, 50, 35],
-        backgroundColor: [
-          "#3b82f6",
-          "#22c55e",
-          "#facc15",
-          "#ef4444"
-        ],
-        borderWidth: 0
-      }
-    ]
-  },
-  options: {
-    responsive: true,
-    maintainAspectRatio: false,
-    cutout: "55%",
-    animation: false,
-    plugins: {
-      legend: { labels: { color: "#fff" } },
-      tooltip: {
-        callbacks: {
-          label: (ctx) =>
-            `${ctx.label}: ${ctx.parsed.toLocaleString("it-IT")}`
+function renderFleetDonut() {
+  const ctx = document.getElementById("chartFleetDonut");
+  if (!ctx) return;
+
+  // Distruggi un eventuale grafico precedente
+  if (donutChart) donutChart.destroy();
+
+  // Se non ho aggregati, non disegno niente
+  if (!monthlyAggregates || monthlyAggregates.length === 0) return;
+
+  // Estrai l'elenco dei gruppi da considerare
+  const groups = VEHICLE_GROUPS;
+
+  // Preparo il conteggio per ogni gruppo
+  const counts = {};
+  groups.forEach(g => counts[g] = 0);
+
+  // Intervallo dei mesi filtrati
+  const activeKeys = new Set(monthlyAggregates.map(m => `${m.year}-${String(m.month).padStart(2,"0")}`));
+
+  // Conta prenotazioni filtrate (extendedBookings)
+  extendedBookings.forEach(b => {
+    const date = parseDate(b.startDate);
+    if (!date) return;
+
+    const ymKey = `${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,"0")}`;
+    if (!activeKeys.has(ymKey)) return;
+
+    // Filtra per gruppo canonico
+    const groupCanon = canonicalGroup(b["cartype"] ?? b["gruppo"]);
+    if (!groupCanon || !groups.includes(groupCanon)) return;
+
+    // Filtra per stazione
+    const stationNorm = normalizeStationName(b["stazione"]);
+    const selectedStations = getMultiSelectValues("stationFilter");
+    if (selectedStations.length > 0 && (!stationNorm || !selectedStations.includes(stationNorm))) return;
+
+    // Filtra per acquisizione
+    const acquis = b["acquisizione"];
+    const selectedAcq = getMultiSelectValues("acquisitionFilter");
+    if (selectedAcq.length > 0 && (!acquis || !selectedAcq.includes(String(acquis).trim()))) return;
+
+    // Filtra per gruppo selezionato
+    const selectedGroups = getMultiSelectValues("groupFilter");
+    if (selectedGroups.length > 0 && !selectedGroups.includes(groupCanon)) return;
+
+    // Se passa tutti i filtri, incremento il conteggio
+    counts[groupCanon] += 1;
+  });
+
+  // Prepara i dati per Chart.js
+  const labels = groups;
+  const values = groups.map(g => counts[g]);
+
+  donutChart = new Chart(ctx, {
+    type: "doughnut",
+    data: {
+      labels,
+      datasets: [
+        {
+          data: values,
+          backgroundColor: [
+            "#3b82f6",
+            "#22c55e",
+            "#facc15",
+            "#ef4444",
+            "#8b5cf6",
+            "#ec4899",
+            "#14b8a6",
+            "#f97316",
+            "#38bdf8",
+            "#64748b"
+          ],
+          borderWidth: 0
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      cutout: "55%",
+      animation: false,
+      plugins: {
+        legend: { labels: { color: "#fff" } },
+        tooltip: {
+          callbacks: {
+            label: (ctx) => {
+              const val = ctx.parsed;
+              const total = values.reduce((a,b)=>a+b,0);
+              const perc = total > 0 ? ((val/total)*100).toFixed(1) : 0;
+              return `${ctx.label}: ${val} prenotazioni (${perc}%)`;
+            }
+          }
         }
       }
     }
-  }
-});
+  });
+}
+
 
 // ===============================
 // ⭐ RENDER MAIN CHART
