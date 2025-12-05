@@ -861,100 +861,98 @@ extendedBookings.forEach(row => {
     // =========================
     // AGGREGATION LOGIC (BASE)
     // =========================
-    function computeMonthlyAggregatesBase(filters) {
-      const { groups, acquisitions, stations, projectionFactor } = filters;
+   function computeMonthlyAggregatesBase(filters) {
+  const { groups, acquisitions, stations, projectionFactor } = filters;
 
-      const monthlyMap = new Map();
-      for (let year = 2024; year <= 2026; year++) {
-        for (let month = 1; month <= 12; month++) {
-          const key = formatYearMonthKey(year, month);
-          monthlyMap.set(key, {
-            year,
-            month,
-            key,
-            label: MONTH_LABELS_IT[month - 1].slice(0, 3) + " " + year,
-            fleetSize: 0,
-            canoneImponibile: 0,
-            canoneIvato: 0,
-            assicurazione: 0,
-            costoTotale: 0,
-            revenue: 0,
-            revenueDays: 0,
-            revenuePerDay: 0,
-            numBookings: 0,
-            noleggiati: 0
-          });
-        }
-      }
-
-      // 1) Flotta
-      fleetData.forEach(row => {
-        const gruppoCanonico = canonicalGroup(row["GRUPPO"]);
-        if (!gruppoCanonico) return;
-        if (groups.length > 0 && !groups.includes(gruppoCanonico)) return;
-
-        const acquisizione = row["ACQUISIZIONE"];
-        if (
-          acquisitions.length > 0 &&
-          (!acquisizione || !acquisitions.includes(String(acquisizione).trim()))
-        ) {
-          return;
-        }
-
-        const start = parseDate(row["DATA INIZIO"]);
-        const effectiveEnd = parseDate(row["RICONSEGNA EFFETTIVA"]);
-        const plannedEnd = parseDate(row["DATA FINE"]);
-
-        const startDate = start;
-        const endDate = effectiveEnd || plannedEnd;
-        if (!startDate || !endDate) return;
-        if (endDate < startDate) return;
-
-        const canoneImp =
-          parseFloat(String(row["CANONE IMPONIBILE"] ?? "0").replace(",", ".")) || 0;
-        const canoneIvato =
-          parseFloat(String(row["CANONE IVATO"] ?? "0").replace(",", ".")) || 0;
-        const coperturaAss =
-          parseFloat(String(row["COPERTURA ASS."] ?? "0").replace(",", ".")) || 0;
-
-        const startYear = Math.max(2024, startDate.getFullYear());
-        const endYear = Math.min(2026, endDate.getFullYear());
-
-        for (let year = startYear; year <= endYear; year++) {
-          const monthStart =
-            year === startDate.getFullYear() ? startDate.getMonth() + 1 : 1;
-          const monthEnd =
-            year === endDate.getFullYear() ? endDate.getMonth() + 1 : 12;
-
-          for (let month = monthStart; month <= monthEnd; month++) {
-            const key = formatYearMonthKey(year, month);
-            const bucket = monthlyMap.get(key);
-            if (!bucket) continue;
-
-            bucket.fleetSize += 1;
-            bucket.canoneImponibile += canoneImp;
-            bucket.canoneIvato += canoneIvato;
-            bucket.assicurazione += coperturaAss;
-            bucket.costoTotale += canoneImp + coperturaAss;
-          }
-        }
+  const monthlyMap = new Map();
+  for (let year = 2024; year <= 2026; year++) {
+    for (let month = 1; month <= 12; month++) {
+      const key = formatYearMonthKey(year, month);
+      monthlyMap.set(key, {
+        year,
+        month,
+        key,
+        label: MONTH_LABELS_IT[month - 1].slice(0, 3) + " " + year,
+        fleetSize: 0,
+        canoneImponibile: 0,
+        canoneIvato: 0,
+        assicurazione: 0,
+        costoTotale: 0,
+        revenue: 0,
+        revenueDays: 0,
+        revenuePerDay: 0,
+        numBookings: 0,
+        noleggiati: 0
       });
+    }
+  }
 
-      // 2) Filtro stazione su flotta (per year/month/group)
-      applyStationFilterToFleet(monthlyMap, groups, stations);
-      // --- Clonazione prenotazioni per 2024 e 2026 (NON tocca quelle 2025 originali) ---
+  // 1) Flotta
+  fleetData.forEach(row => {
+    const gruppoCanonico = canonicalGroup(row["GRUPPO"]);
+    if (!gruppoCanonico) return;
+    if (groups.length > 0 && !groups.includes(gruppoCanonico)) return;
 
-let extendedBookings = [];
+    const acquisizione = row["ACQUISIZIONE"];
+    if (
+      acquisitions.length > 0 &&
+      (!acquisizione || !acquisitions.includes(String(acquisizione).trim()))
+    ) {
+      return;
+    }
 
-// Normalizziamo prima tutte le prenotazioni 2025
-bookingsData.forEach(row => {
+    const start = parseDate(row["DATA INIZIO"]);
+    const effectiveEnd = parseDate(row["RICONSEGNA EFFETTIVA"]);
+    const plannedEnd = parseDate(row["DATA FINE"]);
+    const startDate = start;
+    const endDate = effectiveEnd || plannedEnd;
+
+    if (!startDate || !endDate) return;
+    if (endDate < startDate) return;
+
+    const canoneImp = parseFloat(String(row["CANONE IMPONIBILE"] ?? "0").replace(",", ".")) || 0;
+    const canoneIvato = parseFloat(String(row["CANONE IVATO"] ?? "0").replace(",", ".")) || 0;
+    const coperturaAss = parseFloat(String(row["COPERTURA ASS."] ?? "0").replace(",", ".")) || 0;
+
+    const startYear = Math.max(2024, startDate.getFullYear());
+    const endYear = Math.min(2026, endDate.getFullYear());
+
+    for (let year = startYear; year <= endYear; year++) {
+      const monthStart = year === startDate.getFullYear() ? startDate.getMonth() + 1 : 1;
+      const monthEnd = year === endDate.getFullYear() ? endDate.getMonth() + 1 : 12;
+
+      for (let month = monthStart; month <= monthEnd; month++) {
+        const key = formatYearMonthKey(year, month);
+        const bucket = monthlyMap.get(key);
+        if (!bucket) continue;
+
+        bucket.fleetSize += 1;
+        bucket.canoneImponibile += canoneImp;
+        bucket.canoneIvato += canoneIvato;
+        bucket.assicurazione += coperturaAss;
+        bucket.costoTotale += canoneImp + coperturaAss;
+      }
+    }
+  });
+
+  // 2) Station filter sulla flotta
+  applyStationFilterToFleet(monthlyMap, groups, stations);
+
+
+  // ----------------------------------------------------------
+  //  ✨ 3) CLONAZIONE PRENOTAZIONI 2024 / 2026
+  // ----------------------------------------------------------
+
+  let extendedBookings = [];
+
+  bookingsData.forEach(row => {
     if (!row.startDate) return;
 
     const fromDate = parseDate(row.startDate);
     if (!fromDate) return;
 
     const baseYear = fromDate.getFullYear();
-    if (baseYear !== 2025) return; // lavoriamo SOLO sulle prenotazioni 2025 originali
+    if (baseYear !== 2025) return;
 
     const gruppo = canonicalGroup(row["cartype"] ?? row["gruppo"]);
     if (!gruppo) return;
@@ -964,96 +962,94 @@ bookingsData.forEach(row => {
 
     const price = parseFloat(String(row["price"] ?? 0).replace(",", ".")) || 0;
 
-    // -------------------------------------------------------------------
-    // 1️⃣ VERSIONE 2025 (originale → resta com'è)
-    // -------------------------------------------------------------------
+    // → 2025 originale
     extendedBookings.push({
-        ...row,
-        year: 2025,
-        scaledDays: days,
-        scaledPrice: price
+      ...row,
+      year: 2025,
+      scaledDays: days,
+      scaledPrice: price
     });
 
-    // -------------------------------------------------------------------
-    // 2️⃣ VERSIONE 2024 (clonata con -5%)
-    // -------------------------------------------------------------------
-    const date2024 = new Date(fromDate);
-    date2024.setFullYear(2024);
+    // → 2024 (-5%)
+    const d2024 = new Date(fromDate);
+    d2024.setFullYear(2024);
 
     extendedBookings.push({
-        ...row,
-        startDate: date2024.toISOString().slice(0, 10),
-        year: 2024,
-        scaledDays: days * 0.95,
-        scaledPrice: price * 0.95
+      ...row,
+      startDate: d2024.toISOString().slice(0, 10),
+      year: 2024,
+      scaledDays: days * 0.95,
+      scaledPrice: price * 0.95
     });
 
-    // -------------------------------------------------------------------
-    // 3️⃣ VERSIONE 2026 (clonata con il filtro PROIEZIONE)
-    // -------------------------------------------------------------------
-    const projectionFactor = parseFloat(
-        (document.getElementById("projectionSelect") || {}).value || "0.10"
-    );
-
-    const date2026 = new Date(fromDate);
-    date2026.setFullYear(2026);
+    // → 2026 (+ proiezione)
+    const proj = parseFloat((document.getElementById("projectionSelect") || {}).value || "0.10");
+    const d2026 = new Date(fromDate);
+    d2026.setFullYear(2026);
 
     extendedBookings.push({
-        ...row,
-        startDate: date2026.toISOString().slice(0, 10),
-        year: 2026,
-        scaledDays: days * (1 + projectionFactor),
-        scaledPrice: price * (1 + projectionFactor)
+      ...row,
+      startDate: d2026.toISOString().slice(0, 10),
+      year: 2026,
+      scaledDays: days * (1 + proj),
+      scaledPrice: price * (1 + proj)
     });
-});
-
-// --- Fine trasformazioni ---
-// D'ora in poi, invece di usare "bookingsData", si usa "extendedBookings".
+  });
 
 
-      // 3) Prenotazioni
-     extendedBookings.forEach(row => {
-        const gruppoCanonico = canonicalGroup(row["cartype"] ?? row["gruppo"]);
-        if (!gruppoCanonico) return;
-        if (groups.length > 0 && !groups.includes(gruppoCanonico)) return;
+  // ----------------------------------------------------------
+  // 4) PRENOTAZIONI (ora basate su extendedBookings)
+  // ----------------------------------------------------------
 
-        const rawStation = row["stazione"];
-        const stationNorm = normalizeStationName(rawStation);
-        if (stations.length > 0 && (!stationNorm || !stations.includes(stationNorm))) {
-          return;
-        }
+  extendedBookings.forEach(row => {
+    const gruppoCanonico = canonicalGroup(row["cartype"] ?? row["gruppo"]);
+    if (!gruppoCanonico) return;
+    if (groups.length > 0 && !groups.includes(gruppoCanonico)) return;
 
-        const acquisizioneBooking = row["acquisizione"];
-        if (
-          acquisitions.length > 0 &&
-          (!acquisizioneBooking ||
-            !acquisitions.includes(String(acquisizioneBooking).trim()))
-        ) {
-          return;
-        }
+    const rawStation = row["stazione"];
+    const stationNorm = normalizeStationName(rawStation);
+    if (stations.length > 0 && (!stationNorm || !stations.includes(stationNorm))) {
+      return;
+    }
 
-        const fromDate = parseDate(row["startDate"]);
-        if (!fromDate) return;
+    const acquisizioneBooking = row["acquisizione"];
+    if (
+      acquisitions.length > 0 &&
+      (!acquisizioneBooking || !acquisitions.includes(String(acquisizioneBooking).trim()))
+    ) {
+      return;
+    }
 
-        let days = parseFloat(row["duration"] ?? 0);
-        if (!isFinite(days)) days = 0;
-        if (days < 1) days = 1;
+    const fromDate = parseDate(row.startDate);
+    if (!fromDate) return;
 
-        const revenue =
-          parseFloat(String(row["price"] ?? "0").toString().replace(",", ".")) || 0;
+    const year = fromDate.getFullYear();
+    const month = fromDate.getMonth() + 1;
 
-        const year = fromDate.getFullYear();
-        const month = fromDate.getMonth() + 1;
-        if (year < 2024 || year > 2026) return;
+    const key = formatYearMonthKey(year, month);
+    const bucket = monthlyMap.get(key);
+    if (!bucket) return;
 
-        const key = formatYearMonthKey(year, month);
-        const bucket = monthlyMap.get(key);
-        if (!bucket) return;
+    bucket.revenue += row.scaledPrice;
+    bucket.revenueDays += row.scaledDays;
+    bucket.numBookings += 1;
+  });
 
-        bucket.revenue += revenue;
-        bucket.revenueDays += days;
-        bucket.numBookings += 1;
-      });
+  // → Calcolo revenue/day + noleggiati
+  monthlyMap.forEach(bucket => {
+    if (bucket.revenueDays > 0) {
+      bucket.revenuePerDay = bucket.revenue / bucket.revenueDays;
+    }
+
+    const fleetAvail = bucket.fleetSize;
+    if (fleetAvail > 0 && bucket.revenueDays > 0) {
+      const util = bucket.revenueDays / (fleetAvail * 30);
+      bucket.noleggiati = util * fleetAvail;
+    }
+  });
+
+  return Array.from(monthlyMap.values());
+}
 
       // 3b) revenue/day e noleggiati
       monthlyMap.forEach(bucket => {
