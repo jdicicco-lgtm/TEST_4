@@ -498,7 +498,7 @@
                 <h6 class="mb-0">Andamento mensile</h6>
                 <small class="text-muted">Dimensione flotta, costo totale, revenue, noleggiati</small>
               </div>
-             <canvas id="mainChart" style="height:320px !important;"></canvas>
+             <canvas id="chartLineRC" style="height:280px;"></canvas>
             </div>
           </div>
         </div>
@@ -650,32 +650,27 @@ let donutChart = null;
     // =========================
     // INIT
     // =========================
-    document.addEventListener("DOMContentLoaded", () => {
-      initMonthsFilter();
-      initGroupFilter();
-      loadData().then(() => {
-        initAcquisitionFilter();
-        initStationFilter();
-        initFilterEvents();
-       applyFiltersAndRender();
-renderLineRC();
-renderBookingsChart();
-renderNoleggiatiChart();
-renderFleetDonut();
+ document.addEventListener("DOMContentLoaded", () => {
+  initMonthsFilter();
+  initGroupFilter();
 
-        console.log("Aggregati:", monthlyAggregates);
+  loadData().then(() => {
+    initAcquisitionFilter();
+    initStationFilter();
+    initFilterEvents();
+    applyFiltersAndRender();   // ⬅️ QUI dentro si renderizzano TUTTI i grafici
+    console.log("Aggregati:", monthlyAggregates);
+  });
 
-      });
+  const clearBtn = document.getElementById("clearFiltersBtn");
+  if (clearBtn) clearBtn.addEventListener("click", resetFilters);
 
-      const clearBtn = document.getElementById("clearFiltersBtn");
-      if (clearBtn) clearBtn.addEventListener("click", resetFilters);
+  const exportBtn = document.getElementById("exportCsvBtn");
+  if (exportBtn) exportBtn.addEventListener("click", exportCsv);
 
-      const exportBtn = document.getElementById("exportCsvBtn");
-      if (exportBtn) exportBtn.addEventListener("click", exportCsv);
-
-      const printBtn = document.getElementById("printPdfBtn");
-      if (printBtn) printBtn.addEventListener("click", () => window.print());
-    });
+  const printBtn = document.getElementById("printPdfBtn");
+  if (printBtn) printBtn.addEventListener("click", () => window.print());
+});
 
     // =========================
     // DATA LOADING
