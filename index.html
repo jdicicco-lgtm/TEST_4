@@ -174,7 +174,8 @@
       border: 1px solid rgba(148, 163, 184, 0.4);
       box-shadow: 0 20px 50px rgba(15, 23, 42, 0.9);
       padding: 1rem 1.2rem 1.5rem;
-      height: 100%;
+      height: auto;
+  max-height: 420px; /* BLOCCA l’espansione */
     }
 
     .btn-icon {
@@ -497,7 +498,7 @@
                 <h6 class="mb-0">Andamento mensile</h6>
                 <small class="text-muted">Dimensione flotta, costo totale, revenue, noleggiati</small>
               </div>
-              <canvas id="mainChart" style="min-height: 300px;"></canvas>
+             <canvas id="mainChart" style="height:320px !important;"></canvas>
             </div>
           </div>
         </div>
@@ -1765,10 +1766,12 @@ function renderMainChart() {
       ]
     },
     options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      interaction: { mode: "index", intersect: false },
-      scales: {
+      options: {
+  responsive: true,
+  maintainAspectRatio: false,
+  aspectRatio: 2,
+  interaction: { mode: "index", intersect: false },
+  scales: {
         y: {
           type: "linear",
           position: "left",
