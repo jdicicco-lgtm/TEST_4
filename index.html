@@ -181,11 +181,17 @@
   overflow: hidden;
   position: relative;
 }
+/* Versione speciale solo per il grafico principale */
+.chart-container.main-chart {
+  height: 480px !important;
+  max-height: 480px !important;
+  padding-bottom: 3rem !important; /* più spazio per i mesi */
+  overflow: visible !important;     /* evita il taglio */
+}
 
-canvas {
-  height: 420px !important;
-  max-height: 420px !important;
-  width: 100% !important;
+.chart-container.main-chart canvas {
+  height: 440px !important;
+  max-height: 440px !important;
 }
 
     .btn-icon {
@@ -503,7 +509,7 @@ canvas {
         <!-- GRAFICO -->
         <div class="row mb-4">
          <div class="col-12 col-lg-6">
-          <div class="chart-container" style="min-height: 320px;">
+          <div class="chart-container main-chart" style="min-height: 480px;">
               <div class="d-flex justify-content-between align-items-center mb-2">
                 <h6 class="mb-0">Andamento mensile</h6>
                 <small class="text-muted">Dimensione flotta, costo totale, revenue, noleggiati</small>
