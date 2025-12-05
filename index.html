@@ -188,7 +188,7 @@
   max-height: 600px !important;
   padding-bottom: 6rem !important;
   overflow: visible !important;
-  width: 1020% !important;      /* RESET alla larghezza reale */
+  width: 120% !important;      /* RESET alla larghezza reale */
   margin-left: -20% !important;   /* Niente spostamenti */
 }
 
@@ -1448,10 +1448,10 @@ let chartRevDay = null;
 function renderMoreCharts() {
   if (!monthlyAggregates || monthlyAggregates.length === 0) return;
 
-  // 1️⃣ Creo le label originali
+  // 1️⃣ Etichette originali
   let labels = monthlyAggregates.map(b => b.label);
 
-  // 2️⃣ Accorcio i mesi → "Gennaio 2024" → "Gen 24"
+  // 2️⃣ Mesi abbreviati → "Gennaio 2024" → "Gen 24"
   labels = labels.map(l => {
     const [mese, anno] = l.split(" ");
     return mese.substring(0, 3) + " " + anno.substring(2);
@@ -1469,12 +1469,16 @@ function renderMoreCharts() {
     return (b.noleggiati / b.fleetSize) * 100;
   });
 
-  // 🔥 IMPORTANTE:
-  // Usa “labels” quando costruisci i grafici (non b.label!)
+  // 4️⃣ (RIGENERA I GRAFICI QUI SOTTO)
   // Esempio:
-  //
-  // new Chart(ctx, { data: { labels, datasets: [...] } })
+  // new Chart(document.getElementById("chartOccupancy"), {
+  //     type: "line",
+  //     data: { labels, datasets: [...] },
+  //     options: {...}
+  // });
+
 }
+
 
   // =======================
   // GRAFICO OCCUPANCY
@@ -1658,7 +1662,7 @@ function renderMainChart() {
     maxRotation: 45,   // ruota un po' di più
     minRotation: 45,
     font: { size: 10 },
-    padding: 20        // più spazio sopra e sotto
+    padding: 20  }      // più spazio sopra e sotto
   },
 
   // Aggiunge spazio verticale PER DAVVERO
