@@ -680,7 +680,7 @@ fetch("bookings2025.json")
           set.add(String(val).trim());
         }
       });
-      bookingsData.forEach(row => {
+extendedBookings.forEach(row => {
         const val = row["acquisizione"];
         if (val !== null && val !== undefined && String(val).trim() !== "") {
           set.add(String(val).trim());
@@ -942,9 +942,77 @@ fetch("bookings2025.json")
 
       // 2) Filtro stazione su flotta (per year/month/group)
       applyStationFilterToFleet(monthlyMap, groups, stations);
+      // --- Clonazione prenotazioni per 2024 e 2026 (NON tocca quelle 2025 originali) ---
+
+let extendedBookings = [];
+
+// Normalizziamo prima tutte le prenotazioni 2025
+bookingsData.forEach(row => {
+    if (!row.startDate) return;
+
+    const fromDate = parseDate(row.startDate);
+    if (!fromDate) return;
+
+    const baseYear = fromDate.getFullYear();
+    if (baseYear !== 2025) return; // lavoriamo SOLO sulle prenotazioni 2025 originali
+
+    const gruppo = canonicalGroup(row["cartype"] ?? row["gruppo"]);
+    if (!gruppo) return;
+
+    let days = parseFloat(row["duration"] ?? 0);
+    if (!isFinite(days) || days < 1) days = 1;
+
+    const price = parseFloat(String(row["price"] ?? 0).replace(",", ".")) || 0;
+
+    // -------------------------------------------------------------------
+    // 1️⃣ VERSIONE 2025 (originale → resta com'è)
+    // -------------------------------------------------------------------
+    extendedBookings.push({
+        ...row,
+        year: 2025,
+        scaledDays: days,
+        scaledPrice: price
+    });
+
+    // -------------------------------------------------------------------
+    // 2️⃣ VERSIONE 2024 (clonata con -5%)
+    // -------------------------------------------------------------------
+    const date2024 = new Date(fromDate);
+    date2024.setFullYear(2024);
+
+    extendedBookings.push({
+        ...row,
+        startDate: date2024.toISOString().slice(0, 10),
+        year: 2024,
+        scaledDays: days * 0.95,
+        scaledPrice: price * 0.95
+    });
+
+    // -------------------------------------------------------------------
+    // 3️⃣ VERSIONE 2026 (clonata con il filtro PROIEZIONE)
+    // -------------------------------------------------------------------
+    const projectionFactor = parseFloat(
+        (document.getElementById("projectionSelect") || {}).value || "0.10"
+    );
+
+    const date2026 = new Date(fromDate);
+    date2026.setFullYear(2026);
+
+    extendedBookings.push({
+        ...row,
+        startDate: date2026.toISOString().slice(0, 10),
+        year: 2026,
+        scaledDays: days * (1 + projectionFactor),
+        scaledPrice: price * (1 + projectionFactor)
+    });
+});
+
+// --- Fine trasformazioni ---
+// D'ora in poi, invece di usare "bookingsData", si usa "extendedBookings".
+
 
       // 3) Prenotazioni
-      bookingsData.forEach(row => {
+     extendedBookings.forEach(row => {
         const gruppoCanonico = canonicalGroup(row["cartype"] ?? row["gruppo"]);
         if (!gruppoCanonico) return;
         if (groups.length > 0 && !groups.includes(gruppoCanonico)) return;
