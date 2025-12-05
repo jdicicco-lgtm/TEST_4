@@ -1562,6 +1562,24 @@ applyFiltersAndRender = function () {
 //  GRAFICO PRINCIPALE (line chart flotta / costi / revenue)
 // ---------------------------------------------------------
 //
+  function abbreviateMonth(name) {
+  const map = {
+    "Gennaio": "Gen",
+    "Febbraio": "Feb",
+    "Marzo": "Mar",
+    "Aprile": "Apr",
+    "Maggio": "Mag",
+    "Giugno": "Giu",
+    "Luglio": "Lug",
+    "Agosto": "Ago",
+    "Settembre": "Set",
+    "Ottobre": "Ott",
+    "Novembre": "Nov",
+    "Dicembre": "Dic"
+  };
+  return map[name] || name;
+}
+  
 function renderMainChart() {
   const ctx = document.getElementById("mainChart").getContext("2d");
 
@@ -1569,7 +1587,7 @@ function renderMainChart() {
     window.mainChartInstance.destroy();
   }
 
-  const labels = monthlyAggregates.map(b => MONTH_LABELS_IT[b.month - 1]);
+  const labels = monthlyAggregates.map(b => abbreviateMonth(b.label));
 
   const fleet = monthlyAggregates.map(b => b.fleetSize);
   const costoTot = monthlyAggregates.map(b => b.costoTotale);
@@ -1620,7 +1638,9 @@ function renderMainChart() {
       },
       scales: {
         x: {
-          ticks: { color: "#fff" }
+          ticks: { color: "#fff", maxRotation: 40,
+    minRotation: 40,
+    padding: 8 }
         },
         yFleet: {
           type: "linear",
