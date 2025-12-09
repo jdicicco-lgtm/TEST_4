@@ -1731,43 +1731,35 @@ function renderFleetDonut() {
         borderWidth: 0
       }]
     },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      cutout: "60%",
-      plugins: {
-        legend: {
-          labels: {
-            color: "#ffffff",
-            generateLabels(chart) {
-              const ds = chart.data.datasets[0].data;
-              return chart.data.labels.map((l, i) => {
-                const v = ds[i];
-                const perc = total > 0 ? ((v / total) * 100).toFixed(1) : 0;
-                return {
-                  text: `${l} – ${perc}%`,
-                  fillStyle: chart.data.datasets[0].backgroundColor[i],
-                  strokeStyle: "#000",
-                  lineWidth: 0,
-                  hidden: false
-                };
-              });
-            }
-          }
+   options: {
+  responsive: true,
+  maintainAspectRatio: false,
+  cutout: "55%",
+  animation: false,
+
+  plugins: {
+    legend: {
+      position: "top",      // puoi mettere "bottom" se preferisci
+      labels: {
+        color: "#ffffff",
+        font: {
+          size: 14,
+          weight: "500"
         },
-        tooltip: {
-          callbacks: {
-            label: ctx => {
-              const value = ctx.raw;
-              const perc = total > 0 ? ((value / total) * 100).toFixed(1) : 0;
-              return `${ctx.label}: ${value} veicoli (${perc}%)`;
-            }
-          }
-        }
+        padding: 20,        // più spazio tra gli elementi
+        usePointStyle: true,
+        pointStyle: "circle"
+      }
+    },
+    tooltip: {
+      callbacks: {
+        label: ctx =>
+          `${ctx.label}: ${ctx.parsed.toLocaleString("it-IT")} unità`
       }
     }
-  });
+  }
 }
+
 
 
 // ===============================
