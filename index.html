@@ -173,16 +173,26 @@
   border-radius: 1.2rem;
   border: 1px solid rgba(255, 255, 255, 0.10);
   box-shadow: 0 12px 35px rgba(0, 0, 0, 0.55);
-  
+
   padding: 1.5rem 1.5rem 2rem;
 
-  /* 🔥 CONTROLLA L’ALTEZZA DEI GRAFICI */
+  /* 🔥 controlla l’altezza */
   height: auto;
   min-height: 320px;
-  max-height: 360px; /* <-- BLOCCA espansione verso il basso */
+  max-height: 360px; /* blocca espansione verso il basso */
+  
+  overflow: hidden;
+  position: relative;
+  width: 100%; /* allineamento uniforme */
+  display: block;
+}
 
-  overflow: hidden;   /* evita che labels o tooltips escano fuori */
-  position: relative; /* utile per eventuali overlay */
+.chart-wrapper {
+  width: 100%;
+  max-width: 1200px; /* stesso limite del grafico principale */
+  margin: 0 auto;    /* allinea tutto perfettamente */
+  padding-left: 0;
+  padding-right: 0;
 }
 
 /* 🔥 FORZA DIMENSIONI STABILI DEL CANVAS */
