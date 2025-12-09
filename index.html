@@ -498,7 +498,7 @@
                 <h6 class="mb-0">Andamento mensile</h6>
                 <small class="text-muted">Dimensione flotta, costo totale, revenue, noleggiati</small>
               </div>
-             <canvas id="chartLineRC" style="height:280px;"></canvas>
+             <canvas id="mainChart" style="height:280px;"></canvas>
             </div>
           </div>
         </div>
@@ -1484,7 +1484,10 @@ function renderLineRC() {
   if (!ctxRC) return;
 
   // Distruggi grafico precedente
-  if (window.chartRC) window.chartRC.destroy();
+if (window.chartRC && typeof window.chartRC.destroy === "function") {
+    window.chartRC.destroy();
+}
+
 
   // labels dinamiche
   const labels = monthlyAggregates.map(m => m.label);
@@ -1616,14 +1619,84 @@ function renderFleetDonut() {
   const ctx = document.getElementById("chartFleetDonut");
   if (!ctx) return;
 
+  // distruggi grafico precedente
   if (window.chartFleetDonut && typeof window.chartFleetDonut.destroy === "function") {
     window.chartFleetDonut.destroy();
   }
 
-  // costruzione dati…
+  // ==========================
+  // 1️⃣ COSTRUZIONE DEI CONTEGGI FILTRATI
+  // ==========================
+  const counts = {};
+  VEHICLE_GROUPS.forEach(g => counts[g] = 0);
+
+  // monthlyAggregates contiene già i dati filtrati da applyFiltersAndRender()
+  monthlyAggregates.forEach(bucket => {
+    // bucket.fleetSize contiene il totale flotta filtrato,
+    // ma NON è splittato per gruppo → dobbiamo usare fleetData
+  });
+
+  // Per avere lo split per gruppo, filtriamo fleetData manualmente
+  fleetData.forEach(row => {
+    const gruppo = canonicalGroup(row["GRUPPO"]);
+    if (!gruppo || !counts.hasOwnProperty(gruppo)) return;
+
+    // Applichiamo gli stessi filtri usati per gli aggregati
+    const selectedGroups = getMultiSelectValues("groupFilter");
+    const selectedAcquisition = getMultiSelectValues("acquisitionFilter");
+    const selectedStations = getMultiSelectValues("stationFilter");
+    const selectedYears = getMultiSelectValues("yearFilter").map(Number);
+    const selectedMonths = getMultiSelectValues("monthFilter").map(Number);
+
+    // filtro gruppo
+    if (selectedGroups.length > 0 && !selectedGroups.includes(gruppo)) return;
+
+    // filtro acquisizione
+    const acq = row["ACQUISIZIONE"] ? String(row["ACQUISIZIONE"]).trim() : null;
+    if (selectedAcquisition.length > 0 && (!acq || !selectedAcquisition.includes(acq))) return;
+
+    // filtro stazione della flotta
+    const station = row["STAZIONE"] ? normalizeStationName(row["STAZIONE"]) : null;
+    if (selectedStations.length > 0 && (!station || !selectedStations.includes(station))) return;
+
+    // date flotta
+    const start = parseDate(row["DATA INIZIO"]);
+    const end = parseDate(row["RICONSEGNA EFFETTIVA"] || row["DATA FINE"]);
+    if (!start || !end) return;
+
+    // ciclo anno/mese effettivo del veicolo
+    let validForChart = false;
+
+    for (let y = start.getFullYear(); y <= end.getFullYear(); y++) {
+      for (let m = 1; m <= 12; m++) {
+        // filtri anno/mese
+        if (selectedYears.length > 0 && !selectedYears.includes(y)) continue;
+        if (selectedMonths.length > 0 && !selectedMonths.includes(m)) continue;
+
+        validForChart = true;
+      }
+    }
+
+    if (validForChart) {
+      counts[gruppo] += 1;
+    }
+  });
+
+  // ==========================
+  // 2️⃣ PREPARAZIONE DATI
+  // ==========================
   const labels = VEHICLE_GROUPS;
   const values = labels.map(g => counts[g]);
+  const total = values.reduce((a, b) => a + b, 0);
 
+  // evita grafico vuoto
+  if (total === 0) {
+    values.fill(1); // grafico placeholder
+  }
+
+  // ==========================
+  // 3️⃣ CREAZIONE GRAFICO
+  // ==========================
   window.chartFleetDonut = new Chart(ctx, {
     type: "doughnut",
     data: {
@@ -1631,8 +1704,8 @@ function renderFleetDonut() {
       datasets: [{
         data: values,
         backgroundColor: [
-          "#3b82f6", "#22c55e", "#facc15", "#ef4444", "#8b5cf6",
-          "#ec4899", "#14b8a6", "#f97316", "#38bdf8", "#64748b"
+          "#3b82f6","#22c55e","#facc15","#ef4444","#8b5cf6",
+          "#ec4899","#14b8a6","#f97316","#38bdf8","#64748b"
         ],
         borderWidth: 0
       }]
@@ -1640,12 +1713,40 @@ function renderFleetDonut() {
     options: {
       responsive: true,
       maintainAspectRatio: false,
-      cutout: "55%",
-      animation: false
+      cutout: "60%",
+      plugins: {
+        legend: {
+          labels: {
+            color: "#ffffff",
+            generateLabels(chart) {
+              const ds = chart.data.datasets[0].data;
+              return chart.data.labels.map((l, i) => {
+                const v = ds[i];
+                const perc = total > 0 ? ((v / total) * 100).toFixed(1) : 0;
+                return {
+                  text: `${l} – ${perc}%`,
+                  fillStyle: chart.data.datasets[0].backgroundColor[i],
+                  strokeStyle: "#000",
+                  lineWidth: 0,
+                  hidden: false
+                };
+              });
+            }
+          }
+        },
+        tooltip: {
+          callbacks: {
+            label: ctx => {
+              const value = ctx.raw;
+              const perc = total > 0 ? ((value / total) * 100).toFixed(1) : 0;
+              return `${ctx.label}: ${value} veicoli (${perc}%)`;
+            }
+          }
+        }
+      }
     }
   });
 }
-
 
 
 // ===============================
