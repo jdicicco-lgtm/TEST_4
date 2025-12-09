@@ -168,15 +168,35 @@
       background-color: #020617;
     }
 
-    .chart-container {
-  background: #111827; /* più chiaro */
+ .chart-container {
+  background: #111827; /* sfondo più leggibile */
   border-radius: 1.2rem;
-  border: 1px solid rgba(255,255,255,0.08);
-  box-shadow: 0 12px 35px rgba(0,0,0,0.6);
+  border: 1px solid rgba(255, 255, 255, 0.10);
+  box-shadow: 0 12px 35px rgba(0, 0, 0, 0.55);
+  
   padding: 1.5rem 1.5rem 2rem;
+
+  /* 🔥 CONTROLLA L’ALTEZZA DEI GRAFICI */
   height: auto;
   min-height: 320px;
-  overflow: hidden; /* evita testo fuori */
+  max-height: 360px; /* <-- BLOCCA espansione verso il basso */
+
+  overflow: hidden;   /* evita che labels o tooltips escano fuori */
+  position: relative; /* utile per eventuali overlay */
+}
+
+/* 🔥 FORZA DIMENSIONI STABILI DEL CANVAS */
+.chart-container canvas {
+  width: 100% !important;
+  height: 280px !important;
+  max-height: 280px !important;
+  display: block; /* evita resize strani su Chrome */
+}
+
+/* Etichette dentro le chart più leggibili */
+.chart-container h6,
+.chart-container small {
+  color: #e5e7eb !important;
 }
 
     .btn-icon {
