@@ -1433,28 +1433,30 @@ setKpi(
   { currency: false, decimals: 1 }
 );
 
-    function resetKpiDisplay() {
-      const ids = [
-        "kpi-fleet-current","kpi-fleet-prev","kpi-fleet-diff",
-        "kpi-canone-current","kpi-canone-prev","kpi-canone-diff",
-        "kpi-canone-ivato-current",
-        "kpi-assicurazione-current","kpi-assicurazione-prev","kpi-assicurazione-diff",
-        "kpi-costo-current","kpi-costo-prev","kpi-costo-diff",
-        "kpi-revenue-current","kpi-revenue-prev","kpi-revenue-diff",
-        "kpi-revday-current","kpi-revday-prev","kpi-revday-diff",
-        "kpi-bookings-current","kpi-bookings-prev","kpi-bookings-diff",
-        "kpi-noleggiati-current","kpi-noleggiati-prev","kpi-noleggiati-diff"
-      ];
-      ids.forEach(id => {
-        const el = document.getElementById(id);
-        if (!el) return;
-        el.textContent = "–";
-        if (el.classList) {
-          el.classList.remove("positive","negative");
-          el.classList.add("neutral");
-        }
-      });
+   function resetKpiDisplay() {
+  const ids = [
+    "kpi-fleet-current","kpi-fleet-prev","kpi-fleet-diff",
+    "kpi-canone-current","kpi-canone-prev","kpi-canone-diff",
+    "kpi-canone-ivato-current",
+    "kpi-assicurazione-current","kpi-assicurazione-prev","kpi-assicurazione-diff",
+    "kpi-costo-current","kpi-costo-prev","kpi-costo-diff",
+    "kpi-revenue-current","kpi-revenue-prev","kpi-revenue-diff",
+    "kpi-revday-current","kpi-revday-prev","kpi-revday-diff",
+    "kpi-bookings-current","kpi-bookings-prev","kpi-bookings-diff",
+    "kpi-noleggiati-current","kpi-noleggiati-prev","kpi-noleggiati-diff"
+  ];
+  ids.forEach(id => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.textContent = "–";
+    if (el.classList) {
+      el.classList.remove("positive","negative");
+      el.classList.add("neutral");
     }
+  });
+}
+}   //  <--- 🔥 questa graffa MANCAVA: chiude updateKpiCards()
+
   
     // =========================
     // EXPORT CSV
