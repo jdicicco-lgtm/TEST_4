@@ -1420,15 +1420,18 @@ fetch("bookings2025.json")
         { currency: false, decimals: 0 }
       );
 
-      setKpi(
-        "kpi-noleggiati-current",
-        "kpi-noleggiati-prev",
-        "kpi-noleggiati-diff",
-        current.noleggiati,
-        prev.noleggiati,
-        { currency: false, decimals: 1 }
-      );
-    }
+     // Media mensile noleggiati (corretto!)
+const noleggiatiCurrAvg = current.noleggiati / monthsCountCurrent;
+const noleggiatiPrevAvg = prev.noleggiati / monthsCountPrev;
+
+setKpi(
+  "kpi-noleggiati-current",
+  "kpi-noleggiati-prev",
+  "kpi-noleggiati-diff",
+  noleggiatiCurrAvg,
+  noleggiatiPrevAvg,
+  { currency: false, decimals: 1 }
+);
 
     function resetKpiDisplay() {
       const ids = [
